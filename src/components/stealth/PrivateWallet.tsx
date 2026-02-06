@@ -196,7 +196,7 @@ export const PrivateWallet = () => {
 
   if (!isConnected) {
     return (
-      <Box p="48px 32px" bgColor={colors.bg.card} borderRadius={radius.xl} border={`1px solid ${colors.border.default}`} textAlign="center">
+      <Box w="100%" p="48px 32px" bgColor={colors.bg.card} borderRadius={radius.xl} border={`1px solid ${colors.border.default}`} textAlign="center">
         <VStack gap="24px">
           <Box color={colors.accent.indigo} opacity={0.9}><ShieldIcon size={48} /></Box>
           <VStack gap="8px">
@@ -213,7 +213,7 @@ export const PrivateWallet = () => {
 
   if (!stealthKeys) {
     return (
-      <Box p="48px 32px" bgColor={colors.bg.card} borderRadius={radius.xl} border={`1px solid ${colors.border.default}`} animation={`${fadeIn} 0.4s ease-out`}>
+      <Box w="100%" p="48px 32px" bgColor={colors.bg.card} borderRadius={radius.xl} border={`1px solid ${colors.border.default}`} animation={`${fadeIn} 0.4s ease-out`}>
         <VStack gap="32px">
           <VStack gap="16px" textAlign="center">
             <Box color={colors.accent.indigo} opacity={0.9}><KeyIcon size={44} /></Box>
@@ -260,7 +260,7 @@ export const PrivateWallet = () => {
   }
 
   return (
-    <Box bgColor={colors.bg.card} borderRadius={radius.xl} border={`1.5px solid ${colors.border.default}`} overflow="hidden"
+    <Box w="100%" bgColor={colors.bg.card} borderRadius={radius.xl} border={`1.5px solid ${colors.border.default}`} overflow="hidden"
       animation={`${fadeIn} 0.3s ease-out`} boxShadow="0 8px 32px rgba(0, 0, 0, 0.4)">
 
       {/* Header */}
@@ -693,7 +693,7 @@ const InboxView = ({ colors, radius, fadeIn, payments, isScanning, scan, claimAd
               fontWeight={500} fontSize="12px"
               color={useRelayerMode ? "#fff" : colors.text.muted}
               _hover={{ bgColor: useRelayerMode ? colors.accent.indigo : colors.bg.hover }}
-              onClick={() => isRelayerAvailable ? setUseRelayerMode(true) : refreshRelayerInfo()}
+              onClick={() => { setUseRelayerMode(true); if (!isRelayerAvailable) refreshRelayerInfo(); }}
               disabled={isCheckingRelayer}
             >
               <HStack gap="5px">
