@@ -1,6 +1,6 @@
-# Thanos Stealth
+# Dust Protocol
 
-ERC-5564/ERC-6538 Stealth Address Privacy System for Thanos Network.
+Stealth payment infrastructure for Tokamak Network. Just as Thanos turned his enemies to dust - untraceable and scattered to the wind - Dust Protocol makes your financial activity impossible to track. Leveraging advanced cryptography and stealth addresses, your payments dissolve into the blockchain, leaving no connection to your identity.
 
 ## Features
 
@@ -39,7 +39,7 @@ RELAYER_PRIVATE_KEY=your_key npm run relayer
 ## Architecture
 
 ```
-thanos-stealth/
+dust-protocol/
 ├── src/
 │   ├── app/                 # Next.js app router
 │   ├── components/

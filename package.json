@@ -1,7 +1,7 @@
 {
-  "name": "thanos-stealth",
+  "name": "dust-protocol",
   "version": "1.0.0",
-  "description": "ERC-5564/ERC-6538 Stealth Address Privacy System for Thanos Network",
+  "description": "Stealth payment infrastructure for Tokamak Network - payments that dissolve into the blockchain",
   "private": true,
   "scripts": {
     "dev": "next dev",

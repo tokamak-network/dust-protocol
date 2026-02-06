@@ -35,7 +35,7 @@ export default function Home() {
               </Box>
               <VStack align="flex-start" gap="0">
                 <Text fontSize="16px" fontWeight="700" color="white">
-                  Thanos Stealth
+                  Dust Protocol
                 </Text>
                 <Text fontSize="11px" color="#6b6b7a">
                   Private Payments

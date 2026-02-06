@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Thanos Stealth - Private Payments",
-  description: "ERC-5564/ERC-6538 Stealth Address Privacy System for Thanos Network",
+  title: "Dust Protocol - Private Payments",
+  description: "Stealth payment infrastructure for Tokamak Network - payments that dissolve into the blockchain",
 };
 
 export default function RootLayout({
