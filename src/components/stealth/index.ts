@@ -1,0 +1,1 @@
+export { PrivateWallet } from './PrivateWallet';
