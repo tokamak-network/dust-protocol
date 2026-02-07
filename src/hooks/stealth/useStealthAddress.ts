@@ -1,21 +1,17 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useAccount } from 'wagmi';
+import { useAccount, useWalletClient } from 'wagmi';
 import { ethers } from 'ethers';
 import {
-  generateStealthKeyPair, deriveStealthKeyPairFromSignature, formatStealthMetaAddress,
-  parseStealthMetaAddress, registerStealthMetaAddress, lookupStealthMetaAddress,
+  generateStealthKeyPair, deriveStealthKeyPairFromSignature, deriveStealthKeyPairFromSignatureAndPin,
+  formatStealthMetaAddress, parseStealthMetaAddress, registerStealthMetaAddress, lookupStealthMetaAddress,
   isRegistered as checkIsRegistered, STEALTH_KEY_DERIVATION_MESSAGE,
   type StealthKeyPair, type StealthMetaAddress,
-  deriveClaimAddresses, saveClaimAddressesToStorage, loadClaimAddressesFromStorage,
+  deriveClaimAddresses, deriveClaimAddressesWithPin, saveClaimAddressesToStorage, loadClaimAddressesFromStorage,
   type DerivedClaimAddress,
 } from '@/lib/stealth';
+import { getProvider, getProviderWithAccounts, signMessage as signWithWallet } from '@/lib/providers';
 
 const STORAGE_KEY = 'tokamak_stealth_keys_';
-
-function getProvider() {
-  if (typeof window === 'undefined' || !window.ethereum) return null;
-  return new ethers.providers.Web3Provider(window.ethereum as ethers.providers.ExternalProvider);
-}
 
 // Full validation: tries formatStealthMetaAddress + parseStealthMetaAddress round-trip
 function areKeysValid(keys: StealthKeyPair): boolean {
@@ -37,12 +33,14 @@ const getLabel = (i: number) => LABELS[i] || `Wallet ${i + 1}`;
 
 export function useStealthAddress() {
   const { address, isConnected } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const [isSigningMessage, setIsSigningMessage] = useState(false);
 
   const [stealthKeys, setStealthKeys] = useState<StealthKeyPair | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // Claim addresses state (unified with stealth keys)
   const [claimAddresses, setClaimAddresses] = useState<ClaimAddressWithBalance[]>([]);
@@ -60,7 +58,7 @@ export function useStealthAddress() {
 
   // Load saved keys — full round-trip validation before setting state
   useEffect(() => {
-    if (!address || typeof window === 'undefined') return;
+    if (!address || typeof window === 'undefined') { setIsHydrated(true); return; }
     const stored = localStorage.getItem(STORAGE_KEY + address.toLowerCase());
     if (stored) {
       try {
@@ -79,6 +77,7 @@ export function useStealthAddress() {
     if (savedClaims.length > 0) {
       setClaimAddresses(savedClaims.map(a => ({ ...a, privateKey: '' })) as ClaimAddressWithBalance[]);
     }
+    setIsHydrated(true);
   }, [address]);
 
   // Save keys when changed
@@ -105,23 +104,23 @@ export function useStealthAddress() {
     setIsRegistered(false);
   }, []);
 
-  // Unified derivation — uses ethers.js directly (bypasses wagmi/viem chain issues)
-  const deriveKeysFromWallet = useCallback(async () => {
-    if (!isConnected || !address) { setError('Wallet not connected'); return; }
+  // Unified derivation — uses wagmi wallet client for signing (proper wallet integration)
+  // Accepts optional PIN for PIN-based derivation
+  // Returns the wallet signature so callers can reuse it (e.g. for PIN encryption)
+  const deriveKeysFromWallet = useCallback(async (pin?: string): Promise<string | null> => {
+    if (!isConnected || !address) { setError('Wallet not connected'); return null; }
     setError(null);
     setIsLoading(true);
     setIsSigningMessage(true);
     try {
-      const provider = getProvider();
-      if (!provider) throw new Error('No wallet provider found. Is MetaMask installed?');
-      const signer = provider.getSigner();
-
-      const sig = await signer.signMessage(STEALTH_KEY_DERIVATION_MESSAGE);
+      const sig = await signWithWallet(STEALTH_KEY_DERIVATION_MESSAGE, walletClient);
       signatureRef.current = sig;
       setIsSigningMessage(false);
 
-      // Derive stealth keys
-      const newKeys = deriveStealthKeyPairFromSignature(sig);
+      // Derive stealth keys — PIN-based if PIN provided, legacy otherwise
+      const newKeys = pin
+        ? deriveStealthKeyPairFromSignatureAndPin(sig, pin)
+        : deriveStealthKeyPairFromSignature(sig);
 
       // Validate before setting state
       if (!areKeysValid(newKeys)) {
@@ -131,9 +130,11 @@ export function useStealthAddress() {
       setStealthKeys(newKeys);
       setIsRegistered(false);
 
-      // Derive claim addresses from same signature
+      // Derive claim addresses — PIN-based if PIN provided
       const stored = loadClaimAddressesFromStorage(address);
-      const derived = deriveClaimAddresses(sig, 3);
+      const derived = pin
+        ? deriveClaimAddressesWithPin(sig, pin, 3)
+        : deriveClaimAddresses(sig, 3);
       const withLabels: ClaimAddressWithBalance[] = derived.map(a => ({
         ...a,
         label: stored.find(s => s.address.toLowerCase() === a.address.toLowerCase())?.label || getLabel(a.index),
@@ -142,9 +143,12 @@ export function useStealthAddress() {
       setClaimAddresses(withLabels);
       saveClaimAddressesToStorage(address, withLabels);
 
-      // Fetch balances
-      const balances = await Promise.all(withLabels.map(a => fetchBalance(a.address)));
-      setClaimAddresses(prev => prev.map((a, i) => ({ ...a, balance: balances[i] })));
+      // Fetch balances in background (don't block)
+      Promise.all(withLabels.map(a => fetchBalance(a.address))).then(balances => {
+        setClaimAddresses(prev => prev.map((a, i) => ({ ...a, balance: balances[i] })));
+      });
+
+      return sig;
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to derive keys';
       if (msg.toLowerCase().includes('rejected') || msg.toLowerCase().includes('denied') || msg.includes('ACTION_REJECTED')) {
@@ -152,11 +156,12 @@ export function useStealthAddress() {
       } else {
         setError(msg);
       }
+      return null;
     } finally {
       setIsLoading(false);
       setIsSigningMessage(false);
     }
-  }, [isConnected, address, fetchBalance]);
+  }, [isConnected, address, walletClient, fetchBalance]);
 
   const clearKeys = useCallback(() => {
     setStealthKeys(null);
@@ -186,7 +191,7 @@ export function useStealthAddress() {
     setError(null);
     setIsLoading(true);
     try {
-      const provider = getProvider();
+      const provider = await getProviderWithAccounts();
       if (!provider) throw new Error('No wallet provider');
       const txHash = await registerStealthMetaAddress(provider.getSigner(), metaAddress);
       setIsRegistered(true);
@@ -248,7 +253,7 @@ export function useStealthAddress() {
     stealthKeys, metaAddress, parsedMetaAddress,
     generateKeys, deriveKeysFromWallet, clearKeys, importKeys, exportKeys,
     registerMetaAddress, isRegistered, checkRegistration, lookupAddress,
-    isLoading, isSigningMessage, error,
+    isLoading, isSigningMessage, isHydrated, error,
     // Claim addresses (unified)
     claimAddresses, selectedClaimAddress, selectedClaimIndex, claimAddressesInitialized,
     selectClaimAddress, refreshClaimBalances,

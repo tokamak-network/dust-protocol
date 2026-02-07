@@ -205,7 +205,7 @@ export function useStealthSend() {
     }
   }, []);
 
-  const sendEthToStealth = useCallback(async (metaAddress: string, amount: string): Promise<string | null> => {
+  const sendEthToStealth = useCallback(async (metaAddress: string, amount: string, linkSlug?: string): Promise<string | null> => {
     if (!isConnected) { setError('Wallet not connected'); return null; }
     setError(null);
     setIsLoading(true);
@@ -254,7 +254,13 @@ export function useStealthSend() {
       try {
         const announcer = new ethers.Contract(CANONICAL_ADDRESSES.announcer, ANNOUNCER_ABI, signer);
         const ephPubKey = '0x' + generated.ephemeralPublicKey.replace(/^0x/, '');
-        const metadata = '0x' + generated.viewTag;
+        // Metadata: viewTag + optional link slug (hex-encoded UTF-8)
+        let metadata = '0x' + generated.viewTag;
+        if (linkSlug) {
+          const slugBytes = new TextEncoder().encode(linkSlug);
+          const slugHex = Array.from(slugBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+          metadata += slugHex;
+        }
         await announceWithRetry(signer, announcer, generated.stealthAddress, ephPubKey, metadata);
       } catch (announceErr) {
         // Log but don't fail - funds are sent, recipient can scan manually

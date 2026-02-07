@@ -4,3 +4,5 @@ export { useStealthScanner } from './useStealthScanner';
 export { useClaimAddresses } from './useClaimAddresses';
 export { useStealthName } from './useStealthName';
 export { useRelayer } from './useRelayer';
+export { usePin } from './usePin';
+export { usePaymentLinks } from './usePaymentLinks';

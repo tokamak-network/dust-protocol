@@ -3,6 +3,7 @@
 import { Box, Text, HStack } from "@chakra-ui/react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { injected } from "wagmi/connectors";
+import { colors, radius } from "@/lib/design/tokens";
 
 export function ConnectButton() {
   const { address, isConnected } = useAccount();
@@ -15,11 +16,11 @@ export function ConnectButton() {
         <Box
           px="14px"
           py="8px"
-          bg="#12121a"
+          bgColor={colors.bg.input}
           borderRadius="8px"
-          border="1px solid #2d2d3a"
+          border={`1px solid ${colors.border.default}`}
         >
-          <Text fontSize="13px" color="#a0a0b0" fontFamily="'JetBrains Mono', monospace">
+          <Text fontSize="13px" color={colors.text.tertiary} fontFamily="'JetBrains Mono', monospace">
             {address.slice(0, 6)}...{address.slice(-4)}
           </Text>
         </Box>
@@ -27,14 +28,14 @@ export function ConnectButton() {
           as="button"
           px="16px"
           py="8px"
-          bg="#1a1a24"
+          bgColor={colors.bg.elevated}
           borderRadius="8px"
-          border="1px solid #3d3d4a"
+          border={`1px solid ${colors.border.default}`}
           cursor="pointer"
-          _hover={{ bg: "#22222e", borderColor: "#ff6b6b" }}
+          _hover={{ bgColor: colors.bg.hover, borderColor: colors.accent.red }}
           onClick={() => disconnect()}
         >
-          <Text fontSize="13px" color="#ff6b6b" fontWeight="500">
+          <Text fontSize="13px" color={colors.accent.red} fontWeight="500">
             Disconnect
           </Text>
         </Box>
@@ -47,7 +48,7 @@ export function ConnectButton() {
       as="button"
       px="20px"
       py="10px"
-      bg="linear-gradient(135deg, #5b5edd 0%, #7c7fff 100%)"
+      bg="linear-gradient(135deg, #2B5AE2 0%, #4A75F0 100%)"
       borderRadius="10px"
       cursor="pointer"
       _hover={{ opacity: 0.9 }}
