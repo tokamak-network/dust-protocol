@@ -1,85 +1,52 @@
 # Dust Protocol
 
-Stealth payment infrastructure for Tokamak Network. Just as Thanos turned his enemies to dust - untraceable and scattered to the wind - Dust Protocol makes your financial activity impossible to track. Leveraging advanced cryptography and stealth addresses, your payments dissolve into the blockchain, leaving no connection to your identity.
+Private payment infrastructure on Tokamak Network. Send and receive untraceable payments using stealth addresses and `.tok` names.
 
 ## Features
 
-- **🔒 Stealth Addresses** - Send and receive payments that cannot be traced to your identity
-- **📛 .tok Names** - Human-readable stealth addresses (e.g., `alice.tok`)
-- **⚡ Private Claims** - Withdraw funds via relayer to hide your wallet identity
-- **🔍 Real-time Scanning** - Automatically detect payments sent to you
+- **Stealth Addresses** — Payments go to one-time addresses that can't be linked to your identity
+- **`.tok` Names** — Human-readable addresses (`alice.tok`, `coffee.alice.tok`)
+- **Payment Links** — Create shareable links for receiving payments
+- **Sponsored Gas** — All protocol operations are gasless for users
+- **Real-time Scanning** — Automatic detection of incoming payments
 
-## Quick Start
-
-### 1. Install Dependencies
+## Setup
 
 ```bash
 npm install
-```
-
-### 2. Set Environment Variables
-
-```bash
-cp .env.example .env
-# Edit .env with your values
-```
-
-### 3. Run Development Server
-
-```bash
+cp .env.example .env.local
 npm run dev
 ```
 
-### 4. Run Relayer (Optional - for private claims)
-
-```bash
-RELAYER_PRIVATE_KEY=your_key npm run relayer
-```
-
-## Architecture
+### Environment Variables
 
 ```
-dust-protocol/
-├── src/
-│   ├── app/                 # Next.js app router
-│   ├── components/
-│   │   └── stealth/         # Private Wallet UI
-│   ├── hooks/
-│   │   └── stealth/         # React hooks for stealth operations
-│   └── lib/
-│       └── stealth/         # Core cryptography & blockchain lib
-├── contracts/               # Solidity smart contracts
-├── relayer/                 # Relayer service for private claims
-├── scripts/                 # Deployment scripts
-└── docs/                    # Documentation
+NEXT_PUBLIC_STEALTH_ANNOUNCER_ADDRESS=0x2C2a59E9e71F2D1A8A2D447E73813B9F89CBb125
+NEXT_PUBLIC_STEALTH_REGISTRY_ADDRESS=0x9C527Cc8CB3F7C73346EFd48179e564358847296
+NEXT_PUBLIC_STEALTH_NAME_REGISTRY_ADDRESS=0x0129DE641192920AB78eBca2eF4591E2Ac48BA59
+RELAYER_PRIVATE_KEY=<deployer-private-key>
 ```
 
 ## Smart Contracts
 
 | Contract | Address (Thanos Sepolia) |
 |----------|--------------------------|
-| ERC5564Announcer | `0xfE55B104f6A200cbD17D0Be5a90D17a2A2a0d223` |
-| ERC6538Registry | `0x0e4cF377fc18E46BB1184e4274367Bc0dB958573` |
-| StealthNameRegistry | `0x75BD499f7CA8E361b7930e2881b2B3c99Aa1eea1` |
+| ERC5564Announcer | `0x2C2a59E9e71F2D1A8A2D447E73813B9F89CBb125` |
+| ERC6538Registry | `0x9C527Cc8CB3F7C73346EFd48179e564358847296` |
+| StealthNameRegistry | `0x0129DE641192920AB78eBca2eF4591E2Ac48BA59` |
 
 ## How It Works
 
-1. **Generate Keys** - Derive stealth keys from your wallet signature
-2. **Share Address** - Share your `.tok` name or stealth meta-address
-3. **Receive Payments** - Sender generates one-time stealth address and sends funds
-4. **Scan & Claim** - Scan announcements and claim to any wallet
+1. **Connect wallet** and derive stealth keys from a signature
+2. **Register a `.tok` name** linked to your stealth meta-address
+3. **Share your name** — senders visit `yourname.tok` to pay privately
+4. **Scan & claim** — the app detects payments and claims them to your wallet
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, React 18, Chakra UI
-- **Blockchain**: ethers.js, wagmi, viem
-- **Cryptography**: @noble/secp256k1, @noble/hashes
-- **Relayer**: Express.js, Node.js
-
-## Standards
-
-- [ERC-5564](https://eips.ethereum.org/EIPS/eip-5564) - Stealth Addresses
-- [ERC-6538](https://eips.ethereum.org/EIPS/eip-6538) - Stealth Meta-Address Registry
+- Next.js 14, React 18, Chakra UI
+- ethers.js v5, wagmi, elliptic
+- ERC-5564 (Stealth Addresses), ERC-6538 (Meta-Address Registry)
 
 ## License
 
