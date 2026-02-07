@@ -69,8 +69,6 @@ export async function scanAnnouncements(
   const results: ScanResult[] = [];
 
   console.log(`[Scanner] Found ${events.length} announcements from block ${fromBlock} to ${toBlock ?? 'latest'}`);
-  console.log(`[Scanner] Using spendingPub: ${keys.spendingPublicKey.slice(0, 16)}...`);
-  console.log(`[Scanner] Using viewingPriv: ${keys.viewingPrivateKey.slice(0, 8)}...`);
 
   let viewTagFiltered = 0;
   let ecdhFiltered = 0;
