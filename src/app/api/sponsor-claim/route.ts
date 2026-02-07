@@ -5,6 +5,20 @@ const RPC_URL = 'https://rpc.thanos-sepolia.tokamak.network';
 const CHAIN_ID = 111551119090;
 const SPONSOR_KEY = process.env.RELAYER_PRIVATE_KEY;
 
+// Rate limiting: per-address cooldown
+const claimCooldowns = new Map<string, number>();
+const CLAIM_COOLDOWN_MS = 10_000; // 10 seconds between claims per stealth address
+const MAX_GAS_PRICE = ethers.utils.parseUnits('100', 'gwei'); // Gas price cap
+
+function isValidAddress(addr: string): boolean {
+  return /^0x[0-9a-fA-F]{40}$/.test(addr);
+}
+
+function isValidPrivateKey(key: string): boolean {
+  const cleaned = key.replace(/^0x/, '');
+  return /^[0-9a-fA-F]{64}$/.test(cleaned);
+}
+
 // Custom JSON-RPC fetch that bypasses Next.js fetch patching
 // Next.js overrides global fetch() with a version that adds caching headers,
 // which breaks ethers.js v5 provider internals (ERR_INVALID_URL: 'client')
@@ -70,6 +84,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Input validation
+    if (!isValidAddress(stealthAddress)) {
+      return NextResponse.json({ error: 'Invalid stealth address format' }, { status: 400 });
+    }
+    if (!isValidAddress(recipient)) {
+      return NextResponse.json({ error: 'Invalid recipient address format' }, { status: 400 });
+    }
+    if (!isValidPrivateKey(stealthPrivateKey)) {
+      return NextResponse.json({ error: 'Invalid key format' }, { status: 400 });
+    }
+
+    // Rate limiting per stealth address
+    const addrKey = stealthAddress.toLowerCase();
+    const lastClaim = claimCooldowns.get(addrKey);
+    if (lastClaim && Date.now() - lastClaim < CLAIM_COOLDOWN_MS) {
+      return NextResponse.json({ error: 'Please wait before claiming again' }, { status: 429 });
+    }
+    claimCooldowns.set(addrKey, Date.now());
+
     const provider = getProvider();
     const sponsor = new ethers.Wallet(SPONSOR_KEY, provider);
     const stealthWallet = new ethers.Wallet(stealthPrivateKey, provider);
@@ -91,10 +124,14 @@ export async function POST(req: Request) {
     const baseFee = block.baseFeePerGas || feeData.gasPrice || ethers.utils.parseUnits('1', 'gwei');
     const maxPriorityFee = feeData.maxPriorityFeePerGas || ethers.utils.parseUnits('1.5', 'gwei');
     // maxFeePerGas must be >= maxPriorityFeePerGas (EIP-1559 rule)
-    // On Thanos Sepolia baseFee is extremely low (~252 wei), so baseFee*3 < priorityFee
     const maxFeePerGas = baseFee.mul(3).lt(baseFee.add(maxPriorityFee))
       ? baseFee.add(maxPriorityFee).mul(2)
       : baseFee.mul(3);
+
+    // Gas price safety cap — refuse if network gas is abnormally high
+    if (maxFeePerGas.gt(MAX_GAS_PRICE)) {
+      return NextResponse.json({ error: 'Gas price too high, try again later' }, { status: 503 });
+    }
 
     const gasLimit = ethers.BigNumber.from(21000);
     const gasNeeded = gasLimit.mul(maxFeePerGas);
@@ -147,7 +184,7 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error('[Sponsor] Error:', e);
-    const message = e instanceof Error ? e.message : 'Withdrawal failed';
-    return NextResponse.json({ error: message }, { status: 500 });
+    // Don't leak internal error details to client
+    return NextResponse.json({ error: 'Withdrawal failed' }, { status: 500 });
   }
 }
