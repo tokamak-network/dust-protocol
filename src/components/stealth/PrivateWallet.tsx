@@ -107,6 +107,7 @@ export const PrivateWallet = () => {
   const [claimingIndex, setClaimingIndex] = useState<number | null>(null);
   const [claimedTx, setClaimedTx] = useState<string | null>(null);
   const [useRelayerMode, setUseRelayerMode] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const pendingPayments = payments.filter(p => !p.claimed && !p.keyMismatch && parseFloat(p.balance || "0") >= MIN_CLAIMABLE_BALANCE);
 
@@ -159,34 +160,50 @@ export const PrivateWallet = () => {
   };
 
   const handleSend = async () => {
-    const hash = await sendEthToStealth(resolvedAddress || recipient, amount);
-    if (hash) { setSendTxHash(hash); setSendStep("success"); }
+    try {
+      const hash = await sendEthToStealth(resolvedAddress || recipient, amount);
+      if (hash) { setSendTxHash(hash); setSendStep("success"); }
+    } catch {
+      // Error state already set by sendEthToStealth
+    }
   };
 
   const handleClaim = async (index: number) => {
     setClaimingIndex(index);
-    const payment = payments[index];
-    const claimTo = claimAddressesInitialized && selectedClaimAddress ? selectedClaimAddress.address : address;
-    if (!claimTo) return;
+    try {
+      const payment = payments[index];
+      const claimTo = claimAddressesInitialized && selectedClaimAddress ? selectedClaimAddress.address : address;
+      if (!claimTo) return;
 
-    if (useRelayerMode && isRelayerAvailable) {
-      const result = await relayerWithdraw(payment.announcement.stealthAddress, payment.stealthPrivateKey, claimTo);
-      if (result?.status === 'completed' && result.txHash) {
-        setClaimedTx(result.txHash);
-        // Refresh payments to update claimed status after relayer claim
-        setTimeout(() => scan(), 1000);
+      if (useRelayerMode && isRelayerAvailable) {
+        const result = await relayerWithdraw(payment.announcement.stealthAddress, payment.stealthPrivateKey, claimTo);
+        if (result?.status === 'completed' && result.txHash) {
+          setClaimedTx(result.txHash);
+          setTimeout(() => scan(), 1000);
+        }
+      } else {
+        const txHash = await claimPayment(payment, claimTo);
+        if (txHash) setClaimedTx(txHash);
       }
-    } else {
-      const txHash = await claimPayment(payment, claimTo);
-      if (txHash) setClaimedTx(txHash);
+    } catch {
+      // Error state already set by claimPayment/relayerWithdraw
+    } finally {
+      setClaimingIndex(null);
     }
-    setClaimingIndex(null);
   };
 
   const handleRegisterName = async () => {
     if (!metaAddress || !nameInput) return;
     const txHash = await registerName(nameInput, metaAddress);
-    if (txHash) { setNameInput(""); setIsNameAvailable(null); }
+    if (txHash) {
+      setNameInput(""); setIsNameAvailable(null);
+      // Also register on-chain (ERC-6538) so people can find you by wallet address too
+      if (!isRegistered) {
+        try { await registerMetaAddress(); } catch { /* non-critical */ }
+      }
+      setRegistrationSuccess(true);
+      setTimeout(() => setRegistrationSuccess(false), 5000);
+    }
   };
 
   const resetSendFlow = () => {
@@ -357,7 +374,7 @@ export const PrivateWallet = () => {
 
       {/* Content */}
       <Box p="20px">
-        {view === "home" && <HomeView {...{ colors, radius, fadeIn, ownedNames, nameRegistryConfigured, nameInput, setNameInput, isCheckingName, isNameAvailable, formatName, validateName, handleRegisterName, isNameLoading, handleCopy, setView, scan, isRegistered, registerMetaAddress, isKeyLoading }} />}
+        {view === "home" && <HomeView {...{ colors, radius, fadeIn, ownedNames, nameRegistryConfigured, nameInput, setNameInput, isCheckingName, isNameAvailable, formatName, validateName, handleRegisterName, isNameLoading, setView, scan, isRegistered, isKeyLoading, registrationSuccess, handleCopy }} />}
         {view === "send" && <SendView {...{ colors, radius, fadeIn, sendStep, recipient, setRecipient, amount, setAmount, isResolving, resolvedAddress, handleSendPreview, handleSend, setSendStep, lastGeneratedAddress, isSendLoading, sendTxHash, resetSendFlow, sendError }} />}
         {view === "inbox" && <InboxView {...{ colors, radius, fadeIn, payments, isScanning, scan, claimAddressesInitialized, claimAddresses, selectedIndex: selectedClaimIndex, selectAddress: selectClaimAddress, handleClaim, claimingIndex, claimedTx, scanError, useRelayerMode, setUseRelayerMode, isRelayerAvailable, isCheckingRelayer, relayerInfo, refreshRelayerInfo, relayerError, isRelayerWithdrawing }} />}
         {view === "history" && <HistoryView {...{ colors, radius, fadeIn, payments }} />}
@@ -385,8 +402,9 @@ interface HomeViewProps {
   setView: (v: ViewType) => void;
   scan: () => void;
   isRegistered: boolean;
-  registerMetaAddress: () => Promise<string | null>;
   isKeyLoading: boolean;
+  registrationSuccess: boolean;
+  handleCopy: (text: string) => void;
 }
 
 interface SendViewProps {
@@ -455,7 +473,7 @@ interface HistoryViewProps {
 }
 
 // Sub-components
-const HomeView = ({ colors, radius, fadeIn, ownedNames, nameRegistryConfigured, nameInput, setNameInput, isCheckingName, isNameAvailable, formatName, validateName, handleRegisterName, isNameLoading, setView, scan, isRegistered, registerMetaAddress, isKeyLoading }: HomeViewProps) => (
+const HomeView = ({ colors, radius, fadeIn, ownedNames, nameRegistryConfigured, nameInput, setNameInput, isCheckingName, isNameAvailable, formatName, validateName, handleRegisterName, isNameLoading, setView, scan, isRegistered, isKeyLoading, registrationSuccess, handleCopy }: HomeViewProps) => (
   <VStack gap="16px" align="stretch" animation={`${fadeIn} 0.25s ease-out`}>
     <Box p="20px" bgGradient="linear(180deg, rgba(124, 127, 255, 0.06) 0%, transparent 100%)" borderRadius={radius.md} border={`1.5px solid ${colors.border.default}`}>
       <VStack gap="16px" align="stretch">
@@ -524,23 +542,40 @@ const HomeView = ({ colors, radius, fadeIn, ownedNames, nameRegistryConfigured, 
       </Button>
     </HStack>
 
-    {!isRegistered && (
-      <Box p="18px 20px" bgGradient="linear(135deg, rgba(124, 127, 255, 0.08) 0%, rgba(124, 127, 255, 0.02) 100%)" borderRadius={radius.md} border={`1.5px solid rgba(124, 127, 255, 0.3)`}>
-        <HStack justify="space-between" align="center">
-          <HStack gap="14px">
-            <ShieldIcon size={22} color={colors.accent.indigoBright} />
-            <VStack align="flex-start" gap="2px">
-              <Text fontSize="14px" fontWeight={600} color={colors.text.primary}>Register on-chain</Text>
-              <Text fontSize="12px" color={colors.text.secondary}>Let others find you by wallet address</Text>
-            </VStack>
-          </HStack>
-          <Button h="38px" px="20px" bgColor={colors.accent.indigoDark} borderRadius={radius.sm} fontWeight={600} fontSize="13px" color="#fff"
-            _hover={{ bgColor: colors.accent.indigo }} onClick={registerMetaAddress} disabled={isKeyLoading}>
-            {isKeyLoading ? <Spinner size="xs" /> : "Register"}
-          </Button>
+    {registrationSuccess && (
+      <Box p="14px 18px" bgColor="rgba(0, 214, 143, 0.1)" borderRadius={radius.md} border="1.5px solid rgba(0, 214, 143, 0.4)" animation={`${fadeIn} 0.3s ease-out`}>
+        <HStack gap="10px">
+          <CheckCircleIcon size={18} color={colors.accent.greenBright} />
+          <VStack align="flex-start" gap="2px">
+            <Text fontSize="13px" fontWeight={600} color={colors.accent.greenBright}>Registered successfully</Text>
+            <Text fontSize="12px" color={colors.text.secondary}>Name and on-chain identity are both live</Text>
+          </VStack>
         </HStack>
       </Box>
     )}
+
+    <Box p="18px 20px" bgColor={colors.bg.input} borderRadius={radius.md} border={`1px solid ${colors.border.default}`}>
+      <VStack gap="14px" align="stretch">
+        <HStack gap="10px">
+          <LockIcon size={16} color={colors.accent.indigo} />
+          <Text fontSize="13px" fontWeight={600} color={colors.text.secondary}>How it works</Text>
+        </HStack>
+        <VStack gap="10px" align="stretch">
+          <HStack gap="10px" align="flex-start">
+            <Text fontSize="12px" color={colors.text.muted} minW="18px" textAlign="center" fontWeight={600}>1</Text>
+            <Text fontSize="12px" color={colors.text.tertiary} lineHeight="1.5">Share your <Text as="span" color={colors.accent.indigoBright} fontWeight={600}>.tok</Text> name or address with the sender</Text>
+          </HStack>
+          <HStack gap="10px" align="flex-start">
+            <Text fontSize="12px" color={colors.text.muted} minW="18px" textAlign="center" fontWeight={600}>2</Text>
+            <Text fontSize="12px" color={colors.text.tertiary} lineHeight="1.5">Each payment generates a unique stealth address</Text>
+          </HStack>
+          <HStack gap="10px" align="flex-start">
+            <Text fontSize="12px" color={colors.text.muted} minW="18px" textAlign="center" fontWeight={600}>3</Text>
+            <Text fontSize="12px" color={colors.text.tertiary} lineHeight="1.5">Only you can discover and claim the funds</Text>
+          </HStack>
+        </VStack>
+      </VStack>
+    </Box>
   </VStack>
 );
 
