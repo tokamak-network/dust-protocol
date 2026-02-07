@@ -54,7 +54,7 @@ export function formatStealthMetaAddress(keys: StealthKeyPair, chain = 'eth'): s
 export function parseStealthMetaAddress(uri: string): StealthMetaAddress {
   const match = uri.match(/^st:([a-z]+):0x([0-9a-fA-F]{132})$/);
   if (!match) {
-    throw new Error(`Invalid stealth meta-address: ${uri}`);
+    throw new Error('Invalid stealth meta-address format');
   }
 
   const [, chain, keys] = match;

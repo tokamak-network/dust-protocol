@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useAccount } from 'wagmi';
 import { ethers } from 'ethers';
 import {
   generateStealthKeyPair, deriveStealthKeyPairFromSignature, formatStealthMetaAddress,
@@ -17,6 +17,17 @@ function getProvider() {
   return new ethers.providers.Web3Provider(window.ethereum as ethers.providers.ExternalProvider);
 }
 
+// Full validation: tries formatStealthMetaAddress + parseStealthMetaAddress round-trip
+function areKeysValid(keys: StealthKeyPair): boolean {
+  try {
+    const meta = formatStealthMetaAddress(keys, 'thanos');
+    parseStealthMetaAddress(meta);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 interface ClaimAddressWithBalance extends DerivedClaimAddress {
   balance?: string;
 }
@@ -26,7 +37,7 @@ const getLabel = (i: number) => LABELS[i] || `Wallet ${i + 1}`;
 
 export function useStealthAddress() {
   const { address, isConnected } = useAccount();
-  const { signMessageAsync, isPending: isSigningMessage } = useSignMessage();
+  const [isSigningMessage, setIsSigningMessage] = useState(false);
 
   const [stealthKeys, setStealthKeys] = useState<StealthKeyPair | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
@@ -38,17 +49,30 @@ export function useStealthAddress() {
   const [selectedClaimIndex, setSelectedClaimIndex] = useState(0);
   const signatureRef = useRef<string | null>(null);
 
+  // Derived values — safe because stealthKeys are fully validated before being set
   const metaAddress = stealthKeys ? formatStealthMetaAddress(stealthKeys, 'thanos') : null;
-  const parsedMetaAddress: StealthMetaAddress | null = metaAddress ? parseStealthMetaAddress(metaAddress) : null;
+  const parsedMetaAddress: StealthMetaAddress | null = (() => {
+    try { return metaAddress ? parseStealthMetaAddress(metaAddress) : null; }
+    catch { return null; }
+  })();
   const selectedClaimAddress = claimAddresses[selectedClaimIndex] || null;
   const claimAddressesInitialized = claimAddresses.length > 0;
 
-  // Load saved keys
+  // Load saved keys — full round-trip validation before setting state
   useEffect(() => {
     if (!address || typeof window === 'undefined') return;
     const stored = localStorage.getItem(STORAGE_KEY + address.toLowerCase());
     if (stored) {
-      try { setStealthKeys(JSON.parse(stored)); } catch { /* ignore */ }
+      try {
+        const keys = JSON.parse(stored) as StealthKeyPair;
+        if (areKeysValid(keys)) {
+          setStealthKeys(keys);
+        } else {
+          localStorage.removeItem(STORAGE_KEY + address.toLowerCase());
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY + address.toLowerCase());
+      }
     }
     // Load claim addresses metadata
     const savedClaims = loadClaimAddressesFromStorage(address);
@@ -81,17 +105,30 @@ export function useStealthAddress() {
     setIsRegistered(false);
   }, []);
 
-  // Unified derivation - derives BOTH stealth keys AND claim addresses
+  // Unified derivation — uses ethers.js directly (bypasses wagmi/viem chain issues)
   const deriveKeysFromWallet = useCallback(async () => {
     if (!isConnected || !address) { setError('Wallet not connected'); return; }
     setError(null);
     setIsLoading(true);
+    setIsSigningMessage(true);
     try {
-      const sig = await signMessageAsync({ message: STEALTH_KEY_DERIVATION_MESSAGE });
+      const provider = getProvider();
+      if (!provider) throw new Error('No wallet provider found. Is MetaMask installed?');
+      const signer = provider.getSigner();
+
+      const sig = await signer.signMessage(STEALTH_KEY_DERIVATION_MESSAGE);
       signatureRef.current = sig;
+      setIsSigningMessage(false);
 
       // Derive stealth keys
-      setStealthKeys(deriveStealthKeyPairFromSignature(sig));
+      const newKeys = deriveStealthKeyPairFromSignature(sig);
+
+      // Validate before setting state
+      if (!areKeysValid(newKeys)) {
+        throw new Error('Derived keys failed validation — please try again');
+      }
+
+      setStealthKeys(newKeys);
       setIsRegistered(false);
 
       // Derive claim addresses from same signature
@@ -109,11 +146,17 @@ export function useStealthAddress() {
       const balances = await Promise.all(withLabels.map(a => fetchBalance(a.address)));
       setClaimAddresses(prev => prev.map((a, i) => ({ ...a, balance: balances[i] })));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to derive keys');
+      const msg = e instanceof Error ? e.message : 'Failed to derive keys';
+      if (msg.toLowerCase().includes('rejected') || msg.toLowerCase().includes('denied') || msg.includes('ACTION_REJECTED')) {
+        setError('Please approve the signature request in your wallet');
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsLoading(false);
+      setIsSigningMessage(false);
     }
-  }, [isConnected, address, signMessageAsync, fetchBalance]);
+  }, [isConnected, address, fetchBalance]);
 
   const clearKeys = useCallback(() => {
     setStealthKeys(null);
@@ -127,6 +170,10 @@ export function useStealthAddress() {
   }, [address]);
 
   const importKeys = useCallback((keys: StealthKeyPair) => {
+    if (!areKeysValid(keys)) {
+      setError('Imported keys are invalid');
+      return;
+    }
     setStealthKeys(keys);
     setIsRegistered(false);
     setError(null);

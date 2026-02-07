@@ -5,13 +5,24 @@
 
 const { ethers } = require('ethers');
 const { ec: EC } = require('elliptic');
+const fs = require('fs');
+const path = require('path');
 
 const secp256k1 = new EC('secp256k1');
 
 // Config
 const RPC_URL = 'https://rpc.thanos-sepolia.tokamak.network';
 const PRIVATE_KEY = process.env.PRIVATE_KEY || 'a596d50f8da618b4de7f9fab615f708966bcc51d3e5b183ae773eab00ea69f02';
-const ANNOUNCER_ADDRESS = '0xfE55B104f6A200cbD17D0Be5a90D17a2A2a0d223';
+
+// Load announcer address from deployment file
+const deploymentPath = path.join(__dirname, '../stealth-deployment.json');
+let ANNOUNCER_ADDRESS;
+try {
+  const deployment = JSON.parse(fs.readFileSync(deploymentPath, 'utf8'));
+  ANNOUNCER_ADDRESS = deployment.announcer;
+} catch {
+  ANNOUNCER_ADDRESS = '0x5ac18d5AdaC9b65E1Be9291A7C2cDbf33b584a3b';
+}
 const AMOUNT_TO_SEND = '0.01'; // 0.01 TOKAMAK
 
 const ANNOUNCER_ABI = [

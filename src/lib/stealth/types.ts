@@ -69,3 +69,6 @@ function getContractAddresses(): StealthContractAddresses {
 }
 
 export const CANONICAL_ADDRESSES = getContractAddresses();
+
+// Block number when contracts were deployed — scanner should never start after this
+export const DEPLOYMENT_BLOCK = 6254440;

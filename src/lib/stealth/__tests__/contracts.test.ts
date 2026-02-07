@@ -17,9 +17,9 @@ import {
   SCHEME_ID,
 } from '../index';
 
-// Contract addresses on Thanos Sepolia (deployed)
-const ANNOUNCER_ADDRESS = '0x75BD499f7CA8E361b7930e2881b2B3c99Aa1eea1';
-const REGISTRY_ADDRESS = '0x5779192B220876221Bc2871511FB764941314e04';
+// Contract addresses on Thanos Sepolia (deployed 2026-02-06)
+const ANNOUNCER_ADDRESS = '0x5ac18d5AdaC9b65E1Be9291A7C2cDbf33b584a3b';
+const REGISTRY_ADDRESS = '0x77c3d8c2B0bb27c9A8ACCa39F2398aaa021eb776';
 const RPC_URL = 'https://rpc.thanos-sepolia.tokamak.network';
 
 // Test private key (use a funded account for actual E2E tests)

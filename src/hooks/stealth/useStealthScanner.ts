@@ -2,8 +2,9 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAccount } from 'wagmi';
 import { ethers } from 'ethers';
 import {
-  scanAnnouncements, getLastScannedBlock, setLastScannedBlock as saveLastScannedBlock,
+  scanAnnouncements, setLastScannedBlock as saveLastScannedBlock,
   getAnnouncementCount, getAddressFromPrivateKey, type StealthKeyPair, type ScanResult,
+  DEPLOYMENT_BLOCK,
 } from '@/lib/stealth';
 
 interface StealthPayment extends ScanResult {
@@ -15,6 +16,9 @@ interface StealthPayment extends ScanResult {
 // Thanos Sepolia RPC for reliable fee estimation
 const THANOS_RPC = 'https://rpc.thanos-sepolia.tokamak.network';
 
+// localStorage keys
+const PAYMENTS_STORAGE_KEY = 'stealth_payments_';
+
 function getProvider() {
   if (typeof window === 'undefined' || !window.ethereum) return null;
   return new ethers.providers.Web3Provider(window.ethereum as ethers.providers.ExternalProvider);
@@ -25,18 +29,48 @@ function getThanosProvider() {
   return new ethers.providers.JsonRpcProvider(THANOS_RPC);
 }
 
+function loadPaymentsFromStorage(address: string): StealthPayment[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PAYMENTS_STORAGE_KEY + address.toLowerCase());
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function savePaymentsToStorage(address: string, payments: StealthPayment[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(PAYMENTS_STORAGE_KEY + address.toLowerCase(), JSON.stringify(payments));
+  } catch { /* quota exceeded etc */ }
+}
+
 export function useStealthScanner(stealthKeys: StealthKeyPair | null) {
   const { address, isConnected } = useAccount();
   const [payments, setPayments] = useState<StealthPayment[]>([]);
   const [isScanning, setIsScanning] = useState(false);
-  const [lastScannedBlock, setLastScannedBlockState] = useState<number | null>(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Load persisted payments on mount / address change
   useEffect(() => {
-    if (address) setLastScannedBlockState(getLastScannedBlock(address));
+    if (address) {
+      const stored = loadPaymentsFromStorage(address);
+      if (stored.length > 0) {
+        setPayments(stored);
+      }
+    }
   }, [address]);
+
+  // Persist payments whenever they change
+  useEffect(() => {
+    if (address && payments.length > 0) {
+      savePaymentsToStorage(address, payments);
+    }
+  }, [address, payments]);
 
   const scan = useCallback(async (fromBlock?: number) => {
     if (!stealthKeys || !isConnected) {
@@ -52,7 +86,10 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null) {
     setProgress({ current: 0, total: 0 });
 
     try {
-      const startBlock = fromBlock ?? lastScannedBlock ?? getLastScannedBlock(address!) ?? 0;
+      // Always scan from deployment block to catch all historical announcements.
+      // This is essential because payments are tied to the stealth keys, and we
+      // need to find ALL announcements ever made, not just recent ones.
+      const startBlock = fromBlock ?? DEPLOYMENT_BLOCK;
       const latestBlock = await provider.getBlockNumber();
       const total = await getAnnouncementCount(provider, startBlock, latestBlock);
       setProgress({ current: 0, total });
@@ -61,28 +98,36 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null) {
 
       const enriched: StealthPayment[] = await Promise.all(
         results.map(async (r) => {
-          const bal = await provider.getBalance(r.announcement.stealthAddress);
-          const balance = ethers.utils.formatEther(bal);
-          return {
-            ...r,
-            balance,
-            claimed: parseFloat(balance) === 0,
-            keyMismatch: r.privateKeyVerified === false,
-          };
+          try {
+            const bal = await provider.getBalance(r.announcement.stealthAddress);
+            const balance = ethers.utils.formatEther(bal);
+            return {
+              ...r,
+              balance,
+              claimed: parseFloat(balance) === 0,
+              keyMismatch: r.privateKeyVerified === false,
+            };
+          } catch {
+            return {
+              ...r,
+              balance: '0',
+              claimed: false,
+              keyMismatch: r.privateKeyVerified === false,
+            };
+          }
         })
       );
 
       setPayments((prev) => {
         const existingMap = new Map(prev.map(p => [p.announcement.txHash, p]));
 
-        // Update existing payments with fresh balance data
+        // Merge: update existing payments with fresh data, add new ones
         enriched.forEach(p => {
           if (existingMap.has(p.announcement.txHash)) {
             const existing = existingMap.get(p.announcement.txHash)!;
             existingMap.set(p.announcement.txHash, {
               ...existing,
               balance: p.balance,
-              // Preserve claimed status if already marked, or update from balance check
               claimed: existing.claimed || p.claimed,
             });
           } else {
@@ -95,7 +140,6 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null) {
 
       if (address) {
         saveLastScannedBlock(address, latestBlock);
-        setLastScannedBlockState(latestBlock);
       }
 
       setProgress({ current: total, total });
@@ -104,13 +148,16 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null) {
     } finally {
       setIsScanning(false);
     }
-  }, [stealthKeys, isConnected, address, lastScannedBlock]);
+  }, [stealthKeys, isConnected, address]);
+
+  const scanRef = useRef(scan);
+  scanRef.current = scan;
 
   const scanInBackground = useCallback(() => {
     if (scanIntervalRef.current) return;
-    scan();
-    scanIntervalRef.current = setInterval(() => { if (!isScanning) scan(); }, 30000);
-  }, [scan, isScanning]);
+    scanRef.current();
+    scanIntervalRef.current = setInterval(() => scanRef.current(), 30000);
+  }, []);
 
   const stopBackgroundScan = useCallback(() => {
     if (scanIntervalRef.current) {
@@ -119,7 +166,12 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null) {
     }
   }, []);
 
-  useEffect(() => () => stopBackgroundScan(), [stopBackgroundScan]);
+  useEffect(() => () => {
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
+    }
+  }, []);
 
   const claimPayment = useCallback(async (payment: StealthPayment, recipient: string): Promise<string | null> => {
     setError(null);
@@ -230,5 +282,5 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null) {
     return null;
   }, []);
 
-  return { payments, scan, scanInBackground, stopBackgroundScan, claimPayment, isScanning, lastScannedBlock, progress, error };
+  return { payments, scan, scanInBackground, stopBackgroundScan, claimPayment, isScanning, progress, error };
 }
