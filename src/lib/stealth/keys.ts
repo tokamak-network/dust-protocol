@@ -3,6 +3,7 @@
 import { ec as EC } from 'elliptic';
 import { ethers } from 'ethers';
 import type { StealthKeyPair, StealthMetaAddress } from './types';
+import { deriveSpendingSeed, deriveViewingSeed } from './pin';
 
 const secp256k1 = new EC('secp256k1');
 
@@ -36,6 +37,21 @@ export function deriveStealthKeyPairFromSignature(signature: string): StealthKey
 
   const spending = secp256k1.keyFromPrivate(spendingEntropy.slice(2), 'hex');
   const viewing = secp256k1.keyFromPrivate(viewingEntropy.slice(2), 'hex');
+
+  return {
+    spendingPrivateKey: spending.getPrivate('hex').padStart(64, '0'),
+    spendingPublicKey: spending.getPublic(true, 'hex'),
+    viewingPrivateKey: viewing.getPrivate('hex').padStart(64, '0'),
+    viewingPublicKey: viewing.getPublic(true, 'hex'),
+  };
+}
+
+export function deriveStealthKeyPairFromSignatureAndPin(signature: string, pin: string): StealthKeyPair {
+  const spendingSeed = deriveSpendingSeed(signature, pin);
+  const viewingSeed = deriveViewingSeed(signature, pin);
+
+  const spending = secp256k1.keyFromPrivate(spendingSeed, 'hex');
+  const viewing = secp256k1.keyFromPrivate(viewingSeed, 'hex');
 
   return {
     spendingPrivateKey: spending.getPrivate('hex').padStart(64, '0'),

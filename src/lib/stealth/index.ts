@@ -3,7 +3,7 @@
 export type { StealthKeyPair, StealthMetaAddress, GeneratedStealthAddress, StealthAnnouncement, ScanResult, StealthContractAddresses } from './types';
 export { SCHEME_ID, CANONICAL_ADDRESSES, DEPLOYMENT_BLOCK } from './types';
 
-export { generateStealthKeyPair, deriveStealthKeyPairFromSignature, formatStealthMetaAddress, parseStealthMetaAddress, isValidCompressedPublicKey, getPublicKeyFromPrivate, decompressPublicKey, STEALTH_KEY_DERIVATION_MESSAGE } from './keys';
+export { generateStealthKeyPair, deriveStealthKeyPairFromSignature, deriveStealthKeyPairFromSignatureAndPin, formatStealthMetaAddress, parseStealthMetaAddress, isValidCompressedPublicKey, getPublicKeyFromPrivate, decompressPublicKey, STEALTH_KEY_DERIVATION_MESSAGE } from './keys';
 
 export { generateStealthAddress, computeStealthPrivateKey, verifyStealthAddress, computeViewTag, getAddressFromPrivateKey } from './address';
 
@@ -12,7 +12,9 @@ export { scanAnnouncements, scanAnnouncementsViewOnly, getLastScannedBlock, setL
 export { registerStealthMetaAddress, registerStealthMetaAddressOnBehalf, lookupStealthMetaAddress, getRegistryNonce, signRegistration, isRegistered, formatBytesToUri } from './registry';
 
 export type { DerivedClaimAddress } from './hdWallet';
-export { deriveClaimAddresses, deriveClaimAddressAtIndex, deriveSeedFromSignature, getNextClaimAddress, verifyClaimAddressDerivation, saveClaimAddressesToStorage, loadClaimAddressesFromStorage, saveSignatureHash, verifySignatureHash, updateClaimAddressLabel, CLAIM_ADDRESS_DERIVATION_MESSAGE } from './hdWallet';
+export { deriveClaimAddresses, deriveClaimAddressesWithPin, deriveClaimAddressAtIndex, deriveSeedFromSignature, deriveSeedFromSignatureAndPin, getNextClaimAddress, verifyClaimAddressDerivation, saveClaimAddressesToStorage, loadClaimAddressesFromStorage, saveSignatureHash, verifySignatureHash, updateClaimAddressLabel, CLAIM_ADDRESS_DERIVATION_MESSAGE } from './hdWallet';
+
+export { validatePin, encryptPin, decryptPin, deriveSpendingSeed, deriveViewingSeed, deriveClaimSeed, hasPinStored, getStoredPin, storeEncryptedPin, clearStoredPin } from './pin';
 
 export { registerStealthName, resolveStealthName, isNameAvailable, getNameOwner, getNamesOwnedBy, updateNameMetaAddress, transferStealthName, setNameRegistryAddress, getNameRegistryAddress, isNameRegistryConfigured, normalizeName, stripNameSuffix, formatNameWithSuffix, isValidName, isStealthName, NAME_SUFFIX } from './names';
 

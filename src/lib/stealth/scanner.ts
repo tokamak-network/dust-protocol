@@ -12,12 +12,29 @@ const ANNOUNCER_ABI = [
   'event Announcement(uint256 indexed schemeId, address indexed stealthAddress, address indexed caller, bytes ephemeralPubKey, bytes metadata)',
 ];
 
+function parseLinkSlugFromMetadata(metadata: string): string | undefined {
+  // Metadata format: 0x{viewTag 2 hex chars}{linkSlug hex-encoded UTF-8}
+  if (!metadata || metadata.length <= 4) return undefined;
+  const slugHex = metadata.slice(4);
+  if (!slugHex) return undefined;
+  try {
+    const bytes: number[] = [];
+    for (let i = 0; i < slugHex.length; i += 2) {
+      bytes.push(parseInt(slugHex.substring(i, i + 2), 16));
+    }
+    return new TextDecoder().decode(new Uint8Array(bytes));
+  } catch {
+    return undefined;
+  }
+}
+
 function parseEvent(event: ethers.Event, schemeId: number): StealthAnnouncement | null {
   if (!event.args) return null;
 
   const ephemeralPubKey = event.args.ephemeralPubKey as string;
   const metadata = event.args.metadata as string;
   const viewTag = metadata?.length >= 4 ? metadata.slice(2, 4) : '';
+  const linkSlug = parseLinkSlugFromMetadata(metadata);
 
   return {
     schemeId,
@@ -25,6 +42,7 @@ function parseEvent(event: ethers.Event, schemeId: number): StealthAnnouncement 
     ephemeralPublicKey: ephemeralPubKey.replace(/^0x/, ''),
     viewTag,
     metadata,
+    linkSlug,
     caller: event.args.caller,
     blockNumber: event.blockNumber,
     txHash: event.transactionHash,
@@ -50,12 +68,22 @@ export async function scanAnnouncements(
 
   const results: ScanResult[] = [];
 
+  console.log(`[Scanner] Found ${events.length} announcements from block ${fromBlock} to ${toBlock ?? 'latest'}`);
+  console.log(`[Scanner] Using spendingPub: ${keys.spendingPublicKey.slice(0, 16)}...`);
+  console.log(`[Scanner] Using viewingPriv: ${keys.viewingPrivateKey.slice(0, 8)}...`);
+
+  let viewTagFiltered = 0;
+  let ecdhFiltered = 0;
+
   for (const event of events) {
     const announcement = parseEvent(event, SCHEME_ID.SECP256K1);
     if (!announcement) continue;
 
     const expectedTag = computeViewTag(keys.viewingPrivateKey, announcement.ephemeralPublicKey);
-    if (announcement.viewTag && announcement.viewTag !== expectedTag) continue;
+    if (announcement.viewTag && announcement.viewTag !== expectedTag) {
+      viewTagFiltered++;
+      continue;
+    }
 
     const isMatch = verifyStealthAddress(
       announcement.ephemeralPublicKey,
@@ -63,6 +91,10 @@ export async function scanAnnouncements(
       announcement.stealthAddress,
       keys.viewingPrivateKey
     );
+
+    if (!isMatch) {
+      ecdhFiltered++;
+    }
 
     if (isMatch) {
       const stealthPrivateKey = computeStealthPrivateKey(
@@ -83,6 +115,7 @@ export async function scanAnnouncements(
     }
   }
 
+  console.log(`[Scanner] Results: ${results.length} matches, ${viewTagFiltered} view-tag filtered, ${ecdhFiltered} ECDH filtered`);
   return results;
 }
 

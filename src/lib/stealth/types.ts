@@ -27,6 +27,7 @@ export interface StealthAnnouncement {
   ephemeralPublicKey: string;
   viewTag: string;
   metadata: string;
+  linkSlug?: string;
   caller: string;
   blockNumber: number;
   txHash: string;
