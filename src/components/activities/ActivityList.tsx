@@ -85,15 +85,16 @@ export function ActivityList({
             display="flex" alignItems="center" gap="6px"
             onClick={() => {
               if (payments.length === 0) return;
+              const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
               const header = "Status,From,Amount (TON),Block,Stealth Address,Tx Hash\n";
               const rows = payments.map(p => {
                 const status = p.keyMismatch ? "Key Mismatch" : "Received";
                 const from = p.announcement.caller || "unknown";
                 const amount = parseFloat(p.originalAmount || p.balance || "0").toFixed(6);
-                const block = p.announcement.blockNumber;
+                const block = String(p.announcement.blockNumber);
                 const stealth = p.announcement.stealthAddress;
                 const tx = p.announcement.txHash;
-                return `${status},${from},${amount},${block},${stealth},${tx}`;
+                return [status, from, amount, block, stealth, tx].map(esc).join(",");
               }).join("\n");
               const blob = new Blob([header + rows], { type: "text/csv" });
               const url = URL.createObjectURL(blob);
