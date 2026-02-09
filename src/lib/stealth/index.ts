@@ -1,11 +1,11 @@
 // Stealth address library (ERC-5564/6538)
 
 export type { StealthKeyPair, StealthMetaAddress, GeneratedStealthAddress, StealthAnnouncement, ScanResult, StealthContractAddresses } from './types';
-export { SCHEME_ID, CANONICAL_ADDRESSES, DEPLOYMENT_BLOCK } from './types';
+export { SCHEME_ID, CANONICAL_ADDRESSES, DEPLOYMENT_BLOCK, STEALTH_WALLET_FACTORY, STEALTH_WALLET_FACTORY_ABI } from './types';
 
 export { generateStealthKeyPair, deriveStealthKeyPairFromSignature, deriveStealthKeyPairFromSignatureAndPin, formatStealthMetaAddress, parseStealthMetaAddress, isValidCompressedPublicKey, getPublicKeyFromPrivate, decompressPublicKey, STEALTH_KEY_DERIVATION_MESSAGE } from './keys';
 
-export { generateStealthAddress, computeStealthPrivateKey, verifyStealthAddress, computeViewTag, getAddressFromPrivateKey } from './address';
+export { generateStealthAddress, computeStealthPrivateKey, verifyStealthAddress, computeViewTag, getAddressFromPrivateKey, computeStealthWalletAddress, signWalletDrain } from './address';
 
 export { scanAnnouncements, scanAnnouncementsViewOnly, getLastScannedBlock, setLastScannedBlock, getAnnouncementCount } from './scanner';
 

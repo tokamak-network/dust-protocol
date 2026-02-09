@@ -4,6 +4,7 @@ import { ec as EC } from 'elliptic';
 import BN from 'bn.js';
 import { ethers } from 'ethers';
 import type { StealthMetaAddress, GeneratedStealthAddress } from './types';
+import { STEALTH_WALLET_FACTORY, STEALTH_WALLET_CREATION_CODE } from './types';
 
 const secp256k1 = new EC('secp256k1');
 
@@ -24,6 +25,29 @@ function pubKeyToAddress(pubPoint: any): string {
   return ethers.utils.getAddress('0x' + hash.slice(-40));
 }
 
+export function computeStealthWalletAddress(ownerEOA: string): string {
+  const initCode = ethers.utils.solidityPack(
+    ['bytes', 'bytes'],
+    [STEALTH_WALLET_CREATION_CODE, ethers.utils.defaultAbiCoder.encode(['address'], [ownerEOA])]
+  );
+  return ethers.utils.getCreate2Address(STEALTH_WALLET_FACTORY, ethers.constants.HashZero, ethers.utils.keccak256(initCode));
+}
+
+export async function signWalletDrain(
+  stealthPrivateKey: string,
+  walletAddress: string,
+  to: string,
+  chainId: number,
+  nonce = 0,
+): Promise<string> {
+  const wallet = new ethers.Wallet(stealthPrivateKey);
+  const hash = ethers.utils.solidityKeccak256(
+    ['address', 'address', 'uint256', 'uint256'],
+    [walletAddress, to, nonce, chainId]
+  );
+  return wallet.signMessage(ethers.utils.arrayify(hash));
+}
+
 export function generateStealthAddress(meta: StealthMetaAddress): GeneratedStealthAddress {
   const ephemeral = secp256k1.genKeyPair();
   const ephemeralPublicKey = ephemeral.getPublic(true, 'hex');
@@ -39,8 +63,12 @@ export function generateStealthAddress(meta: StealthMetaAddress): GeneratedSteal
   const hashKey = secp256k1.keyFromPrivate(secretHash.slice(2), 'hex');
   const stealthPubPoint = spendingKey.getPublic().add(hashKey.getPublic());
 
+  const stealthEOAAddress = pubKeyToAddress(stealthPubPoint);
+  const stealthAddress = computeStealthWalletAddress(stealthEOAAddress);
+
   return {
-    stealthAddress: pubKeyToAddress(stealthPubPoint),
+    stealthAddress,
+    stealthEOAAddress,
     ephemeralPublicKey,
     viewTag,
     stealthPublicKey: stealthPubPoint.encode('hex', true),
