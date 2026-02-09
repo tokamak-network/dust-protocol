@@ -5,11 +5,12 @@ Private payment infrastructure on Tokamak Network. Send and receive untraceable 
 ## Features
 
 - **Stealth Addresses** — Payments go to one-time addresses that can't be linked to your identity
+- **CREATE2 Stealth Wallets** — Each stealth address is a smart contract wallet deployed via CREATE2, so the recipient's private key never leaves the browser
 - **`.tok` Names** — Human-readable addresses (`alice.tok`, `coffee.alice.tok`)
 - **Payment Links** — Create shareable links for receiving payments
 - **No-Opt-In Payments** — Anyone can send to a `.tok` name from any wallet, no special software needed
 - **Sponsored Gas** — All protocol operations are gasless for users
-- **Real-time Scanning** — Automatic detection of incoming payments
+- **Real-time Scanning** — Automatic detection of incoming payments (supports both legacy EOA and CREATE2 announcements)
 
 ## Setup
 
@@ -35,13 +36,14 @@ RELAYER_PRIVATE_KEY=<deployer-private-key>
 | ERC5564Announcer | `0x2C2a59E9e71F2D1A8A2D447E73813B9F89CBb125` |
 | ERC6538Registry | `0x9C527Cc8CB3F7C73346EFd48179e564358847296` |
 | StealthNameRegistry | `0x0129DE641192920AB78eBca2eF4591E2Ac48BA59` |
+| StealthWalletFactory | `0x85e7Fe33F594AC819213e63EEEc928Cb53A166Cd` |
 
 ## How It Works
 
-1. **Connect wallet** and derive stealth keys from a signature
+1. **Connect wallet** and derive stealth keys from a signature + PIN
 2. **Register a `.tok` name** linked to your stealth meta-address
 3. **Share your name** — senders visit `yourname.tok` to pay privately
-4. **Scan & claim** — the app detects payments and claims them to your wallet
+4. **Scan & claim** — the app detects payments and claims them via CREATE2 `deployAndDrain`
 
 ### No-Opt-In Stealth Payments
 
@@ -55,7 +57,7 @@ Page polls balance → deposit detected → auto-announce via sponsor relay
 Receiver's dashboard picks up the payment
 ```
 
-**How it preserves privacy:** Each payment page visit generates a fresh ephemeral key pair. The stealth address is derived from the receiver's public spending key + the ephemeral key via ECDH. Only the receiver (with their viewing key) can identify and claim the payment. The sender never needs to know about stealth addresses — they just see a normal ETH address.
+**How it preserves privacy:** Each payment page visit generates a fresh ephemeral key pair. The stealth address is a CREATE2 smart contract wallet derived from the receiver's public spending key + the ephemeral key via ECDH. Only the receiver (with their viewing key) can identify the payment. To claim, the receiver signs a drain message in the browser — the private key never leaves the client. A sponsor relayer calls `deployAndDrain()` on-chain to atomically deploy the wallet and send the funds to the recipient.
 
 ## Roadmap
 
