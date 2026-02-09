@@ -9,6 +9,7 @@ import {
   generateStealthAddress,
   computeStealthPrivateKey,
   getAddressFromPrivateKey,
+  computeStealthWalletAddress,
 } from '../index';
 import { deriveClaimAddresses } from '../hdWallet';
 
@@ -82,8 +83,13 @@ describe('Security Audit', () => {
         generated.ephemeralPublicKey
       );
 
+      // Private key derives to EOA (owner), not the CREATE2 wallet
       const derivedAddress = getAddressFromPrivateKey(stealthPrivKey);
-      expect(derivedAddress.toLowerCase()).toBe(generated.stealthAddress.toLowerCase());
+      expect(derivedAddress.toLowerCase()).toBe(generated.stealthEOAAddress.toLowerCase());
+      // CREATE2 wraps the EOA
+      expect(computeStealthWalletAddress(derivedAddress).toLowerCase()).toBe(
+        generated.stealthAddress.toLowerCase()
+      );
     });
 
     it('should not leak spending key from viewing operations', () => {

@@ -10,6 +10,7 @@ import {
   verifyStealthAddress,
   computeViewTag,
   getAddressFromPrivateKey,
+  computeStealthWalletAddress,
 } from '../address';
 import {
   generateStealthKeyPair,
@@ -70,10 +71,15 @@ describe('Stealth Address Generation', () => {
         generated.ephemeralPublicKey
       );
 
-      // Derive address from private key
+      // Derive address from private key — this gives the EOA (owner), not the CREATE2 wallet
       const derivedAddress = getAddressFromPrivateKey(stealthPrivateKey);
 
+      // derivedAddress is the EOA, which should match stealthEOAAddress
       expect(derivedAddress.toLowerCase()).toBe(
+        generated.stealthEOAAddress.toLowerCase()
+      );
+      // The CREATE2 wallet address wraps the EOA
+      expect(computeStealthWalletAddress(derivedAddress).toLowerCase()).toBe(
         generated.stealthAddress.toLowerCase()
       );
     });
@@ -96,7 +102,12 @@ describe('Stealth Address Generation', () => {
 
         const derivedAddress = getAddressFromPrivateKey(stealthPrivateKey);
 
+        // derivedAddress is the EOA owner
         expect(derivedAddress.toLowerCase()).toBe(
+          generated.stealthEOAAddress.toLowerCase()
+        );
+        // CREATE2 wallet wraps the EOA
+        expect(computeStealthWalletAddress(derivedAddress).toLowerCase()).toBe(
           generated.stealthAddress.toLowerCase()
         );
       }
@@ -104,7 +115,7 @@ describe('Stealth Address Generation', () => {
   });
 
   describe('verifyStealthAddress', () => {
-    it('should verify matching stealth addresses', () => {
+    it('should verify matching stealth EOA addresses', () => {
       const recipientKeys = generateStealthKeyPair();
       const metaAddress = parseStealthMetaAddress(
         formatStealthMetaAddress(recipientKeys)
@@ -112,14 +123,34 @@ describe('Stealth Address Generation', () => {
 
       const generated = generateStealthAddress(metaAddress);
 
+      // verifyStealthAddress checks against the EOA, not the CREATE2 address
       const isValid = verifyStealthAddress(
         generated.ephemeralPublicKey,
         recipientKeys.spendingPublicKey,
-        generated.stealthAddress,
+        generated.stealthEOAAddress,
         recipientKeys.viewingPrivateKey
       );
 
       expect(isValid).toBe(true);
+    });
+
+    it('should not directly verify CREATE2 addresses (they wrap EOA)', () => {
+      const recipientKeys = generateStealthKeyPair();
+      const metaAddress = parseStealthMetaAddress(
+        formatStealthMetaAddress(recipientKeys)
+      );
+
+      const generated = generateStealthAddress(metaAddress);
+
+      // verifyStealthAddress computes EOA, so passing CREATE2 address fails
+      const isValid = verifyStealthAddress(
+        generated.ephemeralPublicKey,
+        recipientKeys.spendingPublicKey,
+        generated.stealthAddress, // CREATE2 address
+        recipientKeys.viewingPrivateKey
+      );
+
+      expect(isValid).toBe(false);
     });
 
     it('should reject non-matching stealth addresses', () => {
@@ -135,7 +166,7 @@ describe('Stealth Address Generation', () => {
       const isValid = verifyStealthAddress(
         generated.ephemeralPublicKey,
         recipientKeys.spendingPublicKey,
-        generated.stealthAddress,
+        generated.stealthEOAAddress,
         otherKeys.viewingPrivateKey // Wrong key!
       );
 
@@ -259,11 +290,11 @@ describe('Stealth Address Generation', () => {
       );
       expect(expectedViewTag).toBe(generated.viewTag);
 
-      // 8. Recipient verifies the stealth address is theirs
+      // 8. Recipient verifies the stealth EOA address is theirs
       const isOurs = verifyStealthAddress(
         generated.ephemeralPublicKey,
         recipientKeys.spendingPublicKey,
-        generated.stealthAddress,
+        generated.stealthEOAAddress,
         recipientKeys.viewingPrivateKey
       );
       expect(isOurs).toBe(true);
@@ -275,13 +306,19 @@ describe('Stealth Address Generation', () => {
         generated.ephemeralPublicKey
       );
 
-      // 10. Verify the private key controls the stealth address
-      const controlledAddress = getAddressFromPrivateKey(stealthPrivateKey);
-      expect(controlledAddress.toLowerCase()).toBe(
+      // 10. Verify the private key controls the stealth EOA (owner of CREATE2 wallet)
+      const controlledEOA = getAddressFromPrivateKey(stealthPrivateKey);
+      expect(controlledEOA.toLowerCase()).toBe(
+        generated.stealthEOAAddress.toLowerCase()
+      );
+
+      // 11. Verify the CREATE2 wallet wraps this EOA
+      const walletAddress = computeStealthWalletAddress(controlledEOA);
+      expect(walletAddress.toLowerCase()).toBe(
         generated.stealthAddress.toLowerCase()
       );
 
-      // Success! Recipient can now use stealthPrivateKey to spend funds
+      // Success! Recipient can now sign with stealthPrivateKey to drain the CREATE2 wallet
     });
   });
 });
