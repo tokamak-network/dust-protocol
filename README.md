@@ -59,41 +59,52 @@ Receiver's dashboard picks up the payment
 
 **How it preserves privacy:** Each payment page visit generates a fresh ephemeral key pair. The stealth address is a CREATE2 smart contract wallet derived from the receiver's public spending key + the ephemeral key via ECDH. Only the receiver (with their viewing key) can identify the payment. To claim, the receiver signs a drain message in the browser — the private key never leaves the client. A sponsor relayer calls `deployAndDrain()` on-chain to atomically deploy the wallet and send the funds to the recipient.
 
+## Architecture: CREATE2 Stealth Wallets
+
+Each stealth payment address is a CREATE2 smart contract wallet rather than a raw EOA.
+
+```
+Sender pays to CREATE2 address (no contract deployed yet — just an address with funds)
+    ↓
+Receiver's browser derives stealth private key via ECDH
+    ↓
+Browser signs a drain message (key never sent to server)
+    ↓
+Sponsor relayer calls factory.deployAndDrain(owner, recipient, sig)
+    ↓
+Factory deploys the wallet + drains funds to recipient in one atomic tx
+```
+
+**Why CREATE2 over EOA?** The stealth private key never leaves the browser. In the old EOA model, the key had to be sent to the server to construct the claim transaction. With CREATE2, the client signs a message locally and only the signature is sent to the relayer.
+
+The scanner supports both legacy EOA announcements and new CREATE2 announcements for backward compatibility.
+
 ## Roadmap
 
-Based on research from the Ethereum privacy ecosystem:
+### Done
+- **CREATE2 Stealth Wallets** — Smart contract wallets deployed at stealth addresses via `StealthWalletFactory`. Signature-based drain, replay protection, atomic `deployAndDrain`. Backward-compatible scanner for legacy EOA payments.
 
-### 1. CREATE2 Smart Contract Wallets at Stealth Addresses
-Currently stealth addresses are plain EOAs. Deploying smart contract wallets via CREATE2 at each stealth address enables programmable logic — auto-forwarding, spending conditions, and upgradeability.
+### Next Up
 
-**Reference:** [Interactive No-Opt-In Stealth Addresses](https://ethresear.ch/t/interactive-no-opt-in-stealth-addresses/23274) proposes CREATE2 deployment with a salt derived from the user's secret + nonce, so the address is deterministic before any on-chain activity.
+#### 1. Fresh Address per Name Query
+Every time someone queries a `.tok` name, resolve to a new stealth address. No two lookups return the same address — eliminates address reuse and removes the "keep page open" requirement.
 
-### 2. Privacy Pool Integration
-After funds land on a stealth address, auto-forward them into a privacy pool. This gives forward secrecy — even if the stealth address is traced to the sender, the withdrawal from the pool breaks the link.
+**Reference:** [Fluidkey](https://docs.fluidkey.com/readme/receiving-funds) does this with an off-chain resolver that generates addresses server-side from the receiver's meta-address.
 
-**Reference:** The ethresear.ch post describes this as the core innovation: "wallet generates a secret note per the underlying privacy scheme, proves knowledge of salt preimage locally, relayer moves funds into privacy pool." [Privacy Pools](https://hackmd.io/@pcaversaccio/ethereum-privacy-the-road-to-self-sovereignty) are in early prototypes (Ethereum Foundation's Kohaku effort).
+#### 2. ERC-4337 Paymaster for Gas
+Replace the current API-based gas sponsoring (`/api/sponsor-claim`, `/api/sponsor-announce`) with an on-chain ERC-4337 Paymaster. Removes the central relayer and makes gas sponsoring trustless.
 
-### 3. Fresh Address per ENS/Name Query
-Every time someone queries a `.tok` name, resolve to a new stealth address. No two lookups return the same address. This eliminates address reuse and the need for the receiver's page to be open.
+**Reference:** [Vitalik's stealth address guide](https://vitalik.eth.limo/general/2023/01/20/stealth.html) identifies paymasters as the practical solution to the "stealth address gas problem."
 
-**Reference:** [Fluidkey](https://docs.fluidkey.com/readme/receiving-funds) implements this — every ENS query for `username.fkey.id` resolves to a fresh stealth address. Their approach uses an off-chain resolver that generates the address server-side using the receiver's meta-address.
+#### 3. Privacy Pool Integration
+Auto-forward funds from stealth addresses into a privacy pool for forward secrecy — even if the stealth address is traced to the sender, the pool withdrawal breaks the link.
 
-### 4. ERC-4337 Paymaster for Gas
-Replace the current API-based gas sponsoring (`/api/sponsor-claim`, `/api/sponsor-announce`) with an on-chain ERC-4337 Paymaster. This removes the central relayer dependency and makes gas sponsoring trustless and composable.
+**Reference:** [Privacy Pools](https://hackmd.io/@pcaversaccio/ethereum-privacy-the-road-to-self-sovereignty) and the Ethereum Foundation's Kohaku effort.
 
-**Reference:** [Vitalik's stealth address guide](https://vitalik.eth.limo/general/2023/01/20/stealth.html) identifies ERC-4337 paymasters as the practical solution to the "stealth address gas problem." The paymaster sponsors gas so the stealth address never needs native tokens. [Labyrinth](https://docs.erc4337.io/paymasters/index.html) already uses ERC-4337 bundlers for stealth address operations.
+#### 4. Unified Multi-Address Dashboard
+Single wallet view aggregating all stealth addresses. The user sees one balance, but each payment lives at its own address.
 
-### 5. Unified Multi-Address Dashboard
-Aggregate all stealth addresses into a single wallet view. The user sees one balance and one transaction history, but under the hood each payment lives at its own stealth address.
-
-**Reference:** [Fluidkey](https://docs.fluidkey.com/readme/frequently-asked-questions) creates a new privacy-protecting smart account for every payment received but brings them all together in a unified dashboard. The [Ethereum 2026 privacy roadmap](https://www.theblock.co/post/386043/vitalik-buterin-declares-2026-the-year-ethereum-reverses-backsliding-of-self-sovereignty-and-trustlessness) targets "invisible privacy defaults" where wallets are natively multi-address.
-
-### Implementation Order
-1. CREATE2 wallets — foundation for everything else
-2. Fresh address per name query — biggest UX win, removes "keep page open" requirement
-3. ERC-4337 paymaster — removes central relayer
-4. Unified dashboard — already partially done (Activities page)
-5. Privacy pool — depends on pool availability on Tokamak/L2
+**Reference:** [Fluidkey](https://docs.fluidkey.com/readme/frequently-asked-questions) does this — separate smart accounts per payment, unified dashboard on top.
 
 ## Research Links
 
