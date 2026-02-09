@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import { ec as EC } from 'elliptic';
 import type { StealthAnnouncement, ScanResult, StealthKeyPair } from './types';
 import { SCHEME_ID, CANONICAL_ADDRESSES } from './types';
-import { computeViewTag, verifyStealthAddress, computeStealthPrivateKey, getAddressFromPrivateKey } from './address';
+import { computeViewTag, verifyStealthAddress, computeStealthPrivateKey, getAddressFromPrivateKey, computeStealthWalletAddress } from './address';
 
 const secp256k1 = new EC('secp256k1');
 
@@ -83,32 +83,35 @@ export async function scanAnnouncements(
       continue;
     }
 
-    const isMatch = verifyStealthAddress(
-      announcement.ephemeralPublicKey,
-      keys.spendingPublicKey,
-      announcement.stealthAddress,
-      keys.viewingPrivateKey
+    // Derive stealth private key and EOA address from ECDH
+    const stealthPrivateKey = computeStealthPrivateKey(
+      keys.spendingPrivateKey,
+      keys.viewingPrivateKey,
+      announcement.ephemeralPublicKey
     );
+    const derivedEOA = getAddressFromPrivateKey(stealthPrivateKey);
+
+    // Check both EOA match (legacy) and CREATE2 match (new)
+    const eoaMatch = derivedEOA.toLowerCase() === announcement.stealthAddress.toLowerCase();
+    let create2Match = false;
+    if (!eoaMatch) {
+      const create2Addr = computeStealthWalletAddress(derivedEOA);
+      create2Match = create2Addr.toLowerCase() === announcement.stealthAddress.toLowerCase();
+    }
+
+    const isMatch = eoaMatch || create2Match;
 
     if (!isMatch) {
       ecdhFiltered++;
     }
 
     if (isMatch) {
-      const stealthPrivateKey = computeStealthPrivateKey(
-        keys.spendingPrivateKey,
-        keys.viewingPrivateKey,
-        announcement.ephemeralPublicKey
-      );
-      const derivedAddress = getAddressFromPrivateKey(stealthPrivateKey);
-      const verified = derivedAddress.toLowerCase() === announcement.stealthAddress.toLowerCase();
-
       results.push({
         announcement,
         stealthPrivateKey,
         isMatch: true,
-        privateKeyVerified: verified,
-        derivedAddress: verified ? undefined : derivedAddress,
+        privateKeyVerified: true,
+        walletType: create2Match ? 'create2' : 'eoa',
       });
     }
   }
@@ -138,8 +141,34 @@ export async function scanAnnouncementsViewOnly(
     const expectedTag = computeViewTag(viewingPrivateKey, announcement.ephemeralPublicKey);
     if (announcement.viewTag && announcement.viewTag !== expectedTag) continue;
 
+    // Check EOA match (legacy)
     if (verifyStealthAddress(announcement.ephemeralPublicKey, spendingPublicKey, announcement.stealthAddress, viewingPrivateKey)) {
       matches.push(announcement);
+      continue;
+    }
+    // Check CREATE2 match (new) — derive the EOA, then compute CREATE2 address
+    const eoaAddr = (() => {
+      try {
+        const ec = secp256k1;
+        const sharedSecret = (() => {
+          const priv = ec.keyFromPrivate(viewingPrivateKey.replace(/^0x/, ''), 'hex');
+          const pub = ec.keyFromPublic(announcement.ephemeralPublicKey.replace(/^0x/, ''), 'hex');
+          return priv.derive(pub.getPublic()).toString('hex').padStart(64, '0');
+        })();
+        const secretHash = ethers.utils.keccak256('0x' + sharedSecret);
+        const spendKey = ec.keyFromPublic(spendingPublicKey.replace(/^0x/, ''), 'hex');
+        const hashKey = ec.keyFromPrivate(secretHash.slice(2), 'hex');
+        const stealthPub = spendKey.getPublic().add(hashKey.getPublic());
+        const uncompressed = stealthPub.encode('hex', false).slice(2);
+        const hash = ethers.utils.keccak256('0x' + uncompressed);
+        return ethers.utils.getAddress('0x' + hash.slice(-40));
+      } catch { return null; }
+    })();
+    if (eoaAddr) {
+      const create2Addr = computeStealthWalletAddress(eoaAddr);
+      if (create2Addr.toLowerCase() === announcement.stealthAddress.toLowerCase()) {
+        matches.push(announcement);
+      }
     }
   }
 
