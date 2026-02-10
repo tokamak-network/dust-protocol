@@ -1,20 +1,33 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Box, Text, VStack, HStack } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useStealthScanner } from "@/hooks/stealth";
+import { useStealthScanner, useUnifiedBalance } from "@/hooks/stealth";
 import { colors, radius } from "@/lib/design/tokens";
-import { StealthBalanceCard } from "@/components/dashboard/StealthBalanceCard";
+import { UnifiedBalanceCard } from "@/components/dashboard/UnifiedBalanceCard";
+import { AddressBreakdownCard } from "@/components/dashboard/AddressBreakdownCard";
 import { PersonalLinkCard } from "@/components/dashboard/PersonalLinkCard";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { SendModal } from "@/components/send/SendModal";
 import { SendIcon, ArrowDownLeftIcon } from "@/components/stealth/icons";
 
 export default function DashboardPage() {
-  const { stealthKeys, metaAddress, ownedNames } = useAuth();
+  const { stealthKeys, metaAddress, ownedNames, claimAddresses, refreshClaimBalances, claimAddressesInitialized } = useAuth();
   const { payments, scan, scanInBackground, stopBackgroundScan, isScanning } = useStealthScanner(stealthKeys);
   const [showSendModal, setShowSendModal] = useState(false);
+
+  const unified = useUnifiedBalance({
+    payments,
+    claimAddresses,
+    refreshClaimBalances,
+    claimAddressesInitialized,
+  });
+
+  const handleRefresh = useCallback(() => {
+    scan();
+    refreshClaimBalances();
+  }, [scan, refreshClaimBalances]);
 
   // Auto-refresh: scan every 30s while dashboard is mounted
   useEffect(() => {
@@ -32,8 +45,22 @@ export default function DashboardPage() {
           Dashboard
         </Text>
 
-        {/* Balance card */}
-        <StealthBalanceCard payments={payments} isScanning={isScanning} scan={scan} />
+        {/* Unified balance card */}
+        <UnifiedBalanceCard
+          total={unified.total}
+          stealthTotal={unified.stealthTotal}
+          claimTotal={unified.claimTotal}
+          unclaimedCount={unified.unclaimedCount}
+          isScanning={isScanning}
+          isLoading={unified.isLoading}
+          onRefresh={handleRefresh}
+        />
+
+        {/* Address breakdown */}
+        <AddressBreakdownCard
+          claimAddresses={unified.claimAddresses}
+          unclaimedPayments={unified.unclaimedPayments}
+        />
 
         {/* Quick actions */}
         <HStack gap="12px">
