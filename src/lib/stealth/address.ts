@@ -4,7 +4,12 @@ import { ec as EC } from 'elliptic';
 import BN from 'bn.js';
 import { ethers } from 'ethers';
 import type { StealthMetaAddress, GeneratedStealthAddress } from './types';
-import { STEALTH_WALLET_FACTORY, STEALTH_WALLET_CREATION_CODE, STEALTH_ACCOUNT_FACTORY, STEALTH_ACCOUNT_CREATION_CODE, ENTRY_POINT_ADDRESS } from './types';
+import {
+  STEALTH_WALLET_FACTORY, STEALTH_WALLET_CREATION_CODE,
+  STEALTH_ACCOUNT_FACTORY, STEALTH_ACCOUNT_CREATION_CODE, ENTRY_POINT_ADDRESS,
+  LEGACY_STEALTH_WALLET_FACTORY, LEGACY_STEALTH_WALLET_CREATION_CODE,
+  LEGACY_STEALTH_ACCOUNT_FACTORY, LEGACY_STEALTH_ACCOUNT_CREATION_CODE,
+} from './types';
 
 const secp256k1 = new EC('secp256k1');
 
@@ -39,6 +44,22 @@ export function computeStealthAccountAddress(ownerEOA: string): string {
     [STEALTH_ACCOUNT_CREATION_CODE, ethers.utils.defaultAbiCoder.encode(['address', 'address'], [ENTRY_POINT_ADDRESS, ownerEOA])]
   );
   return ethers.utils.getCreate2Address(STEALTH_ACCOUNT_FACTORY, ethers.constants.HashZero, ethers.utils.keccak256(initCode));
+}
+
+export function computeLegacyStealthWalletAddress(ownerEOA: string): string {
+  const initCode = ethers.utils.solidityPack(
+    ['bytes', 'bytes'],
+    [LEGACY_STEALTH_WALLET_CREATION_CODE, ethers.utils.defaultAbiCoder.encode(['address'], [ownerEOA])]
+  );
+  return ethers.utils.getCreate2Address(LEGACY_STEALTH_WALLET_FACTORY, ethers.constants.HashZero, ethers.utils.keccak256(initCode));
+}
+
+export function computeLegacyStealthAccountAddress(ownerEOA: string): string {
+  const initCode = ethers.utils.solidityPack(
+    ['bytes', 'bytes'],
+    [LEGACY_STEALTH_ACCOUNT_CREATION_CODE, ethers.utils.defaultAbiCoder.encode(['address', 'address'], [ENTRY_POINT_ADDRESS, ownerEOA])]
+  );
+  return ethers.utils.getCreate2Address(LEGACY_STEALTH_ACCOUNT_FACTORY, ethers.constants.HashZero, ethers.utils.keccak256(initCode));
 }
 
 export async function signWalletDrain(

@@ -4,7 +4,7 @@ import { ethers } from 'ethers';
 import { ec as EC } from 'elliptic';
 import type { StealthAnnouncement, ScanResult, StealthKeyPair } from './types';
 import { SCHEME_ID, CANONICAL_ADDRESSES } from './types';
-import { computeViewTag, verifyStealthAddress, computeStealthPrivateKey, getAddressFromPrivateKey, computeStealthWalletAddress, computeStealthAccountAddress } from './address';
+import { computeViewTag, verifyStealthAddress, computeStealthPrivateKey, getAddressFromPrivateKey, computeStealthWalletAddress, computeStealthAccountAddress, computeLegacyStealthWalletAddress, computeLegacyStealthAccountAddress } from './address';
 
 const secp256k1 = new EC('secp256k1');
 
@@ -102,6 +102,7 @@ export async function scanAnnouncements(
     const derivedEOA = getAddressFromPrivateKey(stealthPrivateKey);
 
     // Check EOA match (legacy), CREATE2 wallet match, and ERC-4337 account match
+    // Must check both current and legacy factory addresses for backward compat
     const announcedAddr = announcement.stealthAddress.toLowerCase();
     const eoaMatch = derivedEOA.toLowerCase() === announcedAddr;
     let create2Match = false;
@@ -109,10 +110,18 @@ export async function scanAnnouncements(
     if (!eoaMatch) {
       const create2Addr = computeStealthWalletAddress(derivedEOA);
       create2Match = create2Addr.toLowerCase() === announcedAddr;
+      if (!create2Match) {
+        const legacyCreate2Addr = computeLegacyStealthWalletAddress(derivedEOA);
+        create2Match = legacyCreate2Addr.toLowerCase() === announcedAddr;
+      }
     }
     if (!eoaMatch && !create2Match) {
       const accountAddr = computeStealthAccountAddress(derivedEOA);
       accountMatch = accountAddr.toLowerCase() === announcedAddr;
+      if (!accountMatch) {
+        const legacyAccountAddr = computeLegacyStealthAccountAddress(derivedEOA);
+        accountMatch = legacyAccountAddr.toLowerCase() === announcedAddr;
+      }
     }
 
     const isMatch = eoaMatch || create2Match || accountMatch;
@@ -181,13 +190,14 @@ export async function scanAnnouncementsViewOnly(
       } catch { return null; }
     })();
     if (eoaAddr) {
-      const create2Addr = computeStealthWalletAddress(eoaAddr);
-      if (create2Addr.toLowerCase() === announcement.stealthAddress.toLowerCase()) {
+      const addr = announcement.stealthAddress.toLowerCase();
+      if (computeStealthWalletAddress(eoaAddr).toLowerCase() === addr
+        || computeLegacyStealthWalletAddress(eoaAddr).toLowerCase() === addr) {
         matches.push(announcement);
         continue;
       }
-      const accountAddr = computeStealthAccountAddress(eoaAddr);
-      if (accountAddr.toLowerCase() === announcement.stealthAddress.toLowerCase()) {
+      if (computeStealthAccountAddress(eoaAddr).toLowerCase() === addr
+        || computeLegacyStealthAccountAddress(eoaAddr).toLowerCase() === addr) {
         matches.push(announcement);
       }
     }

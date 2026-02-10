@@ -43,7 +43,8 @@ async function checkSponsorBalance(provider: ethers.providers.Provider, sponsorA
   }
 }
 
-const STEALTH_WALLET_FACTORY = '0x85e7Fe33F594AC819213e63EEEc928Cb53A166Cd';
+const STEALTH_WALLET_FACTORY = '0xbc8e75a5374a6533cD3C4A427BF4FA19737675D3';
+const LEGACY_STEALTH_WALLET_FACTORY = '0x85e7Fe33F594AC819213e63EEEc928Cb53A166Cd';
 const FACTORY_ABI = [
   'function deployAndDrain(address _owner, address _to, bytes _sig)',
   'function deploy(address _owner) returns (address)',
@@ -207,8 +208,15 @@ async function handleCreate2Claim(body: { stealthAddress: string; owner: string;
       maxPriorityFeePerGas: maxPriorityFee,
     });
   } else {
-    console.log('[Sponsor/CREATE2] Calling deployAndDrain');
-    const factory = new ethers.Contract(STEALTH_WALLET_FACTORY, FACTORY_ABI, sponsor);
+    // Determine which factory deployed the CREATE2 address
+    const newFactory = new ethers.Contract(STEALTH_WALLET_FACTORY, [...FACTORY_ABI, 'function computeAddress(address) view returns (address)'], sponsor);
+    const newFactoryAddr = await newFactory.computeAddress(owner);
+    let factory;
+    if (newFactoryAddr.toLowerCase() === stealthAddress.toLowerCase()) {
+      factory = newFactory;
+    } else {
+      factory = new ethers.Contract(LEGACY_STEALTH_WALLET_FACTORY, FACTORY_ABI, sponsor);
+    }
     tx = await factory.deployAndDrain(owner, recipient, signature, {
       gasLimit,
       type: 2,
