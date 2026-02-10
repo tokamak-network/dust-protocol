@@ -210,3 +210,80 @@ export async function discoverNameByMetaAddress(
     return null;
   }
 }
+
+const ERC6538_REGISTRY_ABI = [
+  'event StealthMetaAddressSet(address indexed registrant, uint256 indexed schemeId, bytes stealthMetaAddress)',
+];
+
+/**
+ * Discover name by checking the user's ERC-6538 registration history.
+ * When a user re-derives keys, the NameRegistry still has the OLD meta-address.
+ * This function scans all historical meta-addresses the user has registered
+ * on ERC-6538, then checks deployer names for any matching old meta-address.
+ * If found, also auto-updates the name's meta-address to the current one.
+ */
+export async function discoverNameByWalletHistory(
+  userAddress: string,
+  currentMetaAddress: string,
+  erc6538Address: string,
+): Promise<string | null> {
+  const addr = getNameRegistryAddress();
+  if (!addr) return null;
+
+  try {
+    const rpcProvider = getReadOnlyProvider();
+
+    // Scan ERC-6538 for all meta-addresses this wallet has ever registered
+    const erc6538 = new ethers.Contract(erc6538Address, ERC6538_REGISTRY_ABI, rpcProvider);
+    const filter = erc6538.filters.StealthMetaAddressSet(userAddress, 1);
+    const events = await erc6538.queryFilter(filter, 6272527);
+
+    if (events.length === 0) return null;
+
+    // Collect all historical meta-addresses (deduplicated)
+    const historicalMetas = new Set<string>();
+    for (const evt of events) {
+      if (evt.args) {
+        const meta = (evt.args.stealthMetaAddress as string).toLowerCase();
+        historicalMetas.add(meta);
+      }
+    }
+
+    if (historicalMetas.size === 0) return null;
+
+    // Check deployer names against historical meta-addresses
+    const registry = new ethers.Contract(addr, NAME_REGISTRY_ABI, rpcProvider);
+    const DEPLOYER = '0x8d56E94a02F06320BDc68FAfE23DEc9Ad7463496';
+    const deployerNames: string[] = await registry.getNamesOwnedBy(DEPLOYER);
+
+    for (const name of deployerNames) {
+      try {
+        const resolved: string = await registry.resolveName(name);
+        if (resolved && historicalMetas.has(resolved.toLowerCase())) {
+          // Found a match with an old meta-address — auto-update to current
+          autoUpdateNameMeta(name, currentMetaAddress);
+          return name;
+        }
+      } catch { continue; }
+    }
+
+    return null;
+  } catch (e) {
+    console.error('[names] discoverNameByWalletHistory error:', e);
+    return null;
+  }
+}
+
+/**
+ * Auto-update a name's meta-address via the sponsor endpoint (fire and forget).
+ */
+function autoUpdateNameMeta(name: string, newMetaAddress: string): void {
+  fetch('/api/sponsor-name-update-meta', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, newMetaAddress }),
+  }).then(res => {
+    if (res.ok) console.log('[names] Auto-updated meta-address for', name);
+    else console.warn('[names] Failed to auto-update meta-address for', name);
+  }).catch(() => {});
+}

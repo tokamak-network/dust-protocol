@@ -4,7 +4,8 @@ import { useState, useEffect, ChangeEvent } from "react";
 import { Box, Text, VStack, HStack, Input, Spinner } from "@chakra-ui/react";
 import { colors, radius, shadows, EXPLORER_BASE } from "@/lib/design/tokens";
 import { useStealthSend, useStealthName } from "@/hooks/stealth";
-import { isStealthName, NAME_SUFFIX } from "@/lib/stealth";
+import { isStealthName, NAME_SUFFIX, lookupStealthMetaAddress } from "@/lib/stealth";
+import { ethers } from "ethers";
 import {
   SendIcon, CheckCircleIcon, AlertCircleIcon, LockIcon,
   ArrowUpRightIcon, XIcon,
@@ -34,6 +35,28 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
       setResolvedLinkSlug(undefined);
       if (!recipient) { setResolvedAddress(null); return; }
       if (recipient.startsWith("st:")) { setResolvedAddress(recipient); return; }
+
+      // Handle 0x addresses — look up stealth meta-address from ERC-6538 registry
+      if (recipient.startsWith("0x") && recipient.length === 42) {
+        setIsResolving(true);
+        try {
+          const provider = new ethers.providers.JsonRpcProvider("https://rpc.thanos-sepolia.tokamak.network");
+          const metaBytes = await lookupStealthMetaAddress(provider, recipient);
+          setIsResolving(false);
+          if (metaBytes) {
+            setResolvedAddress(`st:thanos:0x${metaBytes.replace(/^0x/, "")}`);
+          } else {
+            setResolvedAddress(null);
+            setResolveError("This address hasn't registered for stealth payments");
+          }
+        } catch {
+          setIsResolving(false);
+          setResolvedAddress(null);
+          setResolveError("Failed to look up address");
+        }
+        return;
+      }
+
       if (nameRegistryConfigured && isStealthName(recipient)) {
         setIsResolving(true);
         // Handle multi-part .tok names: "link.username.tok" → resolve "username", extract linkSlug
@@ -144,7 +167,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                   </Text>
                   <Box position="relative">
                     <Input
-                      placeholder={`alice${NAME_SUFFIX} or st:thanos:0x...`}
+                      placeholder={`alice${NAME_SUFFIX} or 0x...`}
                       value={recipient}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setRecipient(e.target.value)}
                       h="52px" bgColor={colors.bg.input}
@@ -169,10 +192,14 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                   </Box>
                   <Box h="18px" mt="6px">
                     {isResolving && (
-                      <Text fontSize="11px" color={colors.text.muted} fontWeight={500}>Looking up name...</Text>
+                      <Text fontSize="11px" color={colors.text.muted} fontWeight={500}>
+                        {recipient.startsWith("0x") ? "Looking up address..." : "Looking up name..."}
+                      </Text>
                     )}
                     {!isResolving && resolvedAddress && !recipient.startsWith("st:") && (
-                      <Text fontSize="11px" color={colors.accent.indigo} fontWeight={600}>Name resolved</Text>
+                      <Text fontSize="11px" color={colors.accent.indigo} fontWeight={600}>
+                        {recipient.startsWith("0x") ? "Address resolved" : "Name resolved"}
+                      </Text>
                     )}
                     {!isResolving && resolveError && (
                       <HStack gap="4px"><AlertCircleIcon size={11} color={colors.accent.red} /><Text fontSize="11px" color={colors.accent.red} fontWeight={500}>{resolveError}</Text></HStack>

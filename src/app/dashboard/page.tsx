@@ -10,12 +10,17 @@ import { AddressBreakdownCard } from "@/components/dashboard/AddressBreakdownCar
 import { PersonalLinkCard } from "@/components/dashboard/PersonalLinkCard";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { SendModal } from "@/components/send/SendModal";
+import { ReceiveModal } from "@/components/dashboard/ReceiveModal";
 import { SendIcon, ArrowDownLeftIcon } from "@/components/stealth/icons";
 
 export default function DashboardPage() {
   const { stealthKeys, metaAddress, ownedNames, claimAddresses, refreshClaimBalances, claimAddressesInitialized } = useAuth();
   const { payments, scan, scanInBackground, stopBackgroundScan, isScanning } = useStealthScanner(stealthKeys);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+
+  const tokName = ownedNames.length > 0 ? `${ownedNames[0].name}.tok` : null;
+  const payPath = ownedNames.length > 0 ? `/pay/${ownedNames[0].name}` : "";
 
   const unified = useUnifiedBalance({
     payments,
@@ -38,10 +43,10 @@ export default function DashboardPage() {
   }, [stealthKeys, scanInBackground, stopBackgroundScan]);
 
   return (
-    <Box p={{ base: "20px 16px", md: "40px" }} maxW="780px" mx="auto">
-      <VStack gap="28px" align="stretch">
+    <Box p={{ base: "16px 14px", md: "28px 24px" }} maxW="640px" mx="auto">
+      <VStack gap="18px" align="stretch">
         {/* Page heading */}
-        <Text fontSize="28px" fontWeight={800} color={colors.text.primary} textAlign="center" letterSpacing="-0.02em">
+        <Text fontSize="22px" fontWeight={800} color={colors.text.primary} textAlign="center" letterSpacing="-0.02em">
           Dashboard
         </Text>
 
@@ -63,37 +68,37 @@ export default function DashboardPage() {
         />
 
         {/* Quick actions */}
-        <HStack gap="12px">
+        <HStack gap="10px">
           <Box
             as="button"
             flex={1}
-            p="16px"
+            p="12px"
             bgColor={colors.accent.indigo}
             borderRadius={radius.lg}
             cursor="pointer"
             _hover={{ opacity: 0.9 }}
             transition="all 0.15s ease"
             onClick={() => setShowSendModal(true)}
-            display="flex" alignItems="center" justifyContent="center" gap="10px"
+            display="flex" alignItems="center" justifyContent="center" gap="8px"
           >
-            <SendIcon size={20} color="#fff" />
-            <Text fontSize="16px" fontWeight={700} color="#fff">Send</Text>
+            <SendIcon size={17} color="#fff" />
+            <Text fontSize="14px" fontWeight={700} color="#fff">Send</Text>
           </Box>
           <Box
             as="button"
             flex={1}
-            p="16px"
+            p="12px"
             bgColor={colors.bg.card}
             borderRadius={radius.lg}
             border={`2px solid ${colors.border.default}`}
             cursor="pointer"
             _hover={{ borderColor: colors.accent.indigo }}
             transition="all 0.15s ease"
-            onClick={() => scan()}
-            display="flex" alignItems="center" justifyContent="center" gap="10px"
+            onClick={() => setShowReceiveModal(true)}
+            display="flex" alignItems="center" justifyContent="center" gap="8px"
           >
-            <ArrowDownLeftIcon size={20} color={colors.accent.indigo} />
-            <Text fontSize="16px" fontWeight={700} color={colors.text.primary}>Receive</Text>
+            <ArrowDownLeftIcon size={17} color={colors.accent.indigo} />
+            <Text fontSize="14px" fontWeight={700} color={colors.text.primary}>Receive</Text>
           </Box>
         </HStack>
 
@@ -105,6 +110,7 @@ export default function DashboardPage() {
 
         {/* Send Modal */}
         <SendModal isOpen={showSendModal} onClose={() => { setShowSendModal(false); scan(); }} />
+        <ReceiveModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} tokName={tokName} payPath={payPath} />
       </VStack>
     </Box>
   );

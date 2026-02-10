@@ -8,6 +8,7 @@ import { injected } from "wagmi/connectors";
 import { colors, radius, EXPLORER_BASE } from "@/lib/design/tokens";
 import { useStealthSend, useStealthName } from "@/hooks/stealth";
 import { NAME_SUFFIX } from "@/lib/stealth";
+import Link from "next/link";
 import { NoOptInPayment } from "@/components/pay/NoOptInPayment";
 import {
   ShieldIcon, CheckCircleIcon, AlertCircleIcon, ArrowUpRightIcon, LockIcon,
@@ -64,9 +65,12 @@ export default function LinkPayPage({ params }: { params: { name: string; link: 
       <Box as="header" borderBottom={`1px solid ${colors.border.default}`} bg="rgba(255, 255, 255, 0.95)"
         backdropFilter="blur(10px)" px="24px" py="16px">
         <HStack justify="space-between" align="center" maxW="600px" mx="auto">
-          <HStack gap="8px" align="baseline">
-            <Text fontSize="20px" fontWeight="800" color={colors.text.primary} letterSpacing="-0.03em">Dust Protocol</Text>
-          </HStack>
+          <Link href="/" style={{ textDecoration: "none" }}>
+            <Text fontSize="20px" fontWeight={800} color={colors.text.primary} letterSpacing="-0.03em"
+              _hover={{ color: colors.accent.indigo }} transition="color 0.15s" cursor="pointer">
+              Dust Protocol
+            </Text>
+          </Link>
           <Box px="10px" py="4px" bgColor="rgba(43, 90, 226, 0.08)" borderRadius={radius.xs}>
             <Text fontSize="11px" color={colors.accent.indigo} fontWeight={600}>Payment</Text>
           </Box>
@@ -235,6 +239,15 @@ export default function LinkPayPage({ params }: { params: { name: string; link: 
                 </Box>
               )}
             </Box>
+            {/* Pay someone else */}
+            <HStack justify="center" pt="8px">
+              <Link href="/" style={{ textDecoration: "none" }}>
+                <Text fontSize="13px" color={colors.text.muted} fontWeight={500}
+                  _hover={{ color: colors.accent.indigo }} transition="color 0.15s" cursor="pointer">
+                  Pay someone else
+                </Text>
+              </Link>
+            </HStack>
           </VStack>
         </Box>
       </Box>

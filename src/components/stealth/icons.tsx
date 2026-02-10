@@ -647,6 +647,14 @@ export const BoxIcon = ({ size = 24, color = "currentColor" }: IconProps) => (
   </svg>
 );
 
+export const SearchIcon = ({ size = 24, color = "currentColor" }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+    strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
 export const TONIcon = ({ size = 24 }: IconProps) => (
   <svg width={size} height={size * 24 / 36} viewBox="0 0 36 24" fill="none">
     <path d="M0.551196 8.60858C0.440796 8.95898 0.304797 9.4318 0.216797 9.7902C0.277608 9.54236 0.390929 9.31046 0.549097 9.1102C0.707264 8.90993 0.906588 8.74596 1.13359 8.62939C1.5799 8.05462 2.15209 7.58987 2.80615 7.27089C3.46021 6.9519 4.1787 6.78719 4.9064 6.7894V6.7758C2.1968 5.9974 1.356 6.8886 1.1208 7.3078C0.898239 7.72513 0.708081 8.15892 0.552002 8.60539" fill="#2A72E5"/>

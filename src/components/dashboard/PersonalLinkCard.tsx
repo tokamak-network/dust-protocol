@@ -22,7 +22,10 @@ export function PersonalLinkCard({ ownedNames, metaAddress }: PersonalLinkCardPr
   const copyText = tokName || displayName || metaAddress || "";
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(copyText);
+    const textToCopy = payPath
+      ? `${window.location.origin}${payPath}`
+      : copyText;
+    await navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

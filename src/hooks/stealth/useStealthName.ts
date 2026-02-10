@@ -5,6 +5,7 @@ import {
   resolveStealthName, isNameAvailable, getNamesOwnedBy,
   isNameRegistryConfigured, stripNameSuffix,
   formatNameWithSuffix, isValidName, getNameOwner, discoverNameByMetaAddress,
+  discoverNameByWalletHistory, CANONICAL_ADDRESSES,
 } from '@/lib/stealth';
 
 interface OwnedName {
@@ -94,10 +95,21 @@ export function useStealthName(userMetaAddress?: string | null) {
     let cancelled = false;
     (async () => {
       try {
-        const discovered = await discoverNameByMetaAddress(
+        // First try: match by current meta-address
+        let discovered = await discoverNameByMetaAddress(
           null as unknown as ethers.providers.Provider,
           userMetaAddress
         );
+
+        // Second try: check ERC-6538 registration history for old meta-addresses
+        if (!discovered) {
+          discovered = await discoverNameByWalletHistory(
+            address,
+            userMetaAddress,
+            CANONICAL_ADDRESSES.registry,
+          );
+        }
+
         if (cancelled || !discovered) return;
         storeUsername(address, discovered);
         setOwnedNames([{ name: discovered, fullName: formatNameWithSuffix(discovered) }]);

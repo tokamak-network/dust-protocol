@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Text, VStack, HStack } from "@chakra-ui/react";
+import { Box, Text, VStack, HStack, Input } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { colors, radius } from "@/lib/design/tokens";
-import { ShieldIcon, LockIcon, WalletIcon, UserIcon, ZapIcon } from "@/components/stealth/icons";
+import { ShieldIcon, LockIcon, WalletIcon, UserIcon, ZapIcon, ArrowUpRightIcon } from "@/components/stealth/icons";
 import { useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
 
@@ -37,6 +37,7 @@ export default function Home() {
   const { isConnected, isOnboarded, isHydrated } = useAuth();
   const { connect } = useConnect();
   const router = useRouter();
+  const [searchName, setSearchName] = useState("");
 
   useEffect(() => { cleanupCorruptedStorage(); }, []);
 
@@ -48,6 +49,12 @@ export default function Home() {
       router.replace("/onboarding");
     }
   }, [isConnected, isOnboarded, isHydrated, router]);
+
+  const handlePaySearch = () => {
+    const name = searchName.trim().toLowerCase().replace(/\.tok$/, "");
+    if (!name) return;
+    router.push(`/pay/${name}`);
+  };
 
   if (!isHydrated || (isConnected && isOnboarded)) {
     return (
@@ -136,7 +143,7 @@ export default function Home() {
         position="relative"
         zIndex={10}
       >
-        <VStack gap="48px" maxW="440px" textAlign="center">
+        <VStack gap="36px" maxW="440px" textAlign="center">
           {/* Shield with glow ring */}
           <Box position="relative">
             <Box
@@ -186,6 +193,97 @@ export default function Home() {
             </Text>
           </VStack>
 
+          {/* Pay someone search card */}
+          <Box w="100%">
+            <Box
+              p="4px"
+              borderRadius={radius.lg}
+              bg="linear-gradient(135deg, rgba(43,90,226,0.12) 0%, rgba(43,90,226,0.04) 100%)"
+            >
+              <Box
+                p="20px"
+                bgColor="rgba(255,255,255,0.9)"
+                backdropFilter="blur(10px)"
+                borderRadius="calc(20px - 4px)"
+              >
+                <VStack gap="14px" align="stretch">
+                  <Text fontSize="15px" fontWeight={700} color={colors.text.primary} textAlign="left">
+                    Pay someone
+                  </Text>
+                  <HStack gap="8px">
+                    <Input
+                      placeholder="username.tok"
+                      value={searchName}
+                      onChange={(e) => setSearchName(e.target.value)}
+                      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handlePaySearch(); }}
+                      h="48px"
+                      flex={1}
+                      bgColor={colors.bg.input}
+                      border={`1.5px solid ${colors.border.default}`}
+                      borderRadius={radius.sm}
+                      color={colors.text.primary}
+                      fontSize="16px"
+                      fontWeight={500}
+                      px="14px"
+                      _placeholder={{ color: colors.text.muted }}
+                      _focus={{ borderColor: colors.accent.indigo, boxShadow: colors.glow.indigo }}
+                    />
+                    <Box
+                      as="button"
+                      w="48px"
+                      h="48px"
+                      flexShrink={0}
+                      bg={`linear-gradient(135deg, ${colors.accent.indigo} 0%, ${colors.accent.indigoBright} 100%)`}
+                      borderRadius={radius.sm}
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      cursor="pointer"
+                      _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                      transition="all 0.15s ease"
+                      onClick={handlePaySearch}
+                    >
+                      <ArrowUpRightIcon size={20} color="white" />
+                    </Box>
+                  </HStack>
+                </VStack>
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Divider */}
+          <HStack w="100%" gap="16px" align="center">
+            <Box flex={1} h="1px" bgColor={colors.border.default} />
+            <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>or</Text>
+            <Box flex={1} h="1px" bgColor={colors.border.default} />
+          </HStack>
+
+          {/* Get Paid section */}
+          <VStack gap="12px" w="100%">
+            <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>
+              Want to receive payments?
+            </Text>
+            <Box
+              as="button"
+              w="100%"
+              py="14px"
+              bgColor="#fff"
+              border={`2px solid ${colors.accent.indigo}`}
+              borderRadius={radius.md}
+              cursor="pointer"
+              _hover={{ bgColor: "rgba(43,90,226,0.04)", transform: "translateY(-1px)" }}
+              transition="all 0.2s ease"
+              onClick={() => connect({ connector: injected() })}
+            >
+              <HStack justify="center" gap="10px">
+                <WalletIcon size={18} color={colors.accent.indigo} />
+                <Text fontSize="15px" color={colors.accent.indigo} fontWeight="700" letterSpacing="-0.01em">
+                  Connect Wallet
+                </Text>
+              </HStack>
+            </Box>
+          </VStack>
+
           {/* Steps */}
           <Box w="100%">
             <Box
@@ -230,29 +328,6 @@ export default function Home() {
                   ))}
                 </VStack>
               </Box>
-            </Box>
-          </Box>
-
-          {/* Connect Button */}
-          <Box w="100%">
-            <Box
-              as="button"
-              w="100%"
-              py="16px"
-              bg={`linear-gradient(135deg, ${colors.accent.indigo} 0%, ${colors.accent.indigoBright} 100%)`}
-              borderRadius={radius.md}
-              cursor="pointer"
-              boxShadow="0 4px 24px rgba(43,90,226,0.3), 0 1px 3px rgba(43,90,226,0.2)"
-              _hover={{ opacity: 0.92, transform: "translateY(-1px)", boxShadow: "0 6px 32px rgba(43,90,226,0.35), 0 2px 6px rgba(43,90,226,0.25)" }}
-              transition="all 0.2s ease"
-              onClick={() => connect({ connector: injected() })}
-            >
-              <HStack justify="center" gap="10px">
-                <WalletIcon size={18} color="white" />
-                <Text fontSize="16px" color="white" fontWeight="700" letterSpacing="-0.01em">
-                  Connect Wallet
-                </Text>
-              </HStack>
             </Box>
           </Box>
 

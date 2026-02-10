@@ -36,7 +36,7 @@ export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: Addr
 
   return (
     <Box
-      p="24px"
+      p="16px"
       bgColor={colors.bg.card}
       borderRadius={radius.lg}
       border={`2px solid ${colors.border.default}`}
@@ -53,62 +53,62 @@ export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: Addr
           cursor="pointer"
           onClick={() => setExpanded(v => !v)}
         >
-          <HStack gap="10px">
+          <HStack gap="8px">
             <Box
-              w="32px" h="32px"
+              w="28px" h="28px"
               borderRadius={radius.full}
               bgColor={colors.bg.input}
               display="flex" alignItems="center" justifyContent="center"
             >
-              <WalletIcon size={16} color={colors.text.muted} />
+              <WalletIcon size={14} color={colors.text.muted} />
             </Box>
             <VStack align="flex-start" gap="0">
-              <Text fontSize="15px" color={colors.text.primary} fontWeight={600}>
+              <Text fontSize="13px" color={colors.text.primary} fontWeight={600}>
                 Address Breakdown
               </Text>
               {!expanded && (
-                <Text fontSize="12px" color={colors.text.muted}>
+                <Text fontSize="11px" color={colors.text.muted}>
                   {summaryParts.join(" · ")}
                 </Text>
               )}
             </VStack>
           </HStack>
           {expanded
-            ? <ChevronUpIcon size={18} color={colors.text.muted} />
-            : <ChevronDownIcon size={18} color={colors.text.muted} />
+            ? <ChevronUpIcon size={16} color={colors.text.muted} />
+            : <ChevronDownIcon size={16} color={colors.text.muted} />
           }
         </Box>
 
         {/* Expanded content */}
         {expanded && (
-          <VStack gap="0" align="stretch" mt="16px">
+          <VStack gap="0" align="stretch" mt="12px">
             {/* Claim wallets section */}
             {hasClaimAddresses && (
               <>
-                <Text fontSize="11px" fontWeight={600} color={colors.text.muted} textTransform="uppercase" letterSpacing="0.05em" mb="8px">
+                <Text fontSize="10px" fontWeight={600} color={colors.text.muted} textTransform="uppercase" letterSpacing="0.05em" mb="6px">
                   Claim Wallets
                 </Text>
                 {claimAddresses.map((addr, idx) => (
                   <HStack
                     key={addr.address}
-                    p="12px 0"
+                    p="8px 0"
                     justify="space-between"
                     borderBottom={idx < claimAddresses.length - 1 || hasUnclaimed ? `1px solid ${colors.border.default}` : "none"}
                   >
-                    <VStack align="flex-start" gap="2px">
-                      <Text fontSize="14px" fontWeight={500} color={colors.text.primary}>
+                    <VStack align="flex-start" gap="1px">
+                      <Text fontSize="12px" fontWeight={500} color={colors.text.primary}>
                         {addr.label || `Wallet ${idx + 1}`}
                       </Text>
                       <a
                         href={`${EXPLORER_BASE}/address/${addr.address}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ fontSize: "11px", color: colors.text.muted, fontFamily: "'JetBrains Mono', monospace", textDecoration: "none" }}
+                        style={{ fontSize: "10px", color: colors.text.muted, fontFamily: "'JetBrains Mono', monospace", textDecoration: "none" }}
                       >
                         {truncateAddress(addr.address)}
                       </a>
                     </VStack>
-                    <Text fontSize="14px" fontWeight={500} color={colors.accent.indigo} fontFamily="'JetBrains Mono', monospace">
+                    <Text fontSize="12px" fontWeight={500} color={colors.accent.indigo} fontFamily="'JetBrains Mono', monospace">
                       {parseFloat(addr.balance || "0").toFixed(4)} TON
                     </Text>
                   </HStack>
@@ -119,33 +119,33 @@ export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: Addr
             {/* Unclaimed stealth section */}
             {hasUnclaimed && (
               <>
-                <Text fontSize="11px" fontWeight={600} color={colors.text.muted} textTransform="uppercase" letterSpacing="0.05em" mt="12px" mb="8px">
+                <Text fontSize="10px" fontWeight={600} color={colors.text.muted} textTransform="uppercase" letterSpacing="0.05em" mt="8px" mb="6px">
                   Unclaimed Stealth
                 </Text>
                 {unclaimedPayments.map((p, idx) => (
                   <HStack
                     key={p.announcement.stealthAddress}
-                    p="12px 0"
+                    p="8px 0"
                     justify="space-between"
                     borderBottom={idx < unclaimedPayments.length - 1 ? `1px solid ${colors.border.default}` : "none"}
                   >
-                    <HStack gap="8px">
-                      <VStack align="flex-start" gap="2px">
+                    <HStack gap="6px">
+                      <VStack align="flex-start" gap="1px">
                         <a
                           href={`${EXPLORER_BASE}/address/${p.announcement.stealthAddress}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ fontSize: "13px", fontWeight: 500, color: colors.text.primary, fontFamily: "'JetBrains Mono', monospace", textDecoration: "none" }}
+                          style={{ fontSize: "11px", fontWeight: 500, color: colors.text.primary, fontFamily: "'JetBrains Mono', monospace", textDecoration: "none" }}
                         >
                           {truncateAddress(p.announcement.stealthAddress)}
                         </a>
                       </VStack>
                       {p.walletType && (
                         <Box
-                          px="6px" py="2px"
+                          px="5px" py="1px"
                           borderRadius={radius.xs}
                           bgColor={colors.bg.input}
-                          fontSize="10px"
+                          fontSize="9px"
                           fontWeight={600}
                           color={colors.text.muted}
                           letterSpacing="0.03em"
@@ -154,7 +154,7 @@ export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: Addr
                         </Box>
                       )}
                     </HStack>
-                    <Text fontSize="14px" fontWeight={500} color={colors.accent.indigo} fontFamily="'JetBrains Mono', monospace">
+                    <Text fontSize="12px" fontWeight={500} color={colors.accent.indigo} fontFamily="'JetBrains Mono', monospace">
                       {parseFloat(p.balance || "0").toFixed(4)} TON
                     </Text>
                   </HStack>
