@@ -1,153 +1,84 @@
-# Stealth Address Relayer Service
+# Gas Sponsorship (Relayer)
 
-A privacy-preserving relayer that submits transactions on behalf of users, hiding their identity on-chain.
+> **Note:** The standalone relayer service in this directory is deprecated. Gas sponsorship now runs as Next.js API routes with ERC-4337 Account Abstraction.
 
-## How It Works
+## Current Architecture
 
-1. User receives funds at a stealth address
-2. User sends the stealth private key to the relayer
-3. Relayer submits the withdrawal transaction
-4. User's main wallet never appears on-chain
+All gas sponsorship is handled through two mechanisms:
 
-## Quick Start (Local)
+### ERC-4337 Bundle API (primary — new payments)
 
-```bash
-# From the project root
-RELAYER_PRIVATE_KEY=<your_private_key> npm run relayer:start
+New stealth payments use ERC-4337 smart accounts. Claims go through EntryPoint + DustPaymaster:
+
+```
+POST /api/bundle       → Server builds UserOp with paymaster signature
+                       ← Returns { userOp, userOpHash }
+
+Client signs userOpHash locally (key never leaves browser)
+
+POST /api/bundle/submit → Server calls entryPoint.handleOps()
+                        ← Returns { txHash }
 ```
 
-## Environment Variables
+The DustPaymaster pays all gas. Its deposit in EntryPoint auto-refills when it drops below 0.1 TON.
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `RELAYER_PRIVATE_KEY` | Yes | - | Private key for the relayer wallet |
-| `RELAYER_PORT` or `PORT` | No | 3001 | Port to listen on |
-| `RPC_URL` | No | Thanos Sepolia | RPC endpoint |
-| `CORS_ORIGIN` | No | `*` | Allowed CORS origins (comma-separated) |
-| `FEE_BPS` | No | 50 | Fee in basis points (50 = 0.5%) |
-| `MIN_FEE` | No | 0.001 | Minimum fee in ETH |
-| `NODE_ENV` | No | development | Set to `production` for prod mode |
+### Legacy Sponsor API (backward compat — old payments)
 
-## API Endpoints
+Old CREATE2 and EOA stealth payments are claimed via:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| GET | `/info` | Relayer info (address, balance, fees) |
-| POST | `/calculate-fee` | Calculate fee for a withdrawal |
-| POST | `/withdraw` | Submit a withdrawal request |
-| GET | `/status/:jobId` | Check job status |
-
-## Deployment Options
-
-### Option 1: Railway (Easiest)
-
-1. Fork/clone this repo to GitHub
-2. Go to [railway.app](https://railway.app)
-3. Create new project → Deploy from GitHub
-4. Select the repo
-5. Add environment variable: `RELAYER_PRIVATE_KEY`
-6. Railway will auto-detect the Dockerfile and deploy
-
-Your relayer URL will be: `https://<project>.up.railway.app`
-
-### Option 2: Render
-
-1. Go to [render.com](https://render.com)
-2. New → Web Service → Connect your repo
-3. Set:
-   - Build Command: `npm install express cors ethers@5`
-   - Start Command: `node relayer/index.js`
-4. Add environment variable: `RELAYER_PRIVATE_KEY`
-
-### Option 3: Fly.io
-
-```bash
-# Install flyctl
-curl -L https://fly.io/install.sh | sh
-
-# Login
-fly auth login
-
-# Launch (from relayer directory)
-cd relayer
-fly launch
-
-# Set secrets
-fly secrets set RELAYER_PRIVATE_KEY=<your_key>
-
-# Deploy
-fly deploy
+```
+POST /api/sponsor-claim → Server relays deployAndDrain() or direct transfer
+                        ← Returns { txHash, amount, gasFunded }
 ```
 
-### Option 4: Docker (Any Cloud)
+## Configuration
 
-```bash
-# Build
-docker build -t stealth-relayer -f relayer/Dockerfile .
+Only one environment variable is needed:
 
-# Run
-docker run -d \
-  -p 3001:3001 \
-  -e RELAYER_PRIVATE_KEY=<your_key> \
-  stealth-relayer
+```
+RELAYER_PRIVATE_KEY=<deployer-private-key>
 ```
 
-### Option 5: VPS (DigitalOcean, AWS, etc.)
+This key is used by the Next.js API routes to:
+- Sign paymaster authorizations for ERC-4337 claims
+- Call `entryPoint.handleOps()` as the self-bundler
+- Relay legacy `deployAndDrain()` calls
+- Sponsor on-chain announcements and name registrations
+
+## Contracts
+
+| Contract | Address | Role |
+|----------|---------|------|
+| EntryPoint (v0.6) | `0x5c058Eb93CDee95d72398E5441d989ef6453D038` | Executes UserOperations |
+| DustPaymaster | `0x9e2eb36F7161C066351DC9E418E7a0620EE5d095` | Sponsors gas for claims |
+| StealthAccountFactory | `0x0D93df03e6CF09745A24Ee78A4Cab032781E7aa6` | Deploys stealth accounts |
+| StealthWalletFactory | `0x85e7Fe33F594AC819213e63EEEc928Cb53A166Cd` | Legacy CREATE2 wallets |
+
+## Monitoring
+
+Check paymaster deposit:
 
 ```bash
-# SSH into your server
-ssh user@your-server
-
-# Clone repo
-git clone https://github.com/your/repo.git
-cd repo
-
-# Install dependencies
-npm install
-
-# Run with PM2 (process manager)
-npm install -g pm2
-RELAYER_PRIVATE_KEY=<key> pm2 start relayer/index.js --name stealth-relayer
-
-# Save PM2 config
-pm2 save
-pm2 startup
+cast call 0x5c058Eb93CDee95d72398E5441d989ef6453D038 \
+  "balanceOf(address)(uint256)" \
+  0x9e2eb36F7161C066351DC9E418E7a0620EE5d095 \
+  --rpc-url https://rpc.thanos-sepolia.tokamak.network
 ```
 
-## After Deployment
+Manual top-up (if auto-top-up is insufficient):
 
-1. Get your relayer URL (e.g., `https://stealth-relayer.up.railway.app`)
+```bash
+cast send 0x5c058Eb93CDee95d72398E5441d989ef6453D038 \
+  "depositTo(address)" \
+  0x9e2eb36F7161C066351DC9E418E7a0620EE5d095 \
+  --value 1ether \
+  --private-key $RELAYER_PRIVATE_KEY \
+  --rpc-url https://rpc.thanos-sepolia.tokamak.network
+```
 
-2. Update your frontend `.env`:
-   ```
-   NEXT_PUBLIC_RELAYER_URL=https://stealth-relayer.up.railway.app
-   ```
+## Security
 
-3. Redeploy your frontend
-
-4. **Fund the relayer wallet** - the relayer needs ETH to pay for gas initially
-   (it will earn fees from withdrawals)
-
-## Security Considerations
-
-⚠️ **Trust Model**: Users send their stealth private keys to the relayer. This requires trusting the relayer operator.
-
-- The relayer could theoretically steal funds (but has no incentive - it earns fees legitimately)
-- For maximum security, users should run their own relayer
-- In production, consider adding:
-  - HTTPS (most platforms provide this)
-  - API authentication
-  - Redis for distributed rate limiting
-  - Logging to external service
-
-## Contract Address
-
-The StealthRelayer contract is deployed at:
-- **Thanos Sepolia**: `0x77c3d8c2B0bb27c9A8ACCa39F2398aaa021eb776`
-
-## Fees
-
-- Default: 0.5% of withdrawal amount
-- Minimum: 0.001 ETH
-- Configurable via environment variables
+- **Private key never leaves the browser.** The client signs UserOperation hashes, not raw transactions.
+- **Paymaster is verifying.** Only UserOps signed by the sponsor are accepted — prevents abuse.
+- **Rate-limited.** Submit endpoint enforces 10-second cooldown per sender address.
+- **Balance-gated.** Empty stealth accounts are rejected before submitting to EntryPoint.
