@@ -154,54 +154,47 @@ Based on [Interactive No-Opt-In Stealth Addresses](https://ethresear.ch/t/intera
 
 ### How It Works
 
+The key design decision is **eager pre-announcement**: the stealth address is announced on-chain *before* payment, not after. This means the sender can close the page at any time — the recipient's scanner will always discover the payment.
+
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Pay Page     │     │  Any Wallet   │     │  Sponsor API  │
+│  Pay Page     │     │  Any Wallet   │     │  Resolve API  │
 │  (Browser)    │     │  (MetaMask)   │     │  (Server)     │
 └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
        │                     │                     │
-       │ 1. Resolve .tok name                      │
-       │ 2. Generate stealth address               │
-       │ 3. Show address + QR                      │
+       │ 1. GET /api/resolve/{name} ──────────────>│
+       │                     │                     │ 2. Resolve name → meta-address
+       │                     │                     │ 3. Generate stealth address
+       │                     │                     │ 4. Call announcer.announce()
+       │<───────────── 5. { stealthAddress } ──────│
        │                     │                     │
-       │    4. User copies   │                     │
+       │ 6. Show address + QR                      │
+       │    "You can close this page"              │
+       │                     │                     │
+       │    7. User copies   │                     │
        │    address and      │                     │
        │    sends TON        │                     │
        │<────────────────────│                     │
        │                     │                     │
-       │ 5. Poll balance every 3s                  │
-       │ 6. Deposit detected!                      │
-       │                     │                     │
-       │ 7. POST /api/sponsor-announce ───────────>│
-       │                     │                     │ 8. Call announcer.announce()
-       │<──────────────────── 9. Success ──────────│
-       │                     │                     │
-       │ 10. "Payment Received!"                   │
-       │ 11. Clear pending session                 │
+       │ 8. Poll balance (optional UX)             │
+       │ 9. "Payment Received!"                    │
        └─────────────────────┘                     │
 ```
 
 ### State Machine
 
 ```
-generating → waiting → announcing → confirmed
-                ↓           ↓
-              error    announce_failed → (retry) → announcing
+resolving → ready → deposit_detected
+    ↓
+  error → (retry) → resolving
 ```
 
-- **generating**: Generating stealth address from meta-address (instant)
-- **waiting**: Address shown, polling balance every 3s
-- **announcing**: Deposit detected, calling sponsor-announce API (retries 3x with 6s/12s/18s backoff)
-- **confirmed**: Announcement on-chain, payment visible to receiver
-- **announce_failed**: All retries failed — shows retry button, keeps session in localStorage
+- **resolving**: Calling the resolve API to generate + announce stealth address
+- **ready**: Address shown with QR code, optionally polling balance
+- **deposit_detected**: Balance appeared (nice-to-have confirmation UX)
+- **error**: API call failed — shows retry button
 
-### Session Recovery
-
-The pending session (stealth address, ephemeral key, view tag) is saved to localStorage:
-- Key: `dust_pending_{recipientName}_{linkSlug || "personal"}`
-- Expires after 24 hours
-- On page refresh, if a pending session exists and isn't expired, the same address is shown
-- Only cleared after successful announcement
+No session recovery needed — the announcement is already on-chain. If the sender refreshes, a new address is generated (each is unique).
 
 ### Balance Polling
 
@@ -259,8 +252,9 @@ src/
 │   ├── onboarding/page.tsx       # New user setup
 │   ├── settings/page.tsx         # Account settings
 │   └── api/                      # Sponsored gas API routes
-│       ├── sponsor-announce/     # Payment announcement
-│       ├── sponsor-claim/        # Fund claiming
+│       ├── resolve/[name]/       # Server-side stealth address resolve + announce
+│       ├── sponsor-announce/     # Legacy payment announcement
+│       ├── sponsor-claim/        # Fund claiming (CREATE2 + legacy EOA)
 │       ├── sponsor-register-keys/ # Meta-address registration
 │       ├── sponsor-name-register/ # Name registration
 │       └── sponsor-name-transfer/ # Name transfer
@@ -295,7 +289,7 @@ src/
 │
 ├── components/
 │   ├── pay/                      # Payment page components
-│   │   ├── NoOptInPayment.tsx    # No-wallet payment flow (address + QR + polling + announce)
+│   │   ├── NoOptInPayment.tsx    # No-wallet payment flow (calls resolve API, shows address + QR)
 │   │   └── AddressDisplay.tsx    # Address card with copy button + inline QR code
 │   ├── stealth/
 │   │   └── icons.tsx             # SVG icon components

@@ -22,10 +22,11 @@ Each payment goes to a different address. There's no trail connecting them to ea
 The sender doesn't need any special software. They just send TON to a plain address.
 
 ```
-Sender visits pay/alice → sees an address + QR code → copies it → sends from MetaMask/exchange/anywhere
+Sender visits pay/alice → server generates fresh stealth address + announces on-chain → page shows address + QR code
+Sender copies address → sends from MetaMask/exchange/anywhere
 ```
 
-The page watches for the payment, then auto-registers it on-chain so Alice's dashboard picks it up.
+The server-side resolve API (`GET /api/resolve/{name}`) handles everything: name resolution, stealth address generation, and on-chain announcement. The announcement exists before the sender even copies the address, so they can close the page at any time.
 
 ### 2. Connected Wallet (Secondary)
 
@@ -90,15 +91,30 @@ Deployment block: `6272527` (scanner never starts before this)
 
 All protocol operations are gasless for users. The deployer wallet pays gas via server-side API routes:
 
-| Endpoint | What it sponsors |
-|----------|-----------------|
-| `/api/sponsor-announce` | Registers a payment on-chain (Announcement event) |
+| Endpoint | What it does |
+|----------|-------------|
+| `/api/resolve/{name}` | Resolves .tok name → generates fresh stealth address → announces on-chain. Returns address for sender to pay. |
+| `/api/sponsor-announce` | Legacy: registers a payment on-chain (Announcement event) |
 | `/api/sponsor-claim` | Sweeps funds from a stealth address to the user's claim address |
 | `/api/sponsor-register-keys` | Registers stealth meta-address on ERC-6538 Registry |
 | `/api/sponsor-name-register` | Registers a .tok name |
 | `/api/sponsor-name-transfer` | Transfers .tok name ownership |
 
 Each API route has rate limiting and input validation.
+
+### Resolve API
+
+`GET /api/resolve/{name}?link={slug}`
+
+Server-side stealth address resolution with eager pre-announcement. Each call:
+1. Resolves the `.tok` name to a stealth meta-address via the StealthNameRegistry contract
+2. Generates a fresh stealth address using a random ephemeral key (ECDH + CREATE2)
+3. Announces the stealth address on-chain immediately (deployer pays gas)
+4. Returns `{ stealthAddress, network, chainId, announceTxHash }`
+
+No two calls return the same address. The announcement exists before payment, so the sender can close the page — the recipient's scanner will discover it.
+
+Rate limit: 5 second cooldown per name+link combination.
 
 ## Storage
 
@@ -108,7 +124,7 @@ All user data lives in localStorage (no backend database). Storage version: v5.
 |-------------|---------------|
 | `dust_username_{address}` | User's .tok name |
 | `dust_pin_{address}` | AES-256-GCM encrypted PIN |
-| `dust_pending_{name}_{link}` | Pending no-opt-in payment session (stealth address + ephemeral key) |
+| ~~`dust_pending_{name}_{link}`~~ | Removed — no longer needed since resolve API handles announcement server-side |
 | `stealth_claim_addresses_{address}` | Derived claim addresses |
 | `stealth_claim_signature_{address}` | Signature hash for claim key verification |
 | `stealth_last_scanned_{address}` | Last scanned block number |
