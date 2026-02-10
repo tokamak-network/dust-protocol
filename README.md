@@ -11,6 +11,7 @@ Private payment infrastructure on Tokamak Network. Send and receive untraceable 
 - **No-Opt-In Payments** — Anyone can send to a `.tok` name from any wallet, no special software needed
 - **Paymaster-Sponsored Gas** — All claims are gasless via DustPaymaster. The on-chain paymaster sponsors gas through ERC-4337, with auto-top-up when deposits run low
 - **Real-time Scanning** — Automatic detection of incoming payments (supports legacy EOA, CREATE2, and ERC-4337 account announcements)
+- **Unified Dashboard** — Single balance view aggregating unclaimed stealth payments + claim wallet holdings, with per-address breakdown
 
 ## Setup
 
@@ -93,6 +94,7 @@ DustPaymaster pays all gas — claim is completely gasless for the user
 - **ERC-4337 Stealth Accounts** — Smart accounts deployed at stealth addresses via `StealthAccountFactory`. Claims go through EntryPoint + DustPaymaster — completely gasless for users. Private key never leaves the browser. 48 Foundry tests passing.
 - **CREATE2 Stealth Wallets** — Legacy smart contract wallets via `StealthWalletFactory`. Signature-based drain, replay protection, atomic `deployAndDrain`. Still supported for backward compatibility.
 - **Fresh Address per Name Query** — Server-side resolve API (`GET /api/resolve/{name}`) generates a fresh stealth address and announces it on-chain before payment. No two queries return the same address. Inspired by [Fluidkey](https://docs.fluidkey.com/readme/receiving-funds)'s off-chain resolver.
+- **Unified Multi-Address Dashboard** — Single balance view aggregating unclaimed stealth payments + 3 HD-derived claim wallets. Collapsible per-address breakdown with wallet type badges (EOA/CREATE2/4337). Auto-refreshes claim balances every 30s. Inspired by [Fluidkey](https://docs.fluidkey.com/readme/frequently-asked-questions)'s unified dashboard over separate smart accounts.
 
 ### Next Up
 
@@ -100,11 +102,6 @@ DustPaymaster pays all gas — claim is completely gasless for the user
 Auto-forward funds from stealth addresses into a privacy pool for forward secrecy — even if the stealth address is traced to the sender, the pool withdrawal breaks the link.
 
 **Reference:** [Privacy Pools](https://hackmd.io/@pcaversaccio/ethereum-privacy-the-road-to-self-sovereignty) and the Ethereum Foundation's Kohaku effort.
-
-#### 2. Unified Multi-Address Dashboard
-Single wallet view aggregating all stealth addresses. The user sees one balance, but each payment lives at its own address.
-
-**Reference:** [Fluidkey](https://docs.fluidkey.com/readme/frequently-asked-questions) does this — separate smart accounts per payment, unified dashboard on top.
 
 ## Research Links
 
