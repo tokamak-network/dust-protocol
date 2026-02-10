@@ -51,13 +51,13 @@ From [Interactive No-Opt-In Stealth Addresses](https://ethresear.ch/t/interactiv
 
 **Current flow:**
 ```
-Page loads → resolve .tok name → generate stealth address → show address + QR
-Sender copies address → sends from any wallet
-Page polls balance → deposit detected → auto-announce via sponsor relay
-Receiver's dashboard picks up the payment
+Page loads → GET /api/resolve/{name} → server generates stealth address + announces on-chain
+Page shows address + QR → sender copies and sends from any wallet
+Sender can close the page — announcement already exists on-chain
+Receiver's scanner discovers the payment automatically
 ```
 
-**How it preserves privacy:** Each payment page visit generates a fresh ephemeral key pair. The stealth address is a CREATE2 smart contract wallet derived from the receiver's public spending key + the ephemeral key via ECDH. Only the receiver (with their viewing key) can identify the payment. To claim, the receiver signs a drain message in the browser — the private key never leaves the client. A sponsor relayer calls `deployAndDrain()` on-chain to atomically deploy the wallet and send the funds to the recipient.
+**How it preserves privacy:** Each name query generates a fresh ephemeral key pair server-side. The stealth address is a CREATE2 smart contract wallet derived from the receiver's public spending key + the ephemeral key via ECDH. Only the receiver (with their viewing key) can identify the payment. The on-chain announcement happens *before* payment (eager pre-announcement), so the page can be closed at any time. To claim, the receiver signs a drain message in the browser — the private key never leaves the client. A sponsor relayer calls `deployAndDrain()` on-chain to atomically deploy the wallet and send the funds to the recipient.
 
 ## Architecture: CREATE2 Stealth Wallets
 
@@ -83,25 +83,21 @@ The scanner supports both legacy EOA announcements and new CREATE2 announcements
 
 ### Done
 - **CREATE2 Stealth Wallets** — Smart contract wallets deployed at stealth addresses via `StealthWalletFactory`. Signature-based drain, replay protection, atomic `deployAndDrain`. Backward-compatible scanner for legacy EOA payments.
+- **Fresh Address per Name Query** — Server-side resolve API (`GET /api/resolve/{name}`) generates a fresh stealth address and announces it on-chain before payment. No two queries return the same address. Sender can close the page at any time — announcement exists on-chain. Inspired by [Fluidkey](https://docs.fluidkey.com/readme/receiving-funds)'s off-chain resolver.
 
 ### Next Up
 
-#### 1. Fresh Address per Name Query
-Every time someone queries a `.tok` name, resolve to a new stealth address. No two lookups return the same address — eliminates address reuse and removes the "keep page open" requirement.
-
-**Reference:** [Fluidkey](https://docs.fluidkey.com/readme/receiving-funds) does this with an off-chain resolver that generates addresses server-side from the receiver's meta-address.
-
-#### 2. ERC-4337 Paymaster for Gas
+#### 1. ERC-4337 Paymaster for Gas
 Replace the current API-based gas sponsoring (`/api/sponsor-claim`, `/api/sponsor-announce`) with an on-chain ERC-4337 Paymaster. Removes the central relayer and makes gas sponsoring trustless.
 
 **Reference:** [Vitalik's stealth address guide](https://vitalik.eth.limo/general/2023/01/20/stealth.html) identifies paymasters as the practical solution to the "stealth address gas problem."
 
-#### 3. Privacy Pool Integration
+#### 2. Privacy Pool Integration
 Auto-forward funds from stealth addresses into a privacy pool for forward secrecy — even if the stealth address is traced to the sender, the pool withdrawal breaks the link.
 
 **Reference:** [Privacy Pools](https://hackmd.io/@pcaversaccio/ethereum-privacy-the-road-to-self-sovereignty) and the Ethereum Foundation's Kohaku effort.
 
-#### 4. Unified Multi-Address Dashboard
+#### 3. Unified Multi-Address Dashboard
 Single wallet view aggregating all stealth addresses. The user sees one balance, but each payment lives at its own address.
 
 **Reference:** [Fluidkey](https://docs.fluidkey.com/readme/frequently-asked-questions) does this — separate smart accounts per payment, unified dashboard on top.
