@@ -154,7 +154,7 @@ export default function DashboardPage() {
                       {parseFloat(dustPool.poolBalance).toFixed(4)} TON
                     </Text>
                     <Text fontSize="11px" color={colors.text.muted}>
-                      {dustPool.deposits.filter(d => !d.withdrawn).length} deposits ready to consolidate
+                      {dustPool.deposits.filter(d => !d.withdrawn).length} deposits ready to withdraw
                     </Text>
                   </Box>
                   <Box
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                     transition="all 0.15s ease"
                     onClick={() => setShowConsolidateModal(true)}
                   >
-                    <Text fontSize="12px" fontWeight={700} color="#fff">Consolidate</Text>
+                    <Text fontSize="12px" fontWeight={700} color="#fff">Withdraw</Text>
                   </Box>
                 </HStack>
               </>

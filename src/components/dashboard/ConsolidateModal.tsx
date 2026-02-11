@@ -71,7 +71,7 @@ export function ConsolidateModal({
           {/* Header */}
           <HStack justifyContent="space-between">
             <Text fontSize="18px" fontWeight={700} color={colors.text.primary}>
-              Consolidate Privately
+              Withdraw from Pool
             </Text>
             {!isConsolidating && (
               <Box as="button" onClick={handleClose} p="4px" cursor="pointer">
@@ -154,7 +154,7 @@ export function ConsolidateModal({
                 textAlign="center"
               >
                 <Text fontSize="14px" fontWeight={700} color={canConsolidate ? "#fff" : colors.text.muted}>
-                  Consolidate All
+                  Withdraw All
                 </Text>
               </Box>
             </>

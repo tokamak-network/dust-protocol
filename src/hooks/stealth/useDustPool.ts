@@ -58,7 +58,7 @@ export function useDustPool() {
     const unwithdrawn = deposits.filter(d => !d.withdrawn);
 
     if (unwithdrawn.length === 0) {
-      setProgress({ phase: 'error', current: 0, total: 0, message: 'No deposits to consolidate' });
+      setProgress({ phase: 'error', current: 0, total: 0, message: 'No deposits to withdraw' });
       isConsolidatingRef.current = false;
       return;
     }
@@ -139,10 +139,10 @@ export function useDustPool() {
 
       setProgress({
         phase: 'done', current: unwithdrawn.length, total: unwithdrawn.length,
-        message: `Consolidated ${ethers.utils.formatEther(totalAmount)} TON to ${freshRecipient.slice(0, 8)}...`,
+        message: `Withdrew ${ethers.utils.formatEther(totalAmount)} TON to ${freshRecipient.slice(0, 8)}...`,
       });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Consolidation failed';
+      const msg = e instanceof Error ? e.message : 'Withdrawal failed';
       setProgress({
         phase: 'error', current: 0, total: 0,
         message: msg,
