@@ -1,0 +1,208 @@
+"use client";
+
+import { useState } from "react";
+import { Box, Text, VStack, HStack, Input } from "@chakra-ui/react";
+import { colors, radius, shadows } from "@/lib/design/tokens";
+import type { ConsolidateProgress } from "@/hooks/stealth/useDustPool";
+import type { StoredDeposit } from "@/lib/dustpool";
+import { ethers } from "ethers";
+
+interface ConsolidateModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  deposits: StoredDeposit[];
+  poolBalance: string;
+  progress: ConsolidateProgress;
+  onConsolidate: (recipient: string) => void;
+  onReset: () => void;
+  isConsolidating: boolean;
+}
+
+export function ConsolidateModal({
+  isOpen,
+  onClose,
+  deposits,
+  poolBalance,
+  progress,
+  onConsolidate,
+  onReset,
+  isConsolidating,
+}: ConsolidateModalProps) {
+  const [recipient, setRecipient] = useState("");
+
+  if (!isOpen) return null;
+
+  const unwithdrawable = deposits.filter(d => !d.withdrawn);
+  const isValidRecipient = /^0x[0-9a-fA-F]{40}$/.test(recipient);
+  const canConsolidate = isValidRecipient && unwithdrawable.length > 0 && !isConsolidating;
+
+  const handleClose = () => {
+    if (!isConsolidating) {
+      onReset();
+      onClose();
+    }
+  };
+
+  const progressPercent = progress.total > 0
+    ? Math.round((progress.current / progress.total) * 100)
+    : 0;
+
+  return (
+    <Box
+      position="fixed" top={0} left={0} right={0} bottom={0} zIndex={1000}
+      display="flex" alignItems="center" justifyContent="center"
+      onClick={handleClose}
+    >
+      {/* Backdrop */}
+      <Box position="absolute" top={0} left={0} right={0} bottom={0} bg="rgba(0,0,0,0.4)" />
+
+      {/* Modal */}
+      <Box
+        bg={colors.bg.card}
+        borderRadius={radius.lg}
+        boxShadow={shadows.modal}
+        p="24px"
+        maxW="440px"
+        w="90%"
+        position="relative"
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
+      >
+        <VStack gap="16px" align="stretch">
+          {/* Header */}
+          <HStack justifyContent="space-between">
+            <Text fontSize="18px" fontWeight={700} color={colors.text.primary}>
+              Consolidate Privately
+            </Text>
+            {!isConsolidating && (
+              <Box as="button" onClick={handleClose} p="4px" cursor="pointer">
+                <Text fontSize="18px" color={colors.text.muted}>&times;</Text>
+              </Box>
+            )}
+          </HStack>
+
+          {/* Pool balance */}
+          <Box
+            p="16px"
+            bg={colors.bg.input}
+            borderRadius={radius.md}
+          >
+            <Text fontSize="13px" color={colors.text.tertiary} mb="4px">Pool Balance</Text>
+            <Text fontSize="24px" fontWeight={800} color={colors.text.primary}>
+              {parseFloat(poolBalance).toFixed(6)} TON
+            </Text>
+            <Text fontSize="12px" color={colors.text.muted} mt="4px">
+              {unwithdrawable.length} deposit{unwithdrawable.length !== 1 ? "s" : ""} in pool
+            </Text>
+          </Box>
+
+          {/* Deposit list */}
+          {unwithdrawable.length > 0 && (
+            <VStack gap="6px" align="stretch" maxH="150px" overflowY="auto">
+              {unwithdrawable.map((d, i) => (
+                <HStack
+                  key={d.commitment}
+                  p="8px 12px"
+                  bg={colors.bg.page}
+                  borderRadius={radius.sm}
+                  justifyContent="space-between"
+                >
+                  <Text fontSize="12px" color={colors.text.secondary}>
+                    Deposit #{i + 1}
+                  </Text>
+                  <Text fontSize="12px" fontWeight={600} color={colors.text.primary}>
+                    {parseFloat(ethers.utils.formatEther(d.amount)).toFixed(6)} TON
+                  </Text>
+                </HStack>
+              ))}
+            </VStack>
+          )}
+
+          {/* Recipient input */}
+          {progress.phase === 'idle' && (
+            <>
+              <Box>
+                <Text fontSize="13px" fontWeight={600} color={colors.text.secondary} mb="6px">
+                  Fresh recipient address
+                </Text>
+                <Input
+                  placeholder="0x..."
+                  value={recipient}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRecipient(e.target.value)}
+                  fontSize="13px"
+                  bg={colors.bg.input}
+                  border={`1px solid ${colors.border.default}`}
+                  borderRadius={radius.sm}
+                  _focus={{ borderColor: colors.accent.indigo }}
+                  fontFamily="mono"
+                  px="12px"
+                />
+                <Text fontSize="11px" color={colors.text.muted} mt="4px">
+                  Use a fresh address with no on-chain history for maximum privacy
+                </Text>
+              </Box>
+
+              <Box
+                as="button"
+                p="12px"
+                bg={canConsolidate ? colors.accent.indigo : colors.bg.elevated}
+                borderRadius={radius.md}
+                cursor={canConsolidate ? "pointer" : "not-allowed"}
+                opacity={canConsolidate ? 1 : 0.5}
+                _hover={canConsolidate ? { opacity: 0.9 } : {}}
+                transition="all 0.15s ease"
+                onClick={() => canConsolidate && onConsolidate(recipient)}
+                textAlign="center"
+              >
+                <Text fontSize="14px" fontWeight={700} color={canConsolidate ? "#fff" : colors.text.muted}>
+                  Consolidate All
+                </Text>
+              </Box>
+            </>
+          )}
+
+          {/* Progress */}
+          {(progress.phase === 'loading' || progress.phase === 'proving' || progress.phase === 'submitting') && (
+            <Box>
+              <Box
+                h="6px"
+                bg={colors.bg.elevated}
+                borderRadius={radius.full}
+                overflow="hidden"
+                mb="8px"
+              >
+                <Box
+                  h="100%"
+                  w={`${progressPercent}%`}
+                  bg={colors.accent.indigo}
+                  borderRadius={radius.full}
+                  transition="width 0.3s ease"
+                />
+              </Box>
+              <Text fontSize="13px" color={colors.text.secondary} textAlign="center">
+                {progress.message}
+              </Text>
+            </Box>
+          )}
+
+          {/* Done */}
+          {progress.phase === 'done' && (
+            <Box p="12px" bg="#E8F5E9" borderRadius={radius.md}>
+              <Text fontSize="13px" fontWeight={600} color="#2E7D32" textAlign="center">
+                {progress.message}
+              </Text>
+            </Box>
+          )}
+
+          {/* Error */}
+          {progress.phase === 'error' && (
+            <Box p="12px" bg="#FFEBEE" borderRadius={radius.md}>
+              <Text fontSize="13px" fontWeight={600} color={colors.accent.red} textAlign="center">
+                {progress.message}
+              </Text>
+            </Box>
+          )}
+        </VStack>
+      </Box>
+    </Box>
+  );
+}

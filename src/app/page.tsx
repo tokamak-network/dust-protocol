@@ -4,10 +4,17 @@ import { useState, useEffect, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Box, Text, VStack, HStack, Input } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors, radius } from "@/lib/design/tokens";
+import { colors } from "@/lib/design/tokens";
 import { ShieldIcon, LockIcon, WalletIcon, UserIcon, ZapIcon, ArrowUpRightIcon } from "@/components/stealth/icons";
 import { useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
+import { Instrument_Serif } from "next/font/google";
+
+const heroFont = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 // One-time cleanup of corrupted stealth data from previous sessions
 function cleanupCorruptedStorage() {
@@ -32,6 +39,17 @@ function cleanupCorruptedStorage() {
   keysToRemove.forEach(k => localStorage.removeItem(k));
   localStorage.setItem(flag, String(CURRENT_VERSION));
 }
+
+// Dust particle positions and timings (static to avoid hydration mismatch)
+const particles = [
+  { left: "8%", dur: "14s", delay: "0s" },
+  { left: "18%", dur: "11s", delay: "2s" },
+  { left: "32%", dur: "16s", delay: "1s" },
+  { left: "48%", dur: "12s", delay: "3.5s" },
+  { left: "62%", dur: "15s", delay: "0.5s" },
+  { left: "76%", dur: "13s", delay: "2.5s" },
+  { left: "88%", dur: "17s", delay: "1.5s" },
+];
 
 export default function Home() {
   const { isConnected, isOnboarded, isHydrated } = useAuth();
@@ -58,318 +76,349 @@ export default function Home() {
 
   if (!isHydrated || (isConnected && isOnboarded)) {
     return (
-      <Box minH="100vh" bg={colors.bg.page} display="flex" alignItems="center" justifyContent="center">
+      <Box minH="100vh" bg="#06080F" display="flex" alignItems="center" justifyContent="center">
         <VStack gap="16px">
-          <Box color={colors.accent.indigo} opacity={0.6}>
+          <Box color={colors.accent.indigoBright} opacity={0.6}>
             <ShieldIcon size={40} />
           </Box>
-          <Text fontSize="14px" color={colors.text.muted}>Loading...</Text>
+          <Text fontSize="14px" color="rgba(255,255,255,0.35)">Loading...</Text>
         </VStack>
       </Box>
     );
   }
 
-  const steps = [
-    { icon: WalletIcon, text: "Connect your wallet" },
-    { icon: UserIcon, text: "Choose a username and set a PIN" },
-    { icon: ZapIcon, text: "Start receiving private payments" },
-  ];
-
   return (
-    <Box
-      minH="100vh"
-      color={colors.text.primary}
-      display="flex"
-      flexDirection="column"
-      position="relative"
-      overflow="hidden"
-      bg="linear-gradient(180deg, #FFFFFF 0%, #F0F2FA 50%, #E8EBF7 100%)"
-    >
-      {/* Decorative background elements */}
-      <Box
-        position="absolute"
-        top="-200px"
-        right="-150px"
-        w="500px"
-        h="500px"
-        borderRadius="50%"
-        bg="radial-gradient(circle, rgba(43,90,226,0.06) 0%, transparent 70%)"
-        pointerEvents="none"
-      />
-      <Box
-        position="absolute"
-        bottom="-100px"
-        left="-100px"
-        w="400px"
-        h="400px"
-        borderRadius="50%"
-        bg="radial-gradient(circle, rgba(74,117,240,0.05) 0%, transparent 70%)"
-        pointerEvents="none"
-      />
+    <>
+      <style>{`
+        @keyframes dust-rise {
+          0% { transform: translateY(0) translateX(0); opacity: 0; }
+          8% { opacity: 0.6; }
+          85% { opacity: 0.6; }
+          100% { transform: translateY(-100vh) translateX(30px); opacity: 0; }
+        }
+        @keyframes pulse-ring {
+          0%, 100% { box-shadow: 0 0 40px rgba(43,90,226,0.12), 0 0 80px rgba(43,90,226,0.04); }
+          50% { box-shadow: 0 0 60px rgba(43,90,226,0.2), 0 0 120px rgba(43,90,226,0.06); }
+        }
+        @keyframes fade-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fade-up 0.7s cubic-bezier(0.16,1,0.3,1) forwards; opacity: 0; }
+        .d1 { animation-delay: 0.05s; }
+        .d2 { animation-delay: 0.15s; }
+        .d3 { animation-delay: 0.25s; }
+        .d4 { animation-delay: 0.4s; }
+        .d5 { animation-delay: 0.55s; }
+        .d6 { animation-delay: 0.7s; }
+      `}</style>
 
-      {/* Header */}
       <Box
-        as="header"
+        minH="100vh"
+        bg="#06080F"
+        display="flex"
+        flexDirection="column"
         position="relative"
-        zIndex={10}
-        px="24px"
-        py="20px"
+        overflow="hidden"
       >
-        <Box maxW="1200px" mx="auto">
-          <HStack gap="8px" align="baseline">
-            <Text
-              fontSize="24px"
-              fontWeight="800"
-              color={colors.accent.indigo}
-              letterSpacing="-0.03em"
+        {/* Grid overlay */}
+        <Box
+          position="absolute"
+          inset="0"
+          backgroundImage="linear-gradient(rgba(43,90,226,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(43,90,226,0.025) 1px, transparent 1px)"
+          backgroundSize="64px 64px"
+          pointerEvents="none"
+        />
+
+        {/* Central radial glow */}
+        <Box
+          position="absolute"
+          top="25%"
+          left="50%"
+          transform="translate(-50%, -50%)"
+          w="900px"
+          h="900px"
+          borderRadius="50%"
+          bg="radial-gradient(circle, rgba(43,90,226,0.07) 0%, rgba(43,90,226,0.02) 35%, transparent 65%)"
+          pointerEvents="none"
+        />
+
+        {/* Bottom edge glow */}
+        <Box
+          position="absolute"
+          bottom="-200px"
+          left="50%"
+          transform="translateX(-50%)"
+          w="600px"
+          h="400px"
+          borderRadius="50%"
+          bg="radial-gradient(circle, rgba(43,90,226,0.04) 0%, transparent 60%)"
+          pointerEvents="none"
+        />
+
+        {/* Dust particles */}
+        {particles.map((p, i) => (
+          <Box
+            key={i}
+            position="absolute"
+            bottom="-4px"
+            left={p.left}
+            w="2px"
+            h="2px"
+            bg="rgba(74,117,240,0.5)"
+            borderRadius="50%"
+            pointerEvents="none"
+            style={{
+              animation: `dust-rise ${p.dur} linear ${p.delay} infinite`,
+            }}
+          />
+        ))}
+
+        {/* Header */}
+        <Box as="header" position="relative" zIndex={10} px="24px" py="24px">
+          <Box maxW="1200px" mx="auto">
+            <HStack gap="10px" align="baseline">
+              <Text fontSize="22px" fontWeight="800" color="white" letterSpacing="-0.03em">
+                Dust
+              </Text>
+              <Text
+                fontSize="11px"
+                fontWeight="500"
+                color="rgba(255,255,255,0.3)"
+                letterSpacing="0.1em"
+                textTransform="uppercase"
+              >
+                Protocol
+              </Text>
+            </HStack>
+          </Box>
+        </Box>
+
+        {/* Hero */}
+        <Box
+          flex="1"
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          px="16px"
+          pb="60px"
+          position="relative"
+          zIndex={10}
+        >
+          <VStack gap="40px" maxW="500px" textAlign="center">
+            {/* Shield with pulse glow */}
+            <Box className="fade-up d1" position="relative">
+              <Box
+                position="absolute"
+                top="50%"
+                left="50%"
+                transform="translate(-50%, -50%)"
+                w="140px"
+                h="140px"
+                borderRadius="50%"
+                bg="radial-gradient(circle, rgba(43,90,226,0.1) 0%, transparent 70%)"
+              />
+              <Box
+                w="80px"
+                h="80px"
+                borderRadius="50%"
+                bg="rgba(43,90,226,0.06)"
+                border="1px solid rgba(43,90,226,0.12)"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                color="#4A75F0"
+                style={{ animation: "pulse-ring 4s ease infinite" }}
+              >
+                <ShieldIcon size={34} />
+              </Box>
+            </Box>
+
+            {/* Title + subtitle */}
+            <VStack gap="16px" className="fade-up d2">
+              <Text
+                fontFamily={heroFont.style.fontFamily}
+                fontSize={{ base: "44px", md: "56px" }}
+                fontWeight={400}
+                color="white"
+                lineHeight="1.05"
+                letterSpacing="-0.02em"
+              >
+                Private Payments
+              </Text>
+              <Text
+                fontSize="16px"
+                color="rgba(255,255,255,0.4)"
+                lineHeight="1.7"
+                maxW="360px"
+                fontWeight="400"
+              >
+                Send and receive payments that dissolve into the blockchain.
+                Untraceable. Powered by stealth addresses on Thanos.
+              </Text>
+            </VStack>
+
+            {/* Connect Wallet CTA */}
+            <Box className="fade-up d3" w="100%" display="flex" justifyContent="center">
+              <Box
+                as="button"
+                w="100%"
+                maxW="300px"
+                py="16px"
+                px="32px"
+                bg={`linear-gradient(135deg, ${colors.accent.indigo} 0%, ${colors.accent.indigoBright} 100%)`}
+                borderRadius="14px"
+                cursor="pointer"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                gap="10px"
+                transition="all 0.25s ease"
+                _hover={{
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 8px 32px rgba(43,90,226,0.35), 0 0 0 1px rgba(74,117,240,0.2)",
+                }}
+                _active={{ transform: "translateY(0)" }}
+                onClick={() => connect({ connector: injected() })}
+              >
+                <WalletIcon size={20} color="white" />
+                <Text fontSize="16px" color="white" fontWeight="600" letterSpacing="-0.01em">
+                  Connect Wallet
+                </Text>
+              </Box>
+            </Box>
+
+            {/* Divider */}
+            <HStack w="100%" gap="16px" align="center" className="fade-up d4">
+              <Box flex={1} h="1px" bg="rgba(255,255,255,0.06)" />
+              <Text
+                fontSize="11px"
+                color="rgba(255,255,255,0.2)"
+                fontWeight="500"
+                textTransform="uppercase"
+                letterSpacing="0.1em"
+                whiteSpace="nowrap"
+              >
+                or pay someone
+              </Text>
+              <Box flex={1} h="1px" bg="rgba(255,255,255,0.06)" />
+            </HStack>
+
+            {/* Pay someone search */}
+            <HStack gap="8px" w="100%" maxW="360px" className="fade-up d4">
+              <Input
+                placeholder="username.tok"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handlePaySearch(); }}
+                h="48px"
+                flex={1}
+                bgColor="rgba(255,255,255,0.03)"
+                border="1px solid rgba(255,255,255,0.07)"
+                borderRadius="12px"
+                color="white"
+                fontSize="15px"
+                fontWeight={500}
+                px="16px"
+                _placeholder={{ color: "rgba(255,255,255,0.2)" }}
+                _focus={{
+                  borderColor: "rgba(43,90,226,0.4)",
+                  boxShadow: "0 0 0 3px rgba(43,90,226,0.08)",
+                  bgColor: "rgba(255,255,255,0.04)",
+                }}
+                transition="all 0.2s ease"
+              />
+              <Box
+                as="button"
+                w="48px"
+                h="48px"
+                flexShrink={0}
+                bg="rgba(43,90,226,0.1)"
+                border="1px solid rgba(43,90,226,0.15)"
+                borderRadius="12px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                cursor="pointer"
+                transition="all 0.15s ease"
+                _hover={{
+                  bg: "rgba(43,90,226,0.2)",
+                  borderColor: "rgba(43,90,226,0.3)",
+                }}
+                onClick={handlePaySearch}
+              >
+                <ArrowUpRightIcon size={18} color="#4A75F0" />
+              </Box>
+            </HStack>
+
+            {/* 3-step explainer */}
+            <HStack
+              gap={{ base: "8px", md: "12px" }}
+              w="100%"
+              className="fade-up d5"
+              flexDirection={{ base: "column", md: "row" }}
             >
-              Dust
+              {[
+                { icon: WalletIcon, label: "Connect", desc: "Link your wallet" },
+                { icon: UserIcon, label: "Setup", desc: "Choose name & PIN" },
+                { icon: ZapIcon, label: "Receive", desc: "Get paid privately" },
+              ].map((step, i) => (
+                <Box
+                  key={i}
+                  flex={1}
+                  w={{ base: "100%", md: "auto" }}
+                  py={{ base: "14px", md: "20px" }}
+                  px="16px"
+                  bg="rgba(255,255,255,0.02)"
+                  border="1px solid rgba(255,255,255,0.05)"
+                  borderRadius="14px"
+                  textAlign="center"
+                  transition="all 0.2s ease"
+                  _hover={{
+                    bg: "rgba(255,255,255,0.03)",
+                    borderColor: "rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <VStack gap="6px">
+                    <Box color="rgba(74,117,240,0.7)">
+                      <step.icon size={20} />
+                    </Box>
+                    <Text fontSize="14px" fontWeight="600" color="rgba(255,255,255,0.8)">
+                      {step.label}
+                    </Text>
+                    <Text fontSize="12px" color="rgba(255,255,255,0.25)">
+                      {step.desc}
+                    </Text>
+                  </VStack>
+                </Box>
+              ))}
+            </HStack>
+
+            {/* Privacy notice */}
+            <HStack gap="8px" className="fade-up d6" py="4px">
+              <Box color="rgba(255,255,255,0.2)" flexShrink={0}>
+                <LockIcon size={12} />
+              </Box>
+              <Text fontSize="12px" color="rgba(255,255,255,0.2)" lineHeight="1.5">
+                Your keys are derived locally. No data leaves your browser.
+              </Text>
+            </HStack>
+          </VStack>
+        </Box>
+
+        {/* Footer */}
+        <Box as="footer" py="20px" px="24px" position="relative" zIndex={10}>
+          <HStack justify="center" gap="8px" maxW="1200px" mx="auto">
+            <Text fontSize="11px" color="rgba(255,255,255,0.15)" letterSpacing="0.02em">
+              ERC-5564 & ERC-6538
             </Text>
-            <Text fontSize="14px" fontWeight="500" color={colors.text.muted} letterSpacing="0.02em">
-              Protocol
+            <Text fontSize="11px" color="rgba(255,255,255,0.08)">|</Text>
+            <Text fontSize="11px" color="rgba(255,255,255,0.15)" letterSpacing="0.02em">
+              Thanos Network
             </Text>
           </HStack>
         </Box>
       </Box>
-
-      {/* Hero */}
-      <Box
-        flex="1"
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        px="16px"
-        pb="40px"
-        position="relative"
-        zIndex={10}
-      >
-        <VStack gap="36px" maxW="440px" textAlign="center">
-          {/* Shield with glow ring */}
-          <Box position="relative">
-            <Box
-              position="absolute"
-              top="50%"
-              left="50%"
-              transform="translate(-50%, -50%)"
-              w="120px"
-              h="120px"
-              borderRadius="50%"
-              bg="radial-gradient(circle, rgba(43,90,226,0.08) 0%, transparent 70%)"
-            />
-            <Box
-              w="72px"
-              h="72px"
-              borderRadius="50%"
-              bg="linear-gradient(135deg, rgba(43,90,226,0.1) 0%, rgba(74,117,240,0.05) 100%)"
-              border="1px solid rgba(43,90,226,0.15)"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              color={colors.accent.indigo}
-            >
-              <ShieldIcon size={32} />
-            </Box>
-          </Box>
-
-          {/* Title */}
-          <VStack gap="14px">
-            <Text
-              fontSize="40px"
-              fontWeight={800}
-              color={colors.text.primary}
-              lineHeight="1.1"
-              letterSpacing="-0.03em"
-            >
-              Private Payments
-            </Text>
-            <Text
-              fontSize="17px"
-              color={colors.text.tertiary}
-              lineHeight="1.6"
-              maxW="340px"
-              fontWeight="400"
-            >
-              Send and receive payments that cannot be traced to your identity. Powered by stealth addresses on Thanos Network.
-            </Text>
-          </VStack>
-
-          {/* Pay someone search card */}
-          <Box w="100%">
-            <Box
-              p="4px"
-              borderRadius={radius.lg}
-              bg="linear-gradient(135deg, rgba(43,90,226,0.12) 0%, rgba(43,90,226,0.04) 100%)"
-            >
-              <Box
-                p="20px"
-                bgColor="rgba(255,255,255,0.9)"
-                backdropFilter="blur(10px)"
-                borderRadius="calc(20px - 4px)"
-              >
-                <VStack gap="14px" align="stretch">
-                  <Text fontSize="15px" fontWeight={700} color={colors.text.primary} textAlign="left">
-                    Pay someone
-                  </Text>
-                  <HStack gap="8px">
-                    <Input
-                      placeholder="username.tok"
-                      value={searchName}
-                      onChange={(e) => setSearchName(e.target.value)}
-                      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handlePaySearch(); }}
-                      h="48px"
-                      flex={1}
-                      bgColor={colors.bg.input}
-                      border={`1.5px solid ${colors.border.default}`}
-                      borderRadius={radius.sm}
-                      color={colors.text.primary}
-                      fontSize="16px"
-                      fontWeight={500}
-                      px="14px"
-                      _placeholder={{ color: colors.text.muted }}
-                      _focus={{ borderColor: colors.accent.indigo, boxShadow: colors.glow.indigo }}
-                    />
-                    <Box
-                      as="button"
-                      w="48px"
-                      h="48px"
-                      flexShrink={0}
-                      bg={`linear-gradient(135deg, ${colors.accent.indigo} 0%, ${colors.accent.indigoBright} 100%)`}
-                      borderRadius={radius.sm}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      cursor="pointer"
-                      _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
-                      transition="all 0.15s ease"
-                      onClick={handlePaySearch}
-                    >
-                      <ArrowUpRightIcon size={20} color="white" />
-                    </Box>
-                  </HStack>
-                </VStack>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Divider */}
-          <HStack w="100%" gap="16px" align="center">
-            <Box flex={1} h="1px" bgColor={colors.border.default} />
-            <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>or</Text>
-            <Box flex={1} h="1px" bgColor={colors.border.default} />
-          </HStack>
-
-          {/* Get Paid section */}
-          <VStack gap="12px" w="100%">
-            <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>
-              Want to receive payments?
-            </Text>
-            <Box
-              as="button"
-              w="100%"
-              py="14px"
-              bgColor="#fff"
-              border={`2px solid ${colors.accent.indigo}`}
-              borderRadius={radius.md}
-              cursor="pointer"
-              _hover={{ bgColor: "rgba(43,90,226,0.04)", transform: "translateY(-1px)" }}
-              transition="all 0.2s ease"
-              onClick={() => connect({ connector: injected() })}
-            >
-              <HStack justify="center" gap="10px">
-                <WalletIcon size={18} color={colors.accent.indigo} />
-                <Text fontSize="15px" color={colors.accent.indigo} fontWeight="700" letterSpacing="-0.01em">
-                  Connect Wallet
-                </Text>
-              </HStack>
-            </Box>
-          </VStack>
-
-          {/* Steps */}
-          <Box w="100%">
-            <Box
-              p="4px"
-              borderRadius={radius.lg}
-              bg="linear-gradient(135deg, rgba(43,90,226,0.12) 0%, rgba(43,90,226,0.04) 100%)"
-            >
-              <Box
-                p="20px"
-                bgColor="rgba(255,255,255,0.9)"
-                backdropFilter="blur(10px)"
-                borderRadius="calc(20px - 4px)"
-              >
-                <VStack gap="0" align="stretch">
-                  {steps.map((item, i) => (
-                    <HStack
-                      key={i}
-                      gap="14px"
-                      align="center"
-                      py="12px"
-                      borderBottom={i < steps.length - 1 ? `1px solid ${colors.border.default}` : "none"}
-                    >
-                      <Box
-                        w="36px"
-                        h="36px"
-                        borderRadius="10px"
-                        bg={`linear-gradient(135deg, ${colors.accent.indigo} 0%, ${colors.accent.indigoBright} 100%)`}
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        flexShrink={0}
-                        color="white"
-                      >
-                        <item.icon size={18} />
-                      </Box>
-                      <VStack gap="2px" align="start">
-                        <Text fontSize="14px" fontWeight="600" color={colors.text.primary}>
-                          {item.text}
-                        </Text>
-                      </VStack>
-                    </HStack>
-                  ))}
-                </VStack>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Privacy badge */}
-          <HStack
-            gap="10px"
-            p="12px 16px"
-            bgColor="rgba(255,255,255,0.7)"
-            backdropFilter="blur(8px)"
-            borderRadius={radius.sm}
-            border={`1px solid ${colors.border.default}`}
-          >
-            <Box color={colors.accent.indigo} opacity={0.6}>
-              <LockIcon size={14} />
-            </Box>
-            <Text fontSize="12px" color={colors.text.muted} lineHeight="1.5">
-              Your keys are derived from your wallet. No data leaves your browser.
-            </Text>
-          </HStack>
-        </VStack>
-      </Box>
-
-      {/* Footer */}
-      <Box
-        as="footer"
-        py="20px"
-        px="24px"
-        position="relative"
-        zIndex={10}
-      >
-        <HStack justify="center" gap="8px" maxW="1200px" mx="auto">
-          <Text fontSize="11px" color={colors.text.muted} letterSpacing="0.02em">
-            Powered by ERC-5564 & ERC-6538
-          </Text>
-          <Text fontSize="11px" color={colors.border.light}>
-            |
-          </Text>
-          <Text fontSize="11px" color={colors.text.muted} letterSpacing="0.02em">
-            Thanos Network
-          </Text>
-        </HStack>
-      </Box>
-    </Box>
+    </>
   );
 }
