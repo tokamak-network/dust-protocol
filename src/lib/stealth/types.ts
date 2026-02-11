@@ -116,3 +116,20 @@ export const DUST_PAYMASTER_ABI = [
   'function getHash(tuple(address sender, uint256 nonce, bytes initCode, bytes callData, uint256 callGasLimit, uint256 verificationGasLimit, uint256 preVerificationGas, uint256 maxFeePerGas, uint256 maxPriorityFeePerGas, bytes paymasterAndData, bytes signature) userOp, uint48 validUntil, uint48 validAfter) view returns (bytes32)',
   'function verifyingSigner() view returns (address)',
 ];
+
+// DustPool — ZK privacy pool for stealth payment consolidation (Thanos Sepolia)
+// Placeholder address — update after deployment
+export const DUST_POOL_ADDRESS = '0x473e83478caB06F685C4536ebCfC6C21911F7852';
+export const DUST_POOL_DEPLOYMENT_BLOCK = 6327184;
+
+export const DUST_POOL_ABI = [
+  'function deposit(bytes32 commitment) payable',
+  'function withdraw(bytes proof, bytes32 root, bytes32 nullifierHash, address recipient, uint256 amount)',
+  'function commitments(bytes32) view returns (bool)',
+  'function nullifierHashes(bytes32) view returns (bool)',
+  'function isKnownRoot(bytes32 root) view returns (bool)',
+  'function getLastRoot() view returns (bytes32)',
+  'function nextIndex() view returns (uint256)',
+  'event Deposit(bytes32 indexed commitment, uint256 leafIndex, uint256 amount, uint256 timestamp)',
+  'event Withdrawal(address indexed recipient, bytes32 nullifierHash, uint256 amount)',
+];

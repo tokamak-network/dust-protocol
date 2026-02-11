@@ -8,3 +8,4 @@ export { usePin } from './usePin';
 export { usePaymentLinks } from './usePaymentLinks';
 export { useBalancePoller } from './useBalancePoller';
 export { useUnifiedBalance } from './useUnifiedBalance';
+export { useDustPool } from './useDustPool';

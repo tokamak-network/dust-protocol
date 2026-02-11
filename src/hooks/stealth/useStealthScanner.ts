@@ -9,6 +9,12 @@ import {
   DEPLOYMENT_BLOCK,
   STEALTH_ACCOUNT_FACTORY, STEALTH_ACCOUNT_FACTORY_ABI,
 } from '@/lib/stealth';
+import {
+  generateDeposit,
+  saveDeposits,
+  loadDeposits,
+  type StoredDeposit,
+} from '@/lib/dustpool';
 
 interface StealthPayment extends ScanResult {
   balance?: string;
@@ -190,8 +196,115 @@ async function autoClaimPayment(
   return autoClaimLegacy(payment, recipient);
 }
 
+// Claim to DustPool: drain stealth wallet → sponsor → pool deposit with commitment
+// Supports CREATE2 (drain via factory) and ERC-4337 account (drain via bundle API)
+async function claimToPoolDeposit(
+  payment: ScanResult,
+  userAddress: string,
+): Promise<{ txHash: string; leafIndex: number; depositData: StoredDeposit } | null> {
+  try {
+    const wt = payment.walletType;
+    if (wt !== 'create2' && wt !== 'account') {
+      if (process.env.NODE_ENV === 'development') console.warn('[PoolDeposit] Unsupported wallet type:', wt);
+      return null;
+    }
+
+    const provider = getThanosProvider();
+    const balance = await provider.getBalance(payment.announcement.stealthAddress);
+    if (balance.isZero()) {
+      if (process.env.NODE_ENV === 'development') console.log('[PoolDeposit] Zero balance, skipping');
+      return null;
+    }
+
+    // Generate deposit preimage using exact balance
+    const deposit = await generateDeposit(balance.toBigInt());
+
+    let res: Response;
+
+    if (wt === 'account') {
+      // ERC-4337: drain to sponsor first via bundle API, then deposit
+      const SPONSOR_ADDRESS = '0x8d56E94a02F06320BDc68FAfE23DEc9Ad7463496';
+      if (process.env.NODE_ENV === 'development') console.log('[PoolDeposit] Draining ERC-4337 account to sponsor...');
+
+      const drainResult = await autoClaimAccount(payment, SPONSOR_ADDRESS);
+      if (!drainResult) {
+        if (process.env.NODE_ENV === 'development') console.warn('[PoolDeposit] ERC-4337 drain failed');
+        return null;
+      }
+
+      // Wait for drain tx to confirm on-chain
+      await new Promise(r => setTimeout(r, 3000));
+      if (process.env.NODE_ENV === 'development') console.log('[PoolDeposit] Drain confirmed, depositing to pool...');
+
+      res = await fetch('/api/pool-deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stealthAddress: payment.announcement.stealthAddress,
+          commitment: deposit.commitmentHex,
+          walletType: 'account',
+          alreadyDrained: true,
+          amount: balance.toString(),
+        }),
+      });
+    } else {
+      // CREATE2: drain + deposit in single API call
+      const ownerEOA = getAddressFromPrivateKey(payment.stealthPrivateKey);
+      const signature = await signWalletDrain(
+        payment.stealthPrivateKey,
+        payment.announcement.stealthAddress,
+        '0x8d56E94a02F06320BDc68FAfE23DEc9Ad7463496',
+        THANOS_CHAIN_ID,
+      );
+
+      res = await fetch('/api/pool-deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stealthAddress: payment.announcement.stealthAddress,
+          owner: ownerEOA,
+          signature,
+          commitment: deposit.commitmentHex,
+          walletType: 'create2',
+        }),
+      });
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      if (process.env.NODE_ENV === 'development') console.warn('[PoolDeposit] Failed:', data.error);
+      return null;
+    }
+
+    // Store deposit data locally
+    const storedDeposit: StoredDeposit = {
+      nullifier: deposit.nullifier.toString(),
+      secret: deposit.secret.toString(),
+      amount: deposit.amount.toString(),
+      commitment: deposit.commitmentHex,
+      nullifierHash: '0x' + deposit.nullifierHash.toString(16).padStart(64, '0'),
+      leafIndex: data.leafIndex,
+      txHash: data.txHash,
+      timestamp: Date.now(),
+      withdrawn: false,
+    };
+
+    const existing = loadDeposits(userAddress);
+    existing.push(storedDeposit);
+    saveDeposits(userAddress, existing);
+
+    if (process.env.NODE_ENV === 'development') console.log('[PoolDeposit] Success, leafIndex:', data.leafIndex);
+
+    return { txHash: data.txHash, leafIndex: data.leafIndex, depositData: storedDeposit };
+  } catch (e) {
+    if (process.env.NODE_ENV === 'development') console.warn('[PoolDeposit] Error:', e);
+    return null;
+  }
+}
+
 interface UseStealthScannerOptions {
   autoClaimRecipient?: string;
+  claimToPool?: boolean;
 }
 
 export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: UseStealthScannerOptions) {
@@ -208,6 +321,9 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
 
   const autoClaimRecipientRef = useRef(options?.autoClaimRecipient);
   autoClaimRecipientRef.current = options?.autoClaimRecipient;
+
+  const claimToPoolRef = useRef(options?.claimToPool ?? false);
+  claimToPoolRef.current = options?.claimToPool ?? false;
 
   // Helper: strip private key from payment before putting in state
   function stripKey(p: StealthPayment): StealthPayment {
@@ -247,16 +363,20 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
     }
   }, [address, payments]);
 
-  // Auto-claim: when new unclaimed payments appear and we have a recipient
+  // Auto-claim: when new unclaimed payments appear and we have a recipient or pool mode
   const tryAutoClaim = useCallback(async (newPayments: StealthPayment[]) => {
     const recipient = autoClaimRecipientRef.current;
-    if (!recipient) return;
+    const poolMode = claimToPoolRef.current;
+    // Need either a claim recipient for direct claim, or pool mode enabled
+    if (!recipient && !poolMode) return;
 
     const now = Date.now();
     const claimable = newPayments.filter(p => {
       const txHash = p.announcement.txHash;
       if (p.claimed || p.keyMismatch || parseFloat(p.balance || '0') <= 0) return false;
       if (autoClaimingRef.current.has(txHash)) return false;
+      // Pool-eligible payments are NOT auto-claimed — user deposits manually via dashboard button
+      if (poolMode && (p.walletType === 'create2' || p.walletType === 'account')) return false;
       // 30-second cooldown after a failed attempt
       const lastAttempt = autoClaimCooldownRef.current.get(txHash);
       if (lastAttempt && now - lastAttempt < 3000) return false;
@@ -296,9 +416,21 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
         continue;
       }
 
-      const result = await autoClaimPayment(paymentWithKey, recipient);
+      let claimResult: { txHash: string } | null;
 
-      if (result) {
+      if (recipient) {
+        // Direct claim to recipient
+        claimResult = await autoClaimPayment(paymentWithKey, recipient);
+      } else {
+        // No recipient — skip
+        autoClaimingRef.current.delete(txHash);
+        setPayments(prev => prev.map(p =>
+          p.announcement.txHash === txHash ? { ...p, autoClaiming: false } : p
+        ));
+        continue;
+      }
+
+      if (claimResult) {
         setPayments(prev => prev.map(p =>
           p.announcement.txHash === txHash ? { ...p, claimed: true, balance: '0', autoClaiming: false } : p
         ));
@@ -311,7 +443,7 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
       }
       autoClaimingRef.current.delete(txHash);
     }
-  }, []);
+  }, [address]);
 
   const isBgScanningRef = useRef(false);
 
@@ -495,5 +627,138 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
     }
   }, []);
 
-  return { payments, scan, scanInBackground, stopBackgroundScan, claimPayment, isScanning, progress, error };
+  // Directly deposit unclaimed payments to pool with progress reporting
+  // Handles both normal deposits (drain + pool) and recovery (already drained, just pool deposit)
+  const depositToPool = useCallback(async (
+    onProgress: (done: number, total: number, message: string) => void
+  ): Promise<{ deposited: number; skipped: number; failed: number }> => {
+    if (!address) return { deposited: 0, skipped: 0, failed: 0 };
+
+    // Include payments with balance > 0 (normal) OR near-zero balance with original amount (recovery)
+    const candidates = payments.filter(p => {
+      if (p.claimed || p.keyMismatch) return false;
+      const bal = parseFloat(p.balance || '0');
+      const orig = parseFloat(p.originalAmount || '0');
+      return bal > 0.0001 || orig > 0.001;
+    });
+
+    const total = candidates.length;
+    let deposited = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    if (total === 0) {
+      onProgress(0, 0, 'No payments found for pool deposit');
+      return { deposited: 0, skipped: 0, failed: 0 };
+    }
+
+    onProgress(0, total, `Preparing ${total} payments for pool deposit...`);
+
+    for (let i = 0; i < candidates.length; i++) {
+      const payment = candidates[i];
+      const key = getKeyForPayment(payment.announcement.txHash);
+
+      if (!key) {
+        skipped++;
+        onProgress(deposited, total, `Skipped ${i + 1}/${total} (no key)`);
+        continue;
+      }
+
+      if (payment.walletType !== 'create2' && payment.walletType !== 'account') {
+        skipped++;
+        onProgress(deposited, total, `Skipped ${i + 1}/${total} (${payment.walletType} type)`);
+        continue;
+      }
+
+      const currentBal = parseFloat(payment.balance || '0');
+      const originalAmt = parseFloat(payment.originalAmount || '0');
+      // Recovery: balance is near-zero but original was significant (drained but pool deposit failed)
+      const isRecovery = currentBal < originalAmt * 0.1 && originalAmt > 0.001;
+
+      if (isRecovery) {
+        // Recovery path: funds already at sponsor, just deposit to pool
+        onProgress(deposited, total, `Recovering ${i + 1}/${total} (${originalAmt.toFixed(4)} TON)...`);
+
+        try {
+          const amountWei = ethers.utils.parseEther(payment.originalAmount!);
+          const deposit = await generateDeposit(amountWei.toBigInt());
+
+          const res = await fetch('/api/pool-deposit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stealthAddress: payment.announcement.stealthAddress,
+              commitment: deposit.commitmentHex,
+              walletType: payment.walletType,
+              alreadyDrained: true,
+              amount: amountWei.toString(),
+            }),
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            const storedDeposit: StoredDeposit = {
+              nullifier: deposit.nullifier.toString(),
+              secret: deposit.secret.toString(),
+              amount: deposit.amount.toString(),
+              commitment: deposit.commitmentHex,
+              nullifierHash: '0x' + deposit.nullifierHash.toString(16).padStart(64, '0'),
+              leafIndex: data.leafIndex,
+              txHash: data.txHash,
+              timestamp: Date.now(),
+              withdrawn: false,
+            };
+            const existing = loadDeposits(address);
+            existing.push(storedDeposit);
+            saveDeposits(address, existing);
+
+            deposited++;
+            setPayments(prev => prev.map(p =>
+              p.announcement.txHash === payment.announcement.txHash
+                ? { ...p, claimed: true, balance: '0' }
+                : p
+            ));
+            onProgress(deposited, total, `Recovered ${deposited}/${total}`);
+          } else {
+            failed++;
+            onProgress(deposited, total, `Failed ${i + 1}/${total}: ${data.error}`);
+          }
+        } catch (e) {
+          failed++;
+          if (process.env.NODE_ENV === 'development') console.warn('[PoolRecovery] Error:', e);
+          onProgress(deposited, total, `Failed ${i + 1}/${total}, continuing...`);
+        }
+        continue;
+      }
+
+      // Normal path: drain stealth wallet then deposit to pool
+      const paymentWithKey = { ...payment, stealthPrivateKey: key };
+      const amt = currentBal.toFixed(4);
+      onProgress(deposited, total, `Depositing ${i + 1}/${total} (${amt} TON)...`);
+
+      const result = await claimToPoolDeposit(paymentWithKey, address);
+
+      if (result) {
+        deposited++;
+        setPayments(prev => prev.map(p =>
+          p.announcement.txHash === payment.announcement.txHash
+            ? { ...p, claimed: true, balance: '0' }
+            : p
+        ));
+        onProgress(deposited, total, `Deposited ${deposited}/${total}`);
+      } else {
+        failed++;
+        onProgress(deposited, total, `Failed ${i + 1}/${total}, continuing...`);
+      }
+    }
+
+    const msg = deposited > 0
+      ? `Done! ${deposited} deposited${failed > 0 ? `, ${failed} failed` : ''}${skipped > 0 ? `, ${skipped} skipped` : ''}`
+      : `No deposits completed (${failed} failed, ${skipped} skipped)`;
+    onProgress(deposited, total, msg);
+
+    return { deposited, skipped, failed };
+  }, [address, payments]);
+
+  return { payments, scan, scanInBackground, stopBackgroundScan, claimPayment, depositToPool, isScanning, progress, error };
 }
