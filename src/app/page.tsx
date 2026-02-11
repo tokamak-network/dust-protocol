@@ -6,8 +6,7 @@ import { Box, Text, VStack, HStack, Input } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { colors } from "@/lib/design/tokens";
 import { ShieldIcon, LockIcon, WalletIcon, UserIcon, ZapIcon, ArrowUpRightIcon } from "@/components/stealth/icons";
-import { useConnect } from "wagmi";
-import { injected } from "wagmi/connectors";
+import { usePrivy } from "@privy-io/react-auth";
 import { Instrument_Serif } from "next/font/google";
 
 const heroFont = Instrument_Serif({
@@ -53,7 +52,7 @@ const particles = [
 
 export default function Home() {
   const { isConnected, isOnboarded, isHydrated } = useAuth();
-  const { connect } = useConnect();
+  const { login } = usePrivy();
   const router = useRouter();
   const [searchName, setSearchName] = useState("");
 
@@ -279,11 +278,11 @@ export default function Home() {
                   boxShadow: "0 8px 32px rgba(43,90,226,0.35), 0 0 0 1px rgba(74,117,240,0.2)",
                 }}
                 _active={{ transform: "translateY(0)" }}
-                onClick={() => connect({ connector: injected() })}
+                onClick={() => login()}
               >
                 <WalletIcon size={20} color="white" />
                 <Text fontSize="16px" color="white" fontWeight="600" letterSpacing="-0.01em">
-                  Connect Wallet
+                  Get Started
                 </Text>
               </Box>
             </Box>
@@ -359,7 +358,7 @@ export default function Home() {
               flexDirection={{ base: "column", md: "row" }}
             >
               {[
-                { icon: WalletIcon, label: "Connect", desc: "Link your wallet" },
+                { icon: WalletIcon, label: "Sign In", desc: "Wallet or social login" },
                 { icon: UserIcon, label: "Setup", desc: "Choose name & PIN" },
                 { icon: ZapIcon, label: "Receive", desc: "Get paid privately" },
               ].map((step, i) => (

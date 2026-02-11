@@ -1,16 +1,17 @@
 "use client";
 
 import { Box, Text, HStack } from "@chakra-ui/react";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { injected } from "wagmi/connectors";
-import { colors, radius } from "@/lib/design/tokens";
+import { usePrivy } from "@privy-io/react-auth";
+import { useAccount } from "wagmi";
+import { colors } from "@/lib/design/tokens";
 
 export function ConnectButton() {
-  const { address, isConnected } = useAccount();
-  const { connect } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { ready, authenticated, login, logout } = usePrivy();
+  const { address } = useAccount();
 
-  if (isConnected && address) {
+  if (!ready) return null;
+
+  if (authenticated && address) {
     return (
       <HStack gap="12px">
         <Box
@@ -33,7 +34,7 @@ export function ConnectButton() {
           border={`1px solid ${colors.border.default}`}
           cursor="pointer"
           _hover={{ bgColor: colors.bg.hover, borderColor: colors.accent.red }}
-          onClick={() => disconnect()}
+          onClick={() => logout()}
         >
           <Text fontSize="13px" color={colors.accent.red} fontWeight="500">
             Disconnect
@@ -52,10 +53,10 @@ export function ConnectButton() {
       borderRadius="10px"
       cursor="pointer"
       _hover={{ opacity: 0.9 }}
-      onClick={() => connect({ connector: injected() })}
+      onClick={() => login()}
     >
       <Text fontSize="14px" color="white" fontWeight="600">
-        Connect Wallet
+        Connect
       </Text>
     </Box>
   );

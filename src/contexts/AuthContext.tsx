@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { useAccount } from "wagmi";
 import { useStealthAddress, useStealthName, usePin } from "@/hooks/stealth";
 import type { StealthKeyPair } from "@/lib/stealth";
@@ -46,7 +47,10 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { address, isConnected } = useAccount();
+  const { ready, authenticated } = usePrivy();
+  const { address } = useAccount();
+  const isConnected = ready && authenticated && !!address;
+
   const stealthAddr = useStealthAddress();
   const nameHook = useStealthName(stealthAddr.metaAddress);
   const pinHook = usePin();

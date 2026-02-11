@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 
 const THANOS_RPC = 'https://rpc.thanos-sepolia.tokamak.network';
 
-/** Get ethers Web3Provider from injected wallet (MetaMask etc.) */
+/** Get ethers Web3Provider from injected wallet or Privy embedded wallet */
 export function getProvider(): ethers.providers.Web3Provider | null {
   if (typeof window === 'undefined' || !window.ethereum) return null;
   return new ethers.providers.Web3Provider(window.ethereum as ethers.providers.ExternalProvider);
@@ -31,6 +31,6 @@ export async function signMessage(
     return walletClient.signMessage({ message });
   }
   const provider = await getProviderWithAccounts();
-  if (!provider) throw new Error('No wallet provider found. Is MetaMask installed?');
+  if (!provider) throw new Error('No wallet provider found. Please connect a wallet or sign in.');
   return provider.getSigner().signMessage(message);
 }

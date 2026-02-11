@@ -1,12 +1,14 @@
 "use client";
 
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import { WagmiProvider, createConfig, http } from "wagmi";
+import { PrivyProvider } from "@privy-io/react-auth";
+import { WagmiProvider, createConfig } from "@privy-io/wagmi";
+import { http } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { defineChain } from "viem";
 
 // Define Thanos Sepolia chain
-const thanosSepolia = defineChain({
+export const thanosSepolia = defineChain({
   id: 111551119090,
   name: "Thanos Sepolia",
   nativeCurrency: {
@@ -39,10 +41,28 @@ const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProvider config={config}>
+    <PrivyProvider
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ""}
+      config={{
+        defaultChain: thanosSepolia,
+        supportedChains: [thanosSepolia],
+        appearance: {
+          theme: "dark",
+          accentColor: "#4A75F0",
+        },
+        loginMethods: ["wallet", "google", "discord", "email", "apple"],
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: "users-without-wallets",
+          },
+        },
+      }}
+    >
       <QueryClientProvider client={queryClient}>
-        <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>
+        <WagmiProvider config={config}>
+          <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>
+        </WagmiProvider>
       </QueryClientProvider>
-    </WagmiProvider>
+    </PrivyProvider>
   );
 }

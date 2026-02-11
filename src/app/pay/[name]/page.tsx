@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, ChangeEvent } from "react";
 import { Box, Text, VStack, HStack, Input, Spinner } from "@chakra-ui/react";
-import { useAccount, useConnect } from "wagmi";
-import { injected } from "wagmi/connectors";
+import { useAccount } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import { colors, radius, EXPLORER_BASE } from "@/lib/design/tokens";
 import { useStealthSend, useStealthName } from "@/hooks/stealth";
 import { NAME_SUFFIX } from "@/lib/stealth";
@@ -46,7 +46,7 @@ const animations = `
 export default function PayPage({ params }: { params: { name: string } }) {
   const { name } = params;
   const { isConnected } = useAccount();
-  const { connect } = useConnect();
+  const { login } = usePrivy();
   const { resolveName, formatName, isConfigured } = useStealthName();
   const { generateAddressFor, sendEthToStealth, isLoading, error: sendError } = useStealthSend();
 
@@ -289,7 +289,7 @@ export default function PayPage({ params }: { params: { name: string } }) {
                             _active={{ transform: "translateY(0)" }}
                             transition="all 0.15s ease"
                             boxShadow="0 4px 12px rgba(43, 90, 226, 0.25)"
-                            onClick={() => connect({ connector: injected() })}
+                            onClick={() => login()}
                           >
                             <HStack gap="8px" justify="center">
                               <WalletIcon size={16} color="white" />
