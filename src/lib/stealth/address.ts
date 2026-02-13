@@ -110,7 +110,12 @@ export function generateStealthAddress(meta: StealthMetaAddress, chainId?: numbe
   const stealthPubPoint = spendingKey.getPublic().add(hashKey.getPublic());
 
   const stealthEOAAddress = pubKeyToAddress(stealthPubPoint);
-  const stealthAddress = computeStealthAccountAddress(stealthEOAAddress, chainId);
+
+  // On EIP-7702 chains, payments go directly to the stealth EOA (no factory needed)
+  const config = chainId !== undefined ? getChainConfig(chainId) : null;
+  const stealthAddress = (config?.supportsEIP7702 && config.contracts.subAccount7702)
+    ? stealthEOAAddress
+    : computeStealthAccountAddress(stealthEOAAddress, chainId);
 
   return {
     stealthAddress,

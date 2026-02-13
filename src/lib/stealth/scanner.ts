@@ -5,6 +5,7 @@ import { ec as EC } from 'elliptic';
 import type { StealthAnnouncement, ScanResult, StealthKeyPair } from './types';
 import { SCHEME_ID, CANONICAL_ADDRESSES } from './types';
 import { computeViewTag, verifyStealthAddress, computeStealthPrivateKey, getAddressFromPrivateKey, computeStealthWalletAddress, computeStealthAccountAddress, computeLegacyStealthWalletAddress, computeLegacyStealthAccountAddress } from './address';
+import { getChainConfig } from '@/config/chains';
 
 const secp256k1 = new EC('secp256k1');
 
@@ -132,12 +133,19 @@ export async function scanAnnouncements(
     }
 
     if (isMatch) {
+      // On 7702-capable chains, EOA matches are eip7702 (delegation target exists)
+      const is7702Chain = (() => {
+        try {
+          const cfg = chainId !== undefined ? getChainConfig(chainId) : null;
+          return cfg?.supportsEIP7702 && !!cfg.contracts.subAccount7702;
+        } catch { return false; }
+      })();
       results.push({
         announcement,
         stealthPrivateKey,
         isMatch: true,
         privateKeyVerified: true,
-        walletType: accountMatch ? 'account' : create2Match ? 'create2' : 'eoa',
+        walletType: accountMatch ? 'account' : create2Match ? 'create2' : (eoaMatch && is7702Chain) ? 'eip7702' : 'eoa',
       });
     }
   }

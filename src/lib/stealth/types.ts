@@ -45,7 +45,7 @@ export interface ScanResult {
   isMatch: boolean;
   privateKeyVerified?: boolean;
   derivedAddress?: string;
-  walletType?: 'eoa' | 'create2' | 'account';
+  walletType?: 'eoa' | 'create2' | 'account' | 'eip7702';
 }
 
 export const SCHEME_ID = { SECP256K1: 1 } as const;
@@ -108,6 +108,27 @@ export const DUST_PAYMASTER_ABI = [
 
 export const DUST_POOL_ADDRESS = defaultConfig.contracts.dustPool ?? '';
 export const DUST_POOL_DEPLOYMENT_BLOCK = defaultConfig.dustPoolDeploymentBlock ?? 0;
+
+export const STEALTH_SUB_ACCOUNT_7702_ABI = [
+  'function initialize(address _owner, bytes sig) external',
+  'function drain(address to, bytes sig) external',
+  'function createSubAccount(address delegate, uint256 dailyLimit) external returns (uint256)',
+  'function executeFromSub(uint256 subId, address to, uint256 value, bytes data) external',
+  'function execute(address to, uint256 value, bytes data) external',
+  'function revokeSubAccount(uint256 subId) external',
+  'function updateSubAccountLimit(uint256 subId, uint256 newLimit) external',
+  'function owner() view returns (address)',
+  'function initialized() view returns (bool)',
+  'function drainNonce() view returns (uint256)',
+  'function subAccounts(uint256) view returns (address delegate, uint256 dailyLimit, uint256 spentToday, uint256 lastResetDay, bool active)',
+  'function subAccountCount() view returns (uint256)',
+  'event Initialized(address indexed owner)',
+  'event SubAccountCreated(uint256 indexed subId, address indexed delegate, uint256 dailyLimit)',
+  'event SubAccountRevoked(uint256 indexed subId)',
+  'event SubAccountLimitUpdated(uint256 indexed subId, uint256 newLimit)',
+  'event SubAccountExecuted(uint256 indexed subId, address indexed to, uint256 value)',
+  'event Drained(address indexed to, uint256 amount)',
+];
 
 export const DUST_POOL_ABI = [
   'function deposit(bytes32 commitment) payable',
