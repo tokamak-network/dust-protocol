@@ -11,23 +11,32 @@ contract Deploy4337 is Script {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
+        // Allow using an existing EntryPoint (e.g. canonical v0.6 on mainnet/Sepolia)
+        address entryPointAddr = vm.envOr("ENTRY_POINT", address(0));
+
         vm.startBroadcast(deployerKey);
 
-        // 1. Deploy EntryPoint v0.6
-        EntryPoint entryPoint = new EntryPoint();
-        console.log("EntryPoint:", address(entryPoint));
+        IEntryPoint entryPoint;
+        if (entryPointAddr != address(0)) {
+            entryPoint = IEntryPoint(entryPointAddr);
+            console.log("Using existing EntryPoint:", entryPointAddr);
+        } else {
+            EntryPoint ep = new EntryPoint();
+            entryPoint = IEntryPoint(address(ep));
+            console.log("EntryPoint deployed:", address(entryPoint));
+        }
 
         // 2. Deploy StealthAccountFactory
-        StealthAccountFactory factory = new StealthAccountFactory(IEntryPoint(address(entryPoint)));
+        StealthAccountFactory factory = new StealthAccountFactory(entryPoint);
         console.log("StealthAccountFactory:", address(factory));
 
         // 3. Deploy DustPaymaster (deployer is owner + verifying signer)
-        DustPaymaster paymaster = new DustPaymaster(IEntryPoint(address(entryPoint)), deployer);
+        DustPaymaster paymaster = new DustPaymaster(entryPoint, deployer);
         console.log("DustPaymaster:", address(paymaster));
 
-        // 4. Fund paymaster deposit on EntryPoint (1 ETH)
-        entryPoint.depositTo{value: 1 ether}(address(paymaster));
-        console.log("Paymaster deposit: 1 ETH");
+        // 4. Fund paymaster deposit on EntryPoint (0.5 ETH for testnets)
+        entryPoint.depositTo{value: 0.5 ether}(address(paymaster));
+        console.log("Paymaster deposit: 0.5 ETH");
         console.log("Paymaster deposit balance:", entryPoint.balanceOf(address(paymaster)));
 
         // 5. Stake paymaster (required by bundlers, we self-bundle but do it anyway)
