@@ -153,13 +153,15 @@ export async function POST(req: Request) {
         console.warn('[Bundle/Submit] Top-up check failed:', e instanceof Error ? e.message : e);
       }
     }
-    // Gas limit must cover verificationGasLimit×2 (account + paymaster) + callGasLimit + overhead
+    // Gas limit must cover verificationGasLimit×2 (account + paymaster) + callGasLimit + overhead.
+    // The 63/64 rule at each CALL depth means ~1.5% gas is lost per level.
+    // EntryPoint's innerHandleOp also needs gas for storage, postOp, and event emission.
+    // 1M overhead ensures enough gas reaches the inner call for high-callGasLimit ops (e.g. DustPool).
     const callGas = ethers.BigNumber.from(userOp.callGasLimit);
     const verGas = ethers.BigNumber.from(userOp.verificationGasLimit);
     const preGas = ethers.BigNumber.from(userOp.preVerificationGas);
-    const overhead = ethers.BigNumber.from(100_000);
+    const overhead = ethers.BigNumber.from(1_000_000);
     const computedGasLimit = preGas.add(verGas.mul(2)).add(callGas).add(overhead);
-    // Use at least 1.5M, but scale up for pool deposits
     const gasLimit = computedGasLimit.gt(1_500_000) ? computedGasLimit : ethers.BigNumber.from(1_500_000);
 
     const tx = await entryPoint.handleOps([userOp], sponsor.address, {
