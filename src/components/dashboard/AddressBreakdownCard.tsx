@@ -21,6 +21,7 @@ const WALLET_TYPE_LABELS: Record<string, string> = {
   account: "4337",
   create2: "CREATE2",
   eoa: "EOA",
+  eip7702: "7702",
 };
 
 export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: AddressBreakdownCardProps) {

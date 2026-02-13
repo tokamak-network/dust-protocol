@@ -172,12 +172,67 @@ async function autoClaimLegacy(
   }
 }
 
+// Auto-claim an EIP-7702 payment via delegate-7702 API
+async function autoClaim7702(
+  payment: ScanResult,
+  recipient: string,
+  chainId: number,
+): Promise<{ txHash: string } | null> {
+  try {
+    // Dynamic import to avoid bundling viem on non-7702 chains
+    const { signDrain7702, buildSignedAuthorization } = await import('@/lib/stealth/eip7702');
+
+    const stealthAddress = payment.announcement.stealthAddress;
+
+    // 1. Build signed EIP-7702 authorization (delegates code to implementation)
+    const authorization = await buildSignedAuthorization(payment.stealthPrivateKey, chainId);
+
+    // 2. Sign drain message (nonce=0, first drain)
+    const drainSig = await signDrain7702(
+      payment.stealthPrivateKey,
+      stealthAddress,
+      recipient,
+      0, // nonce
+      chainId,
+    );
+
+    // 3. Submit to server for type-4 tx
+    const res = await fetch('/api/delegate-7702', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        stealthAddress,
+        authorization,
+        mode: 'drain',
+        drainTo: recipient,
+        drainSig,
+        chainId,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      if (process.env.NODE_ENV === 'development') console.warn('[AutoClaim/7702] Failed:', data.error);
+      return null;
+    }
+
+    if (process.env.NODE_ENV === 'development') console.log('[AutoClaim/7702] Success:', data.txHash);
+    return data;
+  } catch (e) {
+    if (process.env.NODE_ENV === 'development') console.warn('[AutoClaim/7702] Error:', e);
+    return null;
+  }
+}
+
 // Route claim by wallet type
 async function autoClaimPayment(
   payment: ScanResult,
   recipient: string,
   chainId: number,
 ): Promise<{ txHash: string } | null> {
+  if (payment.walletType === 'eip7702') {
+    return autoClaim7702(payment, recipient, chainId);
+  }
   if (payment.walletType === 'account') {
     return autoClaimAccount(payment, recipient, chainId);
   }
