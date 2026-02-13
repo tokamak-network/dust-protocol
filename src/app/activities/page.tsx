@@ -10,7 +10,7 @@ import type { StealthPayment } from "@/lib/design/types";
 export default function ActivitiesPage() {
   const {
     stealthKeys, claimAddressesInitialized, claimAddresses,
-    selectedClaimIndex, selectClaimAddress, selectedClaimAddress, address,
+    selectedClaimIndex, selectClaimAddress, selectedClaimAddress, address, activeChainId,
   } = useAuth();
 
   // Determine auto-claim recipient
@@ -20,7 +20,7 @@ export default function ActivitiesPage() {
 
   const { payments, scan, scanInBackground, stopBackgroundScan, isScanning, claimPayment, error: scanError } = useStealthScanner(
     stealthKeys,
-    { autoClaimRecipient }
+    { autoClaimRecipient, chainId: activeChainId }
   );
 
   // Auto-refresh: scan every 30s while activities page is mounted

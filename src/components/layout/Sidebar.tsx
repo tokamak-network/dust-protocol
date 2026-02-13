@@ -8,6 +8,7 @@ import { colors, radius, shadows } from "@/lib/design/tokens";
 import {
   GridIcon, LinkIcon, ActivityIcon, SettingsIcon, LogOutIcon, StarIcon,
 } from "@/components/stealth/icons";
+import { ChainSelector } from "@/components/ChainSelector";
 
 interface NavItem {
   href: string;
@@ -60,6 +61,11 @@ export function Sidebar() {
               </Text>
             </Box>
           </HStack>
+        </Box>
+
+        {/* Chain selector */}
+        <Box px="16px" pb="8px">
+          <ChainSelector />
         </Box>
 
         {/* Nav items */}

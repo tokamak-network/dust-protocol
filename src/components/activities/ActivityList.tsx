@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
-import { colors, radius, EXPLORER_BASE } from "@/lib/design/tokens";
+import { colors, radius, getExplorerBase } from "@/lib/design/tokens";
+import { useAuth } from "@/contexts/AuthContext";
 import type { StealthPayment, ClaimAddress, OutgoingPayment } from "@/lib/design/types";
 import {
   ArrowDownLeftIcon, CheckCircleIcon, AlertCircleIcon,
@@ -35,6 +36,8 @@ export function ActivityList({
   claimAddressesInitialized, claimAddresses, selectedIndex, selectAddress,
   handleClaim, claimingIndex, claimedTx, scanError,
 }: ActivityListProps) {
+  const { activeChainId } = useAuth();
+  const explorerBase = getExplorerBase(activeChainId);
   const [filter, setFilter] = useState<Filter>("all");
   const [expandedTx, setExpandedTx] = useState<string | null>(null);
 
@@ -218,7 +221,7 @@ export function ActivityList({
               {claimedTx}
             </Text>
           </VStack>
-          <a href={`${EXPLORER_BASE}/tx/${claimedTx}`} target="_blank" rel="noopener noreferrer">
+          <a href={`${explorerBase}/tx/${claimedTx}`} target="_blank" rel="noopener noreferrer">
             <Box as="button" px="14px" py="7px" borderRadius={radius.full} border={`1px solid ${colors.border.default}`}
               cursor="pointer" _hover={{ borderColor: colors.accent.indigo }} display="flex" alignItems="center" gap="6px">
               <ArrowUpRightIcon size={12} color={colors.accent.indigo} />
@@ -268,6 +271,8 @@ function IncomingRow({ item, payments, expandedTx, setExpandedTx, handleClaim, c
   handleClaim: (idx: number) => Promise<void>;
   claimingIndex: number | null;
 }) {
+  const { activeChainId } = useAuth();
+  const explorerBase = getExplorerBase(activeChainId);
   const payment = item.payment;
   const index = item.index;
   const displayAmount = parseFloat(payment.originalAmount || payment.balance || "0");
@@ -337,7 +342,7 @@ function IncomingRow({ item, payments, expandedTx, setExpandedTx, handleClaim, c
                 <Text fontSize="12px" color={colors.accent.indigo} fontWeight={500}>Sponsored</Text>
               </HStack>
             </HStack>
-            <a href={`${EXPLORER_BASE}/tx/${payment.announcement.txHash}`} target="_blank" rel="noopener noreferrer">
+            <a href={`${explorerBase}/tx/${payment.announcement.txHash}`} target="_blank" rel="noopener noreferrer">
               <HStack gap="5px" mt="4px">
                 <ArrowUpRightIcon size={12} color={colors.accent.indigo} />
                 <Text fontSize="12px" color={colors.accent.indigo} fontWeight={500}>View on Explorer</Text>
@@ -355,6 +360,8 @@ function OutgoingRow({ item, expandedTx, setExpandedTx }: {
   expandedTx: string | null;
   setExpandedTx: (tx: string | null) => void;
 }) {
+  const { activeChainId } = useAuth();
+  const explorerBase = getExplorerBase(activeChainId);
   const payment = item.payment;
   const isExpanded = expandedTx === payment.txHash;
   const displayAmount = parseFloat(payment.amount);
@@ -424,7 +431,7 @@ function OutgoingRow({ item, expandedTx, setExpandedTx }: {
                 <Text fontSize="12px" color={colors.accent.indigo} fontWeight={500}>Sponsored announcement</Text>
               </HStack>
             </HStack>
-            <a href={`${EXPLORER_BASE}/tx/${payment.txHash}`} target="_blank" rel="noopener noreferrer">
+            <a href={`${explorerBase}/tx/${payment.txHash}`} target="_blank" rel="noopener noreferrer">
               <HStack gap="5px" mt="4px">
                 <ArrowUpRightIcon size={12} color={colors.accent.indigo} />
                 <Text fontSize="12px" color={colors.accent.indigo} fontWeight={500}>View on Explorer</Text>

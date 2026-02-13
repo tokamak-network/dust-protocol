@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Box, Text, VStack, HStack } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { colors, radius, shadows, EXPLORER_BASE } from "@/lib/design/tokens";
+import { colors, radius, shadows, getExplorerBase } from "@/lib/design/tokens";
+import { useAuth } from "@/contexts/AuthContext";
+import { getChainConfig } from "@/config/chains";
 import type { StealthPayment } from "@/lib/design/types";
 import {
   ArrowDownLeftIcon, ChevronRightIcon,
@@ -17,6 +19,9 @@ interface RecentActivityCardProps {
 type Filter = "all" | "incoming" | "outgoing";
 
 export function RecentActivityCard({ payments }: RecentActivityCardProps) {
+  const { activeChainId } = useAuth();
+  const explorerBase = getExplorerBase(activeChainId);
+  const symbol = getChainConfig(activeChainId).nativeCurrency.symbol;
   const [filter, setFilter] = useState<Filter>("all");
 
   const filtered = filter === "outgoing" ? [] : payments;
@@ -83,7 +88,7 @@ export function RecentActivityCard({ payments }: RecentActivityCardProps) {
                 cursor="pointer"
                 _hover={{ borderColor: colors.border.light }}
                 transition="all 0.15s ease"
-                onClick={() => window.open(`${EXPLORER_BASE}/tx/${p.announcement.txHash}`, "_blank")}
+                onClick={() => window.open(`${explorerBase}/tx/${p.announcement.txHash}`, "_blank")}
               >
                 <HStack gap="14px">
                   <Box
@@ -99,7 +104,7 @@ export function RecentActivityCard({ payments }: RecentActivityCardProps) {
                       Received from {p.announcement.caller?.slice(0, 6)}...{p.announcement.caller?.slice(-4) || "unknown"}
                     </Text>
                     <Text fontSize="13px" color={colors.text.muted}>
-                      TON &middot; Block #{p.announcement.blockNumber.toLocaleString()}
+                      {symbol} &middot; Block #{p.announcement.blockNumber.toLocaleString()}
                     </Text>
                   </VStack>
                 </HStack>
@@ -108,7 +113,7 @@ export function RecentActivityCard({ payments }: RecentActivityCardProps) {
                   fontWeight={700}
                   color={colors.accent.indigo}
                 >
-                  +{displayAmount.toFixed(4)} TON
+                  +{displayAmount.toFixed(4)} {symbol}
                 </Text>
               </HStack>
             );

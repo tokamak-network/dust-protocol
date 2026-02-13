@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback, ChangeEvent } from "react";
 import { Box, Text, VStack, HStack, Input, Spinner } from "@chakra-ui/react";
 import { useAccount, useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { colors, radius, EXPLORER_BASE } from "@/lib/design/tokens";
+import { colors, radius, getExplorerBase } from "@/lib/design/tokens";
 import { useStealthSend, useStealthName } from "@/hooks/stealth";
 import { NAME_SUFFIX } from "@/lib/stealth";
+import { getChainConfig, DEFAULT_CHAIN_ID } from "@/config/chains";
 import Link from "next/link";
 import { NoOptInPayment } from "@/components/pay/NoOptInPayment";
 import {
@@ -48,7 +49,10 @@ export default function PayPage({ params }: { params: { name: string } }) {
   const { isConnected } = useAccount();
   const { connect } = useConnect();
   const { resolveName, formatName, isConfigured } = useStealthName();
-  const { generateAddressFor, sendEthToStealth, isLoading, error: sendError } = useStealthSend();
+  // Pay pages use the default chain (Thanos Sepolia) since senders don't have chain context
+  const chainId = DEFAULT_CHAIN_ID;
+  const chainConfig = getChainConfig(chainId);
+  const { generateAddressFor, sendEthToStealth, isLoading, error: sendError } = useStealthSend(chainId);
 
   const [activeTab, setActiveTab] = useState<"wallet" | "qr">("wallet");
   const [resolvedMeta, setResolvedMeta] = useState<string | null>(null);
@@ -65,7 +69,7 @@ export default function PayPage({ params }: { params: { name: string } }) {
     setMetaResolving(true);
     const resolved = await resolveName(name + NAME_SUFFIX);
     if (resolved) {
-      setResolvedMeta(`st:thanos:${resolved}`);
+      setResolvedMeta(`st:eth:${resolved}`);
     } else {
       const resolved2 = await resolveName(name);
       if (resolved2) setResolvedMeta(`st:thanos:${resolved2}`);
@@ -234,7 +238,7 @@ export default function PayPage({ params }: { params: { name: string } }) {
                             fontFamily="'JetBrains Mono', monospace">
                             {amount}
                           </Text>
-                          <Text fontSize="16px" fontWeight={500} color={colors.text.muted} mt="6px">TON</Text>
+                          <Text fontSize="16px" fontWeight={500} color={colors.text.muted} mt="6px">{chainConfig.nativeCurrency.symbol}</Text>
                         </HStack>
                         <Text fontSize="14px" color={colors.text.muted}>
                           sent to <Text as="span" color={colors.accent.indigoBright} fontWeight={600}>{fullName}</Text>
@@ -244,7 +248,7 @@ export default function PayPage({ params }: { params: { name: string } }) {
                       {/* Explorer link */}
                       {sendTxHash && (
                         <Box animation="dust-fade-up 0.4s ease-out 0.5s both">
-                          <a href={`${EXPLORER_BASE}/tx/${sendTxHash}`} target="_blank" rel="noopener noreferrer">
+                          <a href={`${getExplorerBase(chainId)}/tx/${sendTxHash}`} target="_blank" rel="noopener noreferrer">
                             <HStack gap="6px" px="16px" py="10px" bgColor={colors.bg.input} borderRadius={radius.sm}
                               border={`1px solid ${colors.border.default}`}
                               _hover={{ bgColor: colors.bg.elevated }} transition="background-color 0.15s" cursor="pointer">
@@ -316,10 +320,10 @@ export default function PayPage({ params }: { params: { name: string } }) {
                                 _focus={{ borderColor: colors.accent.indigo, boxShadow: colors.glow.indigo }} />
                               <Text position="absolute" right="16px" top="50%" transform="translateY(-50%)"
                                 fontSize="14px" fontWeight={600} color={colors.text.muted}>
-                                TON
+                                {chainConfig.nativeCurrency.symbol}
                               </Text>
                             </Box>
-                            <Text fontSize="11px" color={colors.text.muted} mt="6px">on Thanos Network</Text>
+                            <Text fontSize="11px" color={colors.text.muted} mt="6px">on {chainConfig.name}</Text>
                           </Box>
 
                           <Box as="button" w="100%" h="52px"
@@ -346,7 +350,7 @@ export default function PayPage({ params }: { params: { name: string } }) {
                               <HStack justify="space-between">
                                 <Text fontSize="13px" color={colors.text.muted}>Amount</Text>
                                 <Text fontSize="20px" fontWeight={700} color={colors.text.primary}
-                                  fontFamily="'JetBrains Mono', monospace">{amount} TON</Text>
+                                  fontFamily="'JetBrains Mono', monospace">{amount} {chainConfig.nativeCurrency.symbol}</Text>
                               </HStack>
                               <Box h="1px" bgColor={colors.border.default} />
                               <HStack justify="space-between">

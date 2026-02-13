@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { Box, Text, VStack, HStack } from "@chakra-ui/react";
-import { colors, radius, shadows } from "@/lib/design/tokens";
-import { EXPLORER_BASE } from "@/lib/design/tokens";
+import { colors, radius, shadows, getExplorerBase } from "@/lib/design/tokens";
+import { useAuth } from "@/contexts/AuthContext";
+import { getChainConfig } from "@/config/chains";
 import { WalletIcon, ChevronDownIcon, ChevronUpIcon } from "@/components/stealth/icons";
 import type { StealthPayment } from "@/lib/design/types";
 
@@ -23,6 +24,9 @@ const WALLET_TYPE_LABELS: Record<string, string> = {
 };
 
 export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: AddressBreakdownCardProps) {
+  const { activeChainId } = useAuth();
+  const explorerBase = getExplorerBase(activeChainId);
+  const symbol = getChainConfig(activeChainId).nativeCurrency.symbol;
   const [expanded, setExpanded] = useState(false);
 
   const hasClaimAddresses = claimAddresses.length > 0;
@@ -100,7 +104,7 @@ export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: Addr
                         {addr.label || `Wallet ${idx + 1}`}
                       </Text>
                       <a
-                        href={`${EXPLORER_BASE}/address/${addr.address}`}
+                        href={`${explorerBase}/address/${addr.address}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ fontSize: "10px", color: colors.text.muted, fontFamily: "'JetBrains Mono', monospace", textDecoration: "none" }}
@@ -109,7 +113,7 @@ export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: Addr
                       </a>
                     </VStack>
                     <Text fontSize="12px" fontWeight={500} color={colors.accent.indigo} fontFamily="'JetBrains Mono', monospace">
-                      {parseFloat(addr.balance || "0").toFixed(4)} TON
+                      {parseFloat(addr.balance || "0").toFixed(4)} {symbol}
                     </Text>
                   </HStack>
                 ))}
@@ -132,7 +136,7 @@ export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: Addr
                     <HStack gap="6px">
                       <VStack align="flex-start" gap="1px">
                         <a
-                          href={`${EXPLORER_BASE}/address/${p.announcement.stealthAddress}`}
+                          href={`${explorerBase}/address/${p.announcement.stealthAddress}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ fontSize: "11px", fontWeight: 500, color: colors.text.primary, fontFamily: "'JetBrains Mono', monospace", textDecoration: "none" }}
@@ -155,7 +159,7 @@ export function AddressBreakdownCard({ claimAddresses, unclaimedPayments }: Addr
                       )}
                     </HStack>
                     <Text fontSize="12px" fontWeight={500} color={colors.accent.indigo} fontFamily="'JetBrains Mono', monospace">
-                      {parseFloat(p.balance || "0").toFixed(4)} TON
+                      {parseFloat(p.balance || "0").toFixed(4)} {symbol}
                     </Text>
                   </HStack>
                 ))}

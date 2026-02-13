@@ -5,6 +5,7 @@ import { Box, Text, VStack, HStack } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStealthScanner, useUnifiedBalance, useDustPool } from "@/hooks/stealth";
 import { colors, radius } from "@/lib/design/tokens";
+import { getChainConfig } from "@/config/chains";
 import { UnifiedBalanceCard } from "@/components/dashboard/UnifiedBalanceCard";
 import { AddressBreakdownCard } from "@/components/dashboard/AddressBreakdownCard";
 import { PersonalLinkCard } from "@/components/dashboard/PersonalLinkCard";
@@ -15,17 +16,18 @@ import { ConsolidateModal } from "@/components/dashboard/ConsolidateModal";
 import { SendIcon, ArrowDownLeftIcon, ShieldIcon } from "@/components/stealth/icons";
 
 export default function DashboardPage() {
-  const { stealthKeys, metaAddress, ownedNames, claimAddresses, refreshClaimBalances, claimAddressesInitialized } = useAuth();
+  const { stealthKeys, metaAddress, ownedNames, claimAddresses, refreshClaimBalances, claimAddressesInitialized, activeChainId } = useAuth();
+  const chainConfig = getChainConfig(activeChainId);
   const [claimToPool, setClaimToPool] = useState(() => {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('dust_claim_to_pool') === 'true';
   });
-  const { payments, scan, scanInBackground, stopBackgroundScan, isScanning, depositToPool } = useStealthScanner(stealthKeys, { claimToPool });
+  const { payments, scan, scanInBackground, stopBackgroundScan, isScanning, depositToPool } = useStealthScanner(stealthKeys, { claimToPool, chainId: activeChainId });
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [showConsolidateModal, setShowConsolidateModal] = useState(false);
 
-  const dustPool = useDustPool();
+  const dustPool = useDustPool(activeChainId);
   const [depositingToPool, setDepositingToPool] = useState(false);
   const [poolDepositProgress, setPoolDepositProgress] = useState({ done: 0, total: 0, message: '' });
   const depositingRef = useRef(false);
@@ -151,7 +153,7 @@ export default function DashboardPage() {
                 <HStack justifyContent="space-between" alignItems="center">
                   <Box>
                     <Text fontSize="20px" fontWeight={800} color={colors.text.primary}>
-                      {parseFloat(dustPool.poolBalance).toFixed(4)} TON
+                      {parseFloat(dustPool.poolBalance).toFixed(4)} {chainConfig.nativeCurrency.symbol}
                     </Text>
                     <Text fontSize="11px" color={colors.text.muted}>
                       {dustPool.deposits.filter(d => !d.withdrawn).length} deposits ready to withdraw

@@ -81,3 +81,10 @@ export const cardAccents = [
 export const MIN_CLAIMABLE_BALANCE = 0.0001;
 
 export const EXPLORER_BASE = "https://explorer.thanos-sepolia.tokamak.network";
+
+import { getChainConfig, DEFAULT_CHAIN_ID } from '@/config/chains';
+
+/** Chain-aware explorer URL */
+export function getExplorerBase(chainId?: number): string {
+  return getChainConfig(chainId ?? DEFAULT_CHAIN_ID).blockExplorerUrl;
+}

@@ -2,9 +2,12 @@
 
 import { useState, useEffect, ChangeEvent } from "react";
 import { Box, Text, VStack, HStack, Input, Spinner } from "@chakra-ui/react";
-import { colors, radius, shadows, EXPLORER_BASE } from "@/lib/design/tokens";
+import { colors, radius, shadows, getExplorerBase } from "@/lib/design/tokens";
 import { useStealthSend, useStealthName } from "@/hooks/stealth";
+import { useAuth } from "@/contexts/AuthContext";
 import { isStealthName, NAME_SUFFIX, lookupStealthMetaAddress } from "@/lib/stealth";
+import { getChainConfig } from "@/config/chains";
+import { getChainProvider } from "@/lib/providers";
 import { ethers } from "ethers";
 import {
   SendIcon, CheckCircleIcon, AlertCircleIcon, LockIcon,
@@ -17,7 +20,9 @@ interface SendModalProps {
 }
 
 export function SendModal({ isOpen, onClose }: SendModalProps) {
-  const { generateAddressFor, sendEthToStealth, lastGeneratedAddress, isLoading, error: sendError } = useStealthSend();
+  const { activeChainId } = useAuth();
+  const chainConfig = getChainConfig(activeChainId);
+  const { generateAddressFor, sendEthToStealth, lastGeneratedAddress, isLoading, error: sendError } = useStealthSend(activeChainId);
   const { resolveName, isConfigured: nameRegistryConfigured } = useStealthName();
 
   const [recipient, setRecipient] = useState("");
@@ -40,11 +45,11 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
       if (recipient.startsWith("0x") && recipient.length === 42) {
         setIsResolving(true);
         try {
-          const provider = new ethers.providers.JsonRpcProvider("https://rpc.thanos-sepolia.tokamak.network");
+          const provider = getChainProvider(activeChainId);
           const metaBytes = await lookupStealthMetaAddress(provider, recipient);
           setIsResolving(false);
           if (metaBytes) {
-            setResolvedAddress(`st:thanos:0x${metaBytes.replace(/^0x/, "")}`);
+            setResolvedAddress(`st:eth:0x${metaBytes.replace(/^0x/, "")}`);
           } else {
             setResolvedAddress(null);
             setResolveError("This address hasn't registered for stealth payments");
@@ -74,7 +79,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
         const resolved = await resolveName(nameToResolve);
         setIsResolving(false);
         if (resolved) {
-          setResolvedAddress(`st:thanos:${resolved}`);
+          setResolvedAddress(`st:eth:${resolved}`);
         } else {
           setResolvedAddress(null);
           setResolvedLinkSlug(undefined);
@@ -86,7 +91,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
     };
     const t = setTimeout(resolve, 300);
     return () => clearTimeout(t);
-  }, [recipient, nameRegistryConfigured, resolveName]);
+  }, [recipient, nameRegistryConfigured, resolveName, activeChainId]);
 
   const handlePreview = () => {
     const addr = resolvedAddress || recipient;
@@ -231,7 +236,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                     _focus={{ borderColor: colors.accent.indigo, boxShadow: colors.glow.indigo, outline: "none" }}
                     transition="all 0.15s ease"
                   />
-                  <Text fontSize="11px" color={colors.text.muted} mt="8px" fontWeight={500}>Thanos Network</Text>
+                  <Text fontSize="11px" color={colors.text.muted} mt="8px" fontWeight={500}>{chainConfig.name}</Text>
                 </Box>
 
                 {/* Preview button */}
@@ -259,7 +264,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                 <VStack gap="4px" py="8px">
                   <Text fontSize="42px" fontWeight={800} color={colors.text.primary}
                     letterSpacing="-0.04em" lineHeight="1" textAlign="center">
-                    {amount} <Text as="span" fontSize="20px" fontWeight={600} color={colors.text.muted}>TON</Text>
+                    {amount} <Text as="span" fontSize="20px" fontWeight={600} color={colors.text.muted}>{chainConfig.nativeCurrency.symbol}</Text>
                   </Text>
                   <Text fontSize="14px" color={colors.text.muted} textAlign="center" fontWeight={500}>
                     to{" "}
@@ -274,7 +279,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                   <VStack gap="12px" align="stretch">
                     <HStack justify="space-between">
                       <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>Network</Text>
-                      <Text fontSize="13px" fontWeight={600} color={colors.text.primary}>Thanos</Text>
+                      <Text fontSize="13px" fontWeight={600} color={colors.text.primary}>{chainConfig.name}</Text>
                     </HStack>
                     <HStack justify="space-between">
                       <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>Privacy</Text>
@@ -357,7 +362,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                       letterSpacing="-0.04em"
                       lineHeight="1"
                     >
-                      {amount} <Text as="span" fontSize="22px" fontWeight={600} color={colors.text.muted}>TON</Text>
+                      {amount} <Text as="span" fontSize="22px" fontWeight={600} color={colors.text.muted}>{chainConfig.nativeCurrency.symbol}</Text>
                     </Text>
                     <Text fontSize="15px" color={colors.text.muted} textAlign="center" fontWeight={500}>
                       sent to{" "}
@@ -387,7 +392,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                   {/* Buttons */}
                   <VStack gap="10px" animation="successSlideUp 0.5s ease-out 0.35s both">
                     {sendTxHash && (
-                      <a href={`${EXPLORER_BASE}/tx/${sendTxHash}`} target="_blank" rel="noopener noreferrer"
+                      <a href={`${getExplorerBase(activeChainId)}/tx/${sendTxHash}`} target="_blank" rel="noopener noreferrer"
                         style={{ width: "100%" }}>
                         <HStack gap="8px" justify="center" w="100%" p="14px"
                           bgColor={colors.bg.input}
