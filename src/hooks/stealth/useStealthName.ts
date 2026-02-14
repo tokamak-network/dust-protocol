@@ -239,13 +239,8 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
 
       if (address) storeUsername(address, stripNameSuffix(name), activeChainId);
 
-      // Wait a moment for RPC caches to update before querying on-chain
-      await new Promise(r => setTimeout(r, 1000));
-      await loadOwnedNames();
-
-      // Retry after another delay if still not found (RPC lag)
-      await new Promise(r => setTimeout(r, 2000));
-      await loadOwnedNames();
+      // Optimistically update owned names in background (don't wait)
+      loadOwnedNames().catch(() => {});
 
       return data.txHash;
     } catch (e) {
