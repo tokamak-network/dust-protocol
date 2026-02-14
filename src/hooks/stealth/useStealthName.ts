@@ -121,16 +121,16 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
   // Only runs after loadOwnedNames has completed and localStorage is empty.
   // Never overwrites a name that was explicitly registered by the user.
   useEffect(() => {
-    if (!userMetaAddress || !address || !isConfigured || ownedNames.length > 0) return;
+    if (!userMetaAddress || !address || !isConfigured || ownedNames.length > 0 || isLoading) return;
 
     let cancelled = false;
     (async () => {
       // Wait for loadOwnedNames to finish before running discovery.
       // This prevents the race where discovery fires while loadOwnedNames
       // is still fetching, then overwrites the correct localStorage value.
-      if (!loadCompleted.current) {
-        // Poll briefly — loadOwnedNames is already in-flight
-        for (let i = 0; i < 20 && !loadCompleted.current && !cancelled; i++) {
+      if (!loadCompleted.current || registeringNameRef.current) {
+        // Poll briefly — loadOwnedNames or registration is in-flight
+        for (let i = 0; i < 30 && (!loadCompleted.current || registeringNameRef.current) && !cancelled; i++) {
           await new Promise(r => setTimeout(r, 250));
         }
         if (cancelled) return;
@@ -238,7 +238,15 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
       if (!res.ok) throw new Error(data.error || 'Name registration failed');
 
       if (address) storeUsername(address, stripNameSuffix(name), activeChainId);
+
+      // Wait a moment for RPC caches to update before querying on-chain
+      await new Promise(r => setTimeout(r, 1000));
       await loadOwnedNames();
+
+      // Retry after another delay if still not found (RPC lag)
+      await new Promise(r => setTimeout(r, 2000));
+      await loadOwnedNames();
+
       return data.txHash;
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to register name';
