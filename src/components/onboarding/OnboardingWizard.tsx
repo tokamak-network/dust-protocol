@@ -1,23 +1,58 @@
 "use client";
 
-import { useState } from "react";
-import { Box, HStack } from "@chakra-ui/react";
+import { useState, useRef } from "react";
+import { Box, HStack, VStack, Text, Spinner } from "@chakra-ui/react";
 import { colors, radius, shadows, transitions } from "@/lib/design/tokens";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { UsernameStep } from "./steps/UsernameStep";
 import { PinStep } from "./steps/PinStep";
-import { ActivateStep } from "./steps/ActivateStep";
+import { AlertCircleIcon } from "../stealth/icons";
 
-type Step = "username" | "pin" | "activate";
-const STEPS: Step[] = ["username", "pin", "activate"];
+type Step = "username" | "pin" | "activating";
+const STEPS: Step[] = ["username", "pin"];
 
 export function OnboardingWizard() {
   const router = useRouter();
+  const { address, deriveKeysFromWallet, setPin: storePinEncrypted, registerMetaAddress, registerName } = useAuth();
   const [step, setStep] = useState<Step>("username");
   const [username, setUsername] = useState("");
-  const [pin, setPin] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const activatingRef = useRef(false);
 
-  const currentIndex = STEPS.indexOf(step);
+  const currentIndex = step === "activating" ? 2 : STEPS.indexOf(step);
+
+  const handlePinComplete = async (pin: string) => {
+    if (activatingRef.current) return;
+    activatingRef.current = true;
+    setStep("activating");
+    setError(null);
+
+    try {
+      const result = await deriveKeysFromWallet(pin);
+      if (!result) throw new Error("Please approve the signature in your wallet");
+
+      const pinStored = await storePinEncrypted(pin, result.sig);
+      if (!pinStored) throw new Error("Failed to store PIN");
+
+      const [nameTx] = await Promise.all([
+        registerName(username, result.metaAddress),
+        registerMetaAddress().catch(() => null),
+      ]);
+      if (!nameTx) throw new Error("Failed to register name");
+
+      if (address) {
+        localStorage.setItem('dust_onboarded_' + address.toLowerCase(), 'true');
+      }
+
+      router.replace("/dashboard");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Activation failed";
+      setError(msg);
+      setStep("pin");
+      activatingRef.current = false;
+    }
+  };
 
   return (
     <Box w="100%" maxW="420px" mx="auto">
@@ -58,14 +93,35 @@ export function OnboardingWizard() {
             />
           )}
           {step === "pin" && (
-            <PinStep onNext={(p) => { setPin(p); setStep("activate"); }} />
+            <PinStep onNext={handlePinComplete} />
           )}
-          {step === "activate" && (
-            <ActivateStep
-              username={username}
-              pin={pin}
-              onComplete={() => router.replace("/dashboard")}
-            />
+          {step === "activating" && (
+            <VStack gap="20px" align="stretch">
+              <VStack gap="4px" align="flex-start">
+                <Text fontSize="20px" fontWeight={600} color={colors.text.primary} letterSpacing="-0.01em">
+                  Setting up your wallet
+                </Text>
+                <Text fontSize="13px" color={colors.text.muted}>
+                  {error ? "Activation failed" : "Creating your private identity..."}
+                </Text>
+              </VStack>
+
+              {!error && (
+                <HStack gap="8px" justify="center" py="32px">
+                  <Spinner size="sm" color={colors.accent.indigo} />
+                  <Text fontSize="13px" color={colors.text.secondary}>
+                    Please wait...
+                  </Text>
+                </HStack>
+              )}
+
+              {error && (
+                <HStack gap="6px" pl="2px">
+                  <AlertCircleIcon size={12} color={colors.accent.red} />
+                  <Text fontSize="12px" color={colors.accent.red}>{error}</Text>
+                </HStack>
+              )}
+            </VStack>
           )}
         </Box>
       </Box>

@@ -84,6 +84,28 @@ export function PinStep({ onNext }: PinStepProps) {
   const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  // Auto-submit when 6 digits entered (create step)
+  useEffect(() => {
+    if (step === "create" && pin.length === 6) {
+      setError(null);
+      setStep("confirm");
+      setConfirmPin("");
+    }
+  }, [pin, step]);
+
+  // Auto-submit when 6 digits entered (confirm step)
+  useEffect(() => {
+    if (step === "confirm" && confirmPin.length === 6) {
+      if (confirmPin !== pin) {
+        setError("PINs do not match");
+        setConfirmPin("");
+      } else {
+        setError(null);
+        onNext(pin);
+      }
+    }
+  }, [confirmPin, step, pin, onNext]);
+
   const handleCreateNext = () => {
     if (pin.length !== 6) { setError("PIN must be 6 digits"); return; }
     setError(null);
