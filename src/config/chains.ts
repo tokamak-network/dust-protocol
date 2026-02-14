@@ -118,8 +118,8 @@ const ETHEREUM_SEPOLIA_CONFIG: ChainConfig = {
     legacyAccountFactory: '', // No legacy on Sepolia
     entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789', // Canonical v0.6
     paymaster: '0x20C28cbF9bc462Fb361C8DAB0C0375011b81BEb2',
-    dustPool: '0xF1c5F2bF2E21287C49779c6893728A2B954478d1',
-    dustPoolVerifier: '0x71825C2882e41e5a845dEFD99A7f3dC8a03A8B27',
+    dustPool: '0xc95a359E66822d032A6ADA81ec410935F3a88bcD',
+    dustPoolVerifier: '0x17f52f01ffcB6d3C376b2b789314808981cebb16',
     subAccount7702: '0x29365d51Ff8007dCC7ae6c62aF450e5c8C3263f7',
     nameRegistryMerkle: '0x0000000000000000000000000000000000000000', // placeholder — deploy pending
     nameVerifier: null,
@@ -132,7 +132,7 @@ const ETHEREUM_SEPOLIA_CONFIG: ChainConfig = {
     legacyAccount: '', // No legacy on Sepolia
   },
   deploymentBlock: 10251347,
-  dustPoolDeploymentBlock: 10253309,
+  dustPoolDeploymentBlock: 10259728,
   supportsEIP7702: true,
   canonicalForNaming: true,
   testnet: true,
