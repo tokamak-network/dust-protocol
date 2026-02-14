@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, ClipboardEvent } from "react";
 import { Box, Text, VStack, HStack, Input } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import { colors, radius, inputStates, buttonVariants, transitions } from "@/lib/design/tokens";
@@ -32,6 +32,16 @@ function PinInput({ value, onChange }: { value: string; onChange: (v: string) =>
     }
   };
 
+  const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pasted.length > 0) {
+      onChange(pasted);
+      const focusIdx = Math.min(pasted.length, 5);
+      refs.current[focusIdx]?.focus();
+    }
+  };
+
   return (
     <HStack gap="8px" justify="center">
       {Array.from({ length: 6 }).map((_, i) => (
@@ -46,6 +56,7 @@ function PinInput({ value, onChange }: { value: string; onChange: (v: string) =>
           value={value[i] || ""}
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(i, e.target.value)}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => handleKeyDown(i, e)}
+          onPaste={handlePaste}
           w="44px"
           h="52px"
           textAlign="center"
@@ -95,7 +106,7 @@ export function PinStep({ onNext }: PinStepProps) {
   return (
     <VStack gap="20px" align="stretch">
       <VStack gap="4px" align="flex-start">
-        <Text fontSize="20px" fontWeight={600} color="white" letterSpacing="-0.01em">
+        <Text fontSize="20px" fontWeight={600} color={colors.text.primary} letterSpacing="-0.01em">
           {step === "create" ? "Create a PIN" : "Confirm your PIN"}
         </Text>
         <Text fontSize="13px" color={colors.text.muted}>
@@ -142,13 +153,13 @@ export function PinStep({ onNext }: PinStepProps) {
         <Button
           flex={2}
           h="44px"
-          bgColor={isReady ? buttonVariants.primary.bg : inputStates.disabled.bg}
+          bg={isReady ? buttonVariants.primary.bg : colors.bg.elevated}
           borderRadius={radius.sm}
-          border={isReady ? `1px solid ${colors.border.accent}` : `1px solid ${colors.border.default}`}
+          border={isReady ? "none" : `1px solid ${colors.border.default}`}
           boxShadow={isReady ? buttonVariants.primary.boxShadow : "none"}
-          fontWeight={500}
+          fontWeight={600}
           fontSize="14px"
-          color={isReady ? colors.text.primary : colors.text.muted}
+          color={isReady ? "#fff" : colors.text.muted}
           _hover={
             isReady
               ? {

@@ -61,8 +61,16 @@ export function usePin() {
         setError('Incorrect PIN');
         return false;
       }
-    } catch {
-      setError('Incorrect PIN or wallet mismatch');
+    } catch (e) {
+      // AES-GCM decryption fails when the signature (wallet) changes — distinguish from wrong PIN
+      const msg = e instanceof Error ? e.message : '';
+      if (msg.includes('decrypt') || msg.includes('OperationError') || msg.includes('operation-specific')) {
+        setError('Wallet signature mismatch — this PIN was set with a different wallet');
+      } else if (msg.toLowerCase().includes('rejected') || msg.includes('ACTION_REJECTED')) {
+        setError('Please approve the signature request in your wallet');
+      } else {
+        setError('Incorrect PIN');
+      }
       return false;
     } finally {
       setIsLoading(false);

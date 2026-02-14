@@ -44,7 +44,7 @@ export function useDustPool(chainId?: number) {
       .filter(d => !d.withdrawn)
       .reduce((sum, d) => sum + BigInt(d.amount), BigInt(0));
     setPoolBalance(ethers.utils.formatEther(total));
-  }, [address]);
+  }, [address, activeChainId]);
 
   useEffect(() => {
     loadPoolDeposits();
