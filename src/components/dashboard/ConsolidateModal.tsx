@@ -37,7 +37,7 @@ export function ConsolidateModal({
   if (!isOpen) return null;
 
   const unwithdrawable = deposits.filter(d => !d.withdrawn);
-  const isValidRecipient = /^0x[0-9a-fA-F]{40}$/.test(recipient);
+  const isValidRecipient = ethers.utils.isAddress(recipient);
   const canConsolidate = isValidRecipient && unwithdrawable.length > 0 && !isConsolidating;
 
   const handleClose = () => {

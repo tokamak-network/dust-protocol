@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
 import { Button } from "@/components/ui/button";
 import { colors, radius, inputStates, buttonVariants, transitions } from "@/lib/design/tokens";
@@ -19,8 +19,11 @@ export function ActivateStep({ username, pin, onComplete }: ActivateStepProps) {
   const { address, deriveKeysFromWallet, setPin: storePinEncrypted, registerMetaAddress, registerName, formatName } = useAuth();
   const [status, setStatus] = useState<ActivationStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const activatingRef = useRef(false);
 
   const handleActivate = async () => {
+    if (activatingRef.current) return;
+    activatingRef.current = true;
     setStatus("signing");
     setError(null);
 
@@ -49,13 +52,15 @@ export function ActivateStep({ username, pin, onComplete }: ActivateStepProps) {
       const msg = e instanceof Error ? e.message : "Activation failed";
       setError(msg);
       setStatus("error");
+    } finally {
+      activatingRef.current = false;
     }
   };
 
   return (
     <VStack gap="20px" align="stretch">
       <VStack gap="4px" align="flex-start">
-        <Text fontSize="20px" fontWeight={600} color="white" letterSpacing="-0.01em">
+        <Text fontSize="20px" fontWeight={600} color={colors.text.primary} letterSpacing="-0.01em">
           Activate your wallet
         </Text>
         <Text fontSize="13px" color={colors.text.muted}>
@@ -116,13 +121,13 @@ export function ActivateStep({ username, pin, onComplete }: ActivateStepProps) {
         <Button
           w="100%"
           h="44px"
-          bgColor={buttonVariants.primary.bg}
+          bg={buttonVariants.primary.bg}
           borderRadius={radius.sm}
-          border={`1px solid ${colors.border.accent}`}
+          border="none"
           boxShadow={buttonVariants.primary.boxShadow}
-          fontWeight={500}
+          fontWeight={600}
           fontSize="14px"
-          color={colors.text.primary}
+          color="#fff"
           _hover={{
             boxShadow: buttonVariants.primary.hover.boxShadow,
             transform: buttonVariants.primary.hover.transform,
