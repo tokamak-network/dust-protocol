@@ -163,14 +163,30 @@ async function autoClaimLegacy(
 
     if (payment.walletType === 'create2') {
       const ownerEOA = getAddressFromPrivateKey(payment.stealthPrivateKey);
+      const stealthAddress = payment.announcement.stealthAddress;
+
+      // Read current nonce from deployed wallet (may be >0 if prior drain was attempted)
+      const provider = getChainProvider(chainId);
+      let walletNonce = 0;
+      try {
+        const code = await provider.getCode(stealthAddress);
+        if (code !== '0x') {
+          const walletContract = new ethers.Contract(stealthAddress, ['function nonce() view returns (uint256)'], provider);
+          walletNonce = (await walletContract.nonce()).toNumber();
+        }
+      } catch {
+        // Not yet deployed — nonce is 0
+      }
+
       const signature = await signWalletDrain(
         payment.stealthPrivateKey,
-        payment.announcement.stealthAddress,
+        stealthAddress,
         recipient,
         chainId,
+        walletNonce,
       );
       body = {
-        stealthAddress: payment.announcement.stealthAddress,
+        stealthAddress,
         owner: ownerEOA,
         recipient,
         signature,
@@ -291,30 +307,42 @@ async function sweepTokensFromWallet(
 
   try {
     const ownerEOA = getAddressFromPrivateKey(payment.stealthPrivateKey);
+    const stealthAddress = payment.announcement.stealthAddress;
+
+    // Read current wallet nonce (wallet is already deployed for token sweeps)
+    const provider = getChainProvider(chainId);
+    let walletNonce = 0;
+    try {
+      const walletContract = new ethers.Contract(stealthAddress, ['function nonce() view returns (uint256)'], provider);
+      walletNonce = (await walletContract.nonce()).toNumber();
+    } catch {
+      // Fallback to 0
+    }
 
     // Build signatures for each token sweep via signWalletExecute
-    const tokenSweeps = await Promise.all(
-      payment.tokenBalances.map(async (tb) => {
-        const erc20Iface = new ethers.utils.Interface(ERC20_BALANCE_ABI.concat([
-          'function transfer(address to, uint256 amount) returns (bool)',
-        ]));
-        const provider = getChainProvider(chainId);
-        const tokenContract = new ethers.Contract(tb.token, ERC20_BALANCE_ABI, provider);
-        const balance: ethers.BigNumber = await tokenContract.balanceOf(payment.announcement.stealthAddress);
+    // Each execute() increments the contract nonce, so use sequential nonces
+    const tokenSweeps = [];
+    for (let i = 0; i < payment.tokenBalances.length; i++) {
+      const tb = payment.tokenBalances[i];
+      const erc20Iface = new ethers.utils.Interface(ERC20_BALANCE_ABI.concat([
+        'function transfer(address to, uint256 amount) returns (bool)',
+      ]));
+      const tokenContract = new ethers.Contract(tb.token, ERC20_BALANCE_ABI, provider);
+      const balance: ethers.BigNumber = await tokenContract.balanceOf(stealthAddress);
 
-        const transferData = erc20Iface.encodeFunctionData('transfer', [recipient, balance]);
+      const transferData = erc20Iface.encodeFunctionData('transfer', [recipient, balance]);
 
-        const signature = await signWalletExecute(
-          payment.stealthPrivateKey,
-          payment.announcement.stealthAddress,
-          tb.token,
-          ethers.BigNumber.from(0),
-          transferData,
-          chainId,
-        );
-        return { tokenAddress: tb.token, signature };
-      })
-    );
+      const signature = await signWalletExecute(
+        payment.stealthPrivateKey,
+        stealthAddress,
+        tb.token,
+        ethers.BigNumber.from(0),
+        transferData,
+        chainId,
+        walletNonce + i,
+      );
+      tokenSweeps.push({ tokenAddress: tb.token, signature });
+    }
 
     const res = await fetch('/api/sponsor-claim', {
       method: 'POST',
@@ -569,6 +597,10 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
     // Need either a claim recipient for direct claim, or pool mode enabled
     if (!recipient && !poolMode) return;
 
+    // Snapshot keys at start to prevent race condition if wallet switches mid-claim.
+    // Without this, later loop iterations could read keys for a different wallet.
+    const keysSnapshot = new Map(privateKeysRef.current);
+
     const now = Date.now();
     const claimable = newPayments.filter(p => {
       const txHash = p.announcement.txHash;
@@ -596,8 +628,8 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
         p.announcement.txHash === txHash ? { ...p, autoClaiming: true } : p
       ));
 
-      // Inject private key from ref for claiming
-      const key = getKeyForPayment(txHash);
+      // Use snapshot key (not live ref) to avoid race condition with wallet switching
+      const key = keysSnapshot.get(txHash) || '';
       if (!key) {
         autoClaimingRef.current.delete(txHash);
         setPayments(prev => prev.map(p =>
@@ -669,9 +701,9 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
       setProgress({ current: 0, total: 0 });
     }
 
-    // H2: Assign a unique scan ID to detect superseded scans
-    const scanId = Date.now();
-    currentScanIdRef.current = scanId;
+    // H2: Assign a unique scan ID to detect superseded scans.
+    // Uses incrementing counter (not Date.now()) to avoid collisions from rapid triggers.
+    const scanId = ++currentScanIdRef.current;
 
     try {
       // Incremental scanning: use lastScannedBlock for silent/background scans
@@ -688,6 +720,9 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
       }
 
       const latestBlock = await provider.getBlockNumber();
+
+      // Check if this scan was superseded before expensive operations
+      if (currentScanIdRef.current !== scanId) return;
 
       // Skip if we're already up to date (background scan optimization)
       if (silent && startBlock >= latestBlock) return;
@@ -886,6 +921,9 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
   ): Promise<{ deposited: number; skipped: number; failed: number }> => {
     if (!address) return { deposited: 0, skipped: 0, failed: 0 };
 
+    // Snapshot keys at start to prevent race condition if wallet switches mid-deposit loop
+    const keysSnapshot = new Map(privateKeysRef.current);
+
     // Include payments with balance > 0 (normal) OR near-zero balance with original amount (recovery)
     const candidates = payments.filter(p => {
       if (p.claimed || p.keyMismatch) return false;
@@ -908,7 +946,7 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
 
     for (let i = 0; i < candidates.length; i++) {
       const payment = candidates[i];
-      const key = getKeyForPayment(payment.announcement.txHash);
+      const key = keysSnapshot.get(payment.announcement.txHash) || '';
 
       if (!key) {
         skipped++;

@@ -353,20 +353,22 @@ async function discoverNameOnChain(chainId: number, chainName: string, targetHex
     const registry = new ethers.Contract(addr, NAME_REGISTRY_ABI, rpcProvider);
     const deployerNames: string[] = await registry.getNamesOwnedBy(DEPLOYER);
 
-    let lastMatch: string | null = null;
+    let bestMatch: string | null = null;
     for (const name of deployerNames) {
       try {
         const resolved: string = await registry.resolveName(name);
         if (resolved && resolved.toLowerCase() === targetHex.toLowerCase()) {
-          lastMatch = name;
+          if (!bestMatch || name.length < bestMatch.length) {
+            bestMatch = name;
+          }
         }
       } catch { continue; }
     }
 
-    if (lastMatch) {
-      console.log(`[names] Discovered name "${lastMatch}" on ${chainName} (${chainId})`);
+    if (bestMatch) {
+      console.log(`[names] Discovered name "${bestMatch}" on ${chainName} (${chainId})`);
     }
-    return lastMatch;
+    return bestMatch;
   } catch (e) {
     console.warn(`[names] discoverNameByMetaAddress failed on ${chainName}:`, e);
     return null;
@@ -436,19 +438,21 @@ export async function discoverNameByWalletHistory(
           const registry = new ethers.Contract(addr, NAME_REGISTRY_ABI, rpcProvider);
           const deployerNames: string[] = await registry.getNamesOwnedBy(DEPLOYER);
 
-          let lastMatch: string | null = null;
+          let bestMatch: string | null = null;
           for (const name of deployerNames) {
             try {
               const resolved: string = await registry.resolveName(name);
               if (resolved && historicalMetas.has(resolved.toLowerCase())) {
-                lastMatch = name;
+                if (!bestMatch || name.length < bestMatch.length) {
+                  bestMatch = name;
+                }
               }
             } catch { continue; }
           }
 
-          if (lastMatch) {
-            console.log(`[names] Discovered name "${lastMatch}" via wallet history on ${chain.name} (${chain.id})`);
-            return lastMatch;
+          if (bestMatch) {
+            console.log(`[names] Discovered name "${bestMatch}" via wallet history on ${chain.name} (${chain.id})`);
+            return bestMatch;
           }
         } catch (e) {
           console.warn(`[names] Name registry scan failed on ${chain.name}:`, e);
