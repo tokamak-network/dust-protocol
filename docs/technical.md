@@ -49,10 +49,12 @@ wallet.signMessage(STEALTH_KEY_DERIVATION_MESSAGE)
 ```
 wallet.signMessage(STEALTH_KEY_DERIVATION_MESSAGE)
     → signature
-    → SHA-512(signature + pin + "Dust Spend Authority") → first 32 bytes = spending private key
-    → SHA-512(signature + pin + "Dust View Authority") → first 32 bytes = viewing private key
+    → PBKDF2(pin, salt=signature+'spending_v2', 100k iterations, SHA-256) → 32 bytes = spending private key
+    → PBKDF2(pin, salt=signature+'viewing_v2', 100k iterations, SHA-256) → 32 bytes = viewing private key
+    → PBKDF2(pin, salt=signature+'claim_v2', 100k iterations, SHA-256) → 32 bytes = claim private key
 ```
 
+Key derivation uses Web Crypto API's PBKDF2 (async, hardware-accelerated) with 100,000 iterations.
 PIN is encrypted with AES-256-GCM (key derived via PBKDF2 from signature, 100k iterations) and stored in localStorage.
 
 ### Claim Address Derivation
@@ -94,10 +96,11 @@ salt = keccak256(constructorArgs)
 stealthAddress = CREATE2(StealthAccountFactory, salt, initCode)
 ```
 
-The scanner checks three address types for each announcement:
+The scanner checks four address types for each announcement:
 - **EOA** — direct `ownerEOA` match (legacy)
 - **CREATE2 wallet** — `StealthWalletFactory` derived address (legacy)
-- **ERC-4337 account** — `StealthAccountFactory` derived address (current)
+- **ERC-4337 account** — `StealthAccountFactory` derived address (current on Thanos Sepolia)
+- **EIP-7702 delegated EOA** — EOA address on chains supporting EIP-7702 (current on Ethereum Sepolia)
 
 ### Why Only Alice Can Spend
 
@@ -238,6 +241,43 @@ New stealth payments use ERC-4337 smart accounts. The claim is completely gasles
 
 Legacy CREATE2 and EOA payments are still claimable via `/api/sponsor-claim`.
 
+## EIP-7702 Delegated EOA Claim Flow
+
+On chains supporting EIP-7702 (Ethereum Sepolia), stealth addresses are plain EOAs that can delegate code execution to a contract implementation.
+
+```
+1. Scanner detects payment via Announcement event (EOA address match)
+2. Browser derives stealth private key via ECDH
+3. POST /api/delegate-7702 → server builds EIP-7702 authorization + drain transaction
+4. Browser signs the authorization locally (delegates to StealthSubAccount7702 contract)
+5. Server submits type-4 transaction with signed authorization
+6. Authorization is applied, contract code executes drain(), funds sent to claim address
+```
+
+**Benefits:**
+- EOA addresses (simpler, cheaper to send to)
+- No account deployment needed
+- One-time code delegation per claim
+- Full EVM execution within the EOA context
+
+**EIP-7702 Contract:**
+
+| Chain | Contract | Address |
+|-------|----------|---------|
+| Ethereum Sepolia | StealthSubAccount7702 | `0x29365d51Ff8007dCC7ae6c62aF450e5c8C3263f7` |
+| Thanos Sepolia | Not supported | N/A (pre-Pectra) |
+
+The authorization is:
+```solidity
+Authorization {
+  chainId: 11155111,
+  address: 0x29365d51Ff8007dCC7ae6c62aF450e5c8C3263f7,  // StealthSubAccount7702
+  nonce: currentNonce
+}
+```
+
+Signed by the stealth private key, then included in a type-4 transaction's authorizationList.
+
 ## DustPool: ZK Privacy Pool
 
 ### Problem
@@ -292,14 +332,25 @@ WITHDRAW (unlinkable via ZK proof):
 
 Trusted setup: Hermez `powersOfTau28_hez_final_15.ptau` (2^15 = 32,768 constraints capacity).
 
-### Contracts (Thanos Sepolia only)
+### Contracts (Both Chains)
+
+**Thanos Sepolia (111551119090):**
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| Groth16Verifier | `0x3ff80Dc7F1D39155c6eac52f5c5Cf317524AF25C` | ZK proof verification (BN254 pairing) |
-| DustPool | `0x473e83478caB06F685C4536ebCfC6C21911F7852` | Privacy pool with Poseidon Merkle tree |
+| Groth16Verifier | `0x9914F482c262dC8BCcDa734c6fF3f5384B1E19Aa` | ZK proof verification (BN254 pairing) |
+| DustPool | `0x16b8c82e3480b1c5B8dbDf38aD61a828a281e2c3` | Privacy pool with Poseidon Merkle tree (C1-fixed) |
 
-Deployment block: `6327184`. DustPool is not yet deployed on Ethereum Sepolia.
+Deployment block: `6372598`
+
+**Ethereum Sepolia (11155111):**
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| Groth16Verifier | `0x17f52f01ffcB6d3C376b2b789314808981cebb16` | ZK proof verification (BN254 pairing) |
+| DustPool | `0xc95a359E66822d032A6ADA81ec410935F3a88bcD` | Privacy pool with Poseidon Merkle tree (C1-fixed) |
+
+Deployment block: `10259728`
 
 ### Gas Costs (All Sponsored)
 
@@ -512,8 +563,9 @@ The `ChainSelector` component in the sidebar lets users switch chains. On switch
 
 | Feature | Thanos Sepolia | Ethereum Sepolia |
 |---------|---------------|-----------------|
-| Stealth addresses | Yes | Yes |
-| ERC-4337 accounts | Yes | Yes |
-| `.tok` names | Yes | Yes |
-| DustPool (ZK) | Yes | Not yet deployed |
-| EIP-7702 sub-accounts | No (not Pectra) | Planned |
+| Stealth addresses | ✅ Yes | ✅ Yes |
+| ERC-4337 accounts | ✅ Yes | ✅ Yes |
+| `.tok` names | ✅ Yes | ✅ Yes |
+| DustPool (ZK privacy pool) | ✅ Yes | ✅ Yes |
+| EIP-7702 delegated EOAs | ❌ No (not Pectra) | ✅ Yes |
+| Default stealth address type | ERC-4337 account | EIP-7702 EOA |
