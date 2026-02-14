@@ -15,7 +15,7 @@ Currently deployed on **Thanos Sepolia** and **Ethereum Sepolia**.
 - **Real-time Scanning** — Automatic detection of incoming payments (supports legacy EOA, CREATE2, and ERC-4337 account announcements)
 - **Unified Dashboard** — Single balance view aggregating unclaimed stealth payments + claim wallet holdings, with per-address breakdown
 - **Multi-Chain Support** — Chain selector in sidebar, switch between Thanos Sepolia and Ethereum Sepolia. All API routes, hooks, and scanner are chain-aware
-- **DustPool (ZK Privacy Pool)** — Withdraw funds from multiple stealth wallets into a single fresh address with zero on-chain linkability via Groth16 ZK proofs (Thanos Sepolia only)
+- **DustPool (ZK Privacy Pool)** — Withdraw funds from multiple stealth wallets into a single fresh address with zero on-chain linkability via Groth16 ZK proofs
 
 ## Setup
 
@@ -74,26 +74,40 @@ All chain-specific configuration (RPC URLs, contract addresses, creation codes) 
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| Groth16Verifier | `0x3ff80Dc7F1D39155c6eac52f5c5Cf317524AF25C` | ZK proof verification (BN254 pairing) |
-| DustPool | `0x473e83478caB06F685C4536ebCfC6C21911F7852` | Privacy pool with Poseidon Merkle tree |
+| Groth16Verifier | `0x9914F482c262dC8BCcDa734c6fF3f5384B1E19Aa` | ZK proof verification (BN254 pairing) |
+| DustPool | `0x16b8c82e3480b1c5B8dbDf38aD61a828a281e2c3` | Privacy pool with Poseidon Merkle tree (C1-fixed) |
 
 Deployment block: `6272527`
+DustPool deployment block: `6372598`
 
 ### Ethereum Sepolia (chain ID: 11155111)
+
+#### Core Stealth Infrastructure
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
 | ERC5564Announcer | `0x64044FfBefA7f1252DdfA931c939c19F21413aB0` | On-chain stealth payment announcements |
 | ERC6538Registry | `0xb848398167054cCb66264Ec25C35F8CfB1EF1Ca7` | Stealth meta-address registry |
 | StealthNameRegistry | `0x4364cd60dF5F4dC82E81346c4E64515C08f19BBc` | `.tok` name to meta-address mapping |
+
+#### ERC-4337 Account Abstraction
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
 | EntryPoint (v0.6) | `0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789` | Canonical ERC-4337 EntryPoint |
 | StealthWalletFactory | `0x1c65a6F830359f207e593867B78a303B9D757453` | CREATE2 wallet deployment |
 | StealthAccountFactory | `0xc73fce071129c7dD7f2F930095AfdE7C1b8eA82A` | ERC-4337 stealth account deployment |
 | DustPaymaster | `0x20C28cbF9bc462Fb361C8DAB0C0375011b81BEb2` | Gas sponsorship for stealth claims |
 
-Deployment block: `10251347`
+#### DustPool (ZK Privacy Pool)
 
-DustPool is not yet deployed on Ethereum Sepolia. Privacy pool features are disabled on this chain.
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| Groth16Verifier | `0x17f52f01ffcB6d3C376b2b789314808981cebb16` | ZK proof verification (BN254 pairing) |
+| DustPool | `0xc95a359E66822d032A6ADA81ec410935F3a88bcD` | Privacy pool with Poseidon Merkle tree (C1-fixed) |
+
+Deployment block: `10251347`
+DustPool deployment block: `10259728`
 
 ## How It Works
 
@@ -306,7 +320,6 @@ public/zk/               # Browser ZK assets (WASM + zkey)
 - **Multi-asset pool** — Support ERC-20 token deposits alongside native currency
 - **Association sets** — Let users prove their deposit is not from a sanctioned address (0xBow-style inclusion proofs)
 - **EIP-7702 Stealth Sub-Accounts** — On Pectra-enabled chains (Ethereum Sepolia), allow stealth EOAs to delegate code via EIP-7702 for sub-account spending policies
-- **DustPool on Ethereum Sepolia** — Deploy ZK privacy pool contracts + trusted setup on Ethereum Sepolia
 
 ## Research Links
 
