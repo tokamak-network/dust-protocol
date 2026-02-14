@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Box, Text, VStack, HStack, Input } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { colors, glass, typography, transitions, shadows, radius, buttonVariants, inputStates } from "@/lib/design/tokens";
-import { ShieldIcon, LockIcon, WalletIcon, UserIcon, ZapIcon, ArrowUpRightIcon, MailIcon } from "@/components/stealth/icons";
+import { LockIcon, WalletIcon, ArrowUpRightIcon, MailIcon } from "@/components/stealth/icons";
 import { DustLogo } from "@/components/DustLogo";
 import { FlickeringGrid } from "@/components/FlickeringGrid";
 import { useLogin } from "@privy-io/react-auth";
@@ -504,74 +504,6 @@ export default function Home() {
               >
                 <ArrowUpRightIcon size={18} color={colors.accent.indigo} />
               </Box>
-            </HStack>
-
-            {/* 3-step explainer — glass-morphism cards */}
-            <HStack
-              gap={{ base: "10px", md: "14px" }}
-              w="100%"
-              className="fade-up d6"
-              flexDirection={{ base: "column", md: "row" }}
-            >
-              {[
-                { icon: WalletIcon, label: "Connect", desc: "Link your wallet", color: colors.accent.indigo },
-                { icon: UserIcon, label: "Setup", desc: "Choose name & PIN", color: colors.accent.violet },
-                { icon: ZapIcon, label: "Receive", desc: "Get paid privately", color: colors.accent.cyan },
-              ].map((step, i) => (
-                <Box
-                  key={i}
-                  flex={1}
-                  w={{ base: "100%", md: "auto" }}
-                  py={{ base: "16px", md: "24px" }}
-                  px="18px"
-                  bg={glass.card.bg}
-                  border={glass.card.border}
-                  borderRadius={radius.md}
-                  textAlign="center"
-                  backdropFilter={glass.card.backdropFilter}
-                  position="relative"
-                  overflow="hidden"
-                  transition={transitions.smooth}
-                  _hover={{
-                    bg: glass.cardHover.bg,
-                    border: glass.cardHover.border,
-                    transform: "translateY(-2px)",
-                    boxShadow: shadows.cardHover,
-                  }}
-                >
-                  {/* Top accent line */}
-                  <Box
-                    position="absolute"
-                    top="0"
-                    left="20%"
-                    right="20%"
-                    h="1px"
-                    bg={`linear-gradient(90deg, transparent, ${step.color}33, transparent)`}
-                  />
-                  <VStack gap="8px">
-                    <Box
-                      w="40px"
-                      h="40px"
-                      borderRadius={radius.sm}
-                      bg={`${step.color}10`}
-                      border={`1px solid ${step.color}18`}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                      color={step.color}
-                      mx="auto"
-                    >
-                      <step.icon size={18} />
-                    </Box>
-                    <Text fontSize="14px" fontWeight="600" color={colors.text.primary} fontFamily={typography.fontFamily.heading}>
-                      {step.label}
-                    </Text>
-                    <Text fontSize="12px" color={colors.text.muted} lineHeight="1.4" fontFamily={typography.fontFamily.body}>
-                      {step.desc}
-                    </Text>
-                  </VStack>
-                </Box>
-              ))}
             </HStack>
 
             {/* Privacy notice */}
