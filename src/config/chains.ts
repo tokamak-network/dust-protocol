@@ -145,7 +145,7 @@ const CHAIN_CONFIGS: Record<number, ChainConfig> = {
   [ETHEREUM_SEPOLIA_CONFIG.id]: ETHEREUM_SEPOLIA_CONFIG,
 };
 
-export const DEFAULT_CHAIN_ID = 111551119090;
+export const DEFAULT_CHAIN_ID = 11155111;
 
 export function getChainConfig(chainId?: number): ChainConfig {
   const id = chainId ?? DEFAULT_CHAIN_ID;

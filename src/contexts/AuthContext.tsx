@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useSwitchChain } from "wagmi";
 import { useStealthAddress, useStealthName, usePin } from "@/hooks/stealth";
 import { DEFAULT_CHAIN_ID, isChainSupported } from "@/config/chains";
 import type { StealthKeyPair } from "@/lib/stealth";
@@ -55,7 +55,8 @@ interface AuthState {
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId: walletChainId } = useAccount();
+  const { switchChain } = useSwitchChain();
 
   // Active chain state — persisted in localStorage (must be declared before hooks that use it)
   const [activeChainId, setActiveChainIdState] = useState(DEFAULT_CHAIN_ID);
@@ -72,6 +73,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isChainSupported(id)) setActiveChainIdState(id);
     }
   }, []);
+
+  // Auto-switch wallet to active chain if connected on an unsupported chain
+  useEffect(() => {
+    if (!isConnected || !walletChainId || !switchChain) return;
+    if (!isChainSupported(walletChainId)) {
+      try {
+        switchChain({ chainId: activeChainId });
+      } catch {
+        // User rejected the switch — no action needed
+      }
+    }
+  }, [isConnected, walletChainId, activeChainId, switchChain]);
 
   const setActiveChain = useCallback((chainId: number) => {
     if (!isChainSupported(chainId)) return;
