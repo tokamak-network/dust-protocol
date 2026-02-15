@@ -211,13 +211,28 @@ export async function buildTreeFromEvents(
     toBlock: 'latest',
   };
 
-  const logs = await provider.getLogs(filter);
+  // Fetch in chunks to avoid RPC block range limits
+  const currentBlock = await provider.getBlockNumber();
+  const MAX_RANGE = 50_000;
+  let allLogs: ethers.providers.Log[] = [];
+
+  for (let start = fromBlock; start <= currentBlock; start += MAX_RANGE) {
+    const end = Math.min(start + MAX_RANGE - 1, currentBlock);
+    const chunkLogs = await provider.getLogs({
+      ...filter,
+      fromBlock: start,
+      toBlock: end,
+    });
+    allLogs = allLogs.concat(chunkLogs);
+  }
+
+  console.log(`[DustPool] Fetched ${allLogs.length} Deposit events from blocks ${fromBlock}–${currentBlock}`);
 
   const tree = await MerkleTree.create();
   const deposits: Array<{ commitment: bigint; leafIndex: number; amount: bigint; txHash: string; timestamp: number }> = [];
 
   // Sort by leafIndex to ensure correct order
-  const parsed = logs.map(log => {
+  const parsed = allLogs.map(log => {
     const decoded = iface.parseLog(log);
     return {
       commitment: BigInt(decoded.args.commitment),
@@ -227,6 +242,13 @@ export async function buildTreeFromEvents(
       timestamp: decoded.args.timestamp.toNumber(),
     };
   }).sort((a, b) => a.leafIndex - b.leafIndex);
+
+  // Verify no gaps in leaf indices
+  for (let i = 0; i < parsed.length; i++) {
+    if (parsed[i].leafIndex !== i) {
+      console.error(`[DustPool] Gap in leaf indices! Expected ${i}, got ${parsed[i].leafIndex}`);
+    }
+  }
 
   for (const d of parsed) {
     await tree.insert(d.commitment);
