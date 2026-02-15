@@ -7,6 +7,7 @@ import {
   storedToDepositData,
   buildTreeFromEvents,
   generateWithdrawProof,
+  toBytes32Hex,
   type StoredDeposit,
 } from '@/lib/dustpool';
 import { getChainConfig, DEFAULT_CHAIN_ID } from '@/config/chains';
@@ -76,19 +77,84 @@ export function useDustPool(chainId?: number) {
         dustPoolDeploymentBlock!,
       );
 
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[DustPool] Tree rebuilt with', tree.leafCount, 'leaves, root:', toBytes32Hex(tree.root));
+      }
+
+      // Reconcile: remove phantom deposits that don't exist on-chain
+      // (e.g. from previous failed server transactions that saved to localStorage)
+      const onChainCommitments = new Set<string>();
+      for (let li = 0; li < tree.leafCount; li++) {
+        const leaf = tree.getLeaf(li);
+        if (leaf !== undefined) onChainCommitments.add(toBytes32Hex(leaf));
+      }
+
+      const validDeposits: StoredDeposit[] = [];
+      const phantomDeposits: StoredDeposit[] = [];
+      for (const stored of unwithdrawn) {
+        if (onChainCommitments.has(stored.commitment)) {
+          validDeposits.push(stored);
+        } else {
+          phantomDeposits.push(stored);
+        }
+      }
+
+      if (phantomDeposits.length > 0) {
+        console.warn(`[DustPool] Pruning ${phantomDeposits.length} phantom deposit(s) not found on-chain`);
+        // Remove phantom deposits from storage
+        const allDeposits = loadDeposits(address, activeChainId);
+        const phantomCommitments = new Set(phantomDeposits.map(d => d.commitment));
+        const cleaned = allDeposits.filter(d => !phantomCommitments.has(d.commitment));
+        saveDeposits(address, cleaned, activeChainId);
+      }
+
+      if (validDeposits.length === 0) {
+        // Refresh state after pruning
+        loadPoolDeposits();
+        setProgress({
+          phase: 'done', current: 0, total: 0,
+          message: phantomDeposits.length > 0
+            ? `Cleaned ${phantomDeposits.length} invalid deposit(s). No valid deposits to withdraw.`
+            : 'No deposits to withdraw',
+        });
+        isConsolidatingRef.current = false;
+        return;
+      }
+
       const txHashes: string[] = [];
 
-      for (let i = 0; i < unwithdrawn.length; i++) {
-        const stored = unwithdrawn[i];
+      for (let i = 0; i < validDeposits.length; i++) {
+        const stored = validDeposits[i];
         const depositData = storedToDepositData(stored);
+
+        // Find the actual on-chain leafIndex for this commitment
+        // (stored leafIndex may be wrong if from a failed/retried deposit)
+        let actualLeafIndex = -1;
+        for (let li = 0; li < tree.leafCount; li++) {
+          const leaf = tree.getLeaf(li);
+          if (leaf !== undefined && toBytes32Hex(leaf) === stored.commitment) {
+            actualLeafIndex = li;
+            break;
+          }
+        }
+
+        if (actualLeafIndex === -1) {
+          console.error(`[DustPool] Commitment not found in tree despite reconciliation check`);
+          continue;
+        }
+
+        if (actualLeafIndex !== stored.leafIndex) {
+          console.warn(`[DustPool] Correcting leafIndex: stored=${stored.leafIndex}, actual=${actualLeafIndex}`);
+          stored.leafIndex = actualLeafIndex;
+        }
 
         // Phase 2: Generate ZK proof
         setProgress({
-          phase: 'proving', current: i + 1, total: unwithdrawn.length,
-          message: `Generating proof ${i + 1}/${unwithdrawn.length}...`,
+          phase: 'proving', current: i + 1, total: validDeposits.length,
+          message: `Generating proof ${i + 1}/${validDeposits.length}...`,
         });
 
-        const merkleProof = tree.getProof(stored.leafIndex);
+        const merkleProof = tree.getProof(actualLeafIndex);
         const withdrawProof = await generateWithdrawProof(
           depositData,
           merkleProof,
@@ -97,8 +163,8 @@ export function useDustPool(chainId?: number) {
 
         // Phase 3: Submit withdrawal
         setProgress({
-          phase: 'submitting', current: i + 1, total: unwithdrawn.length,
-          message: `Submitting withdrawal ${i + 1}/${unwithdrawn.length}...`,
+          phase: 'submitting', current: i + 1, total: validDeposits.length,
+          message: `Submitting withdrawal ${i + 1}/${validDeposits.length}...`,
         });
 
         const res = await fetch('/api/pool-withdraw', {
@@ -125,20 +191,20 @@ export function useDustPool(chainId?: number) {
         stored.withdrawn = true;
       }
 
-      // Save updated deposits
-      const allDeposits = loadDeposits(address, activeChainId);
-      for (const stored of unwithdrawn) {
-        const idx = allDeposits.findIndex(d => d.commitment === stored.commitment);
-        if (idx >= 0) allDeposits[idx].withdrawn = true;
+      // Save updated deposits (mark withdrawn + remove phantoms)
+      const remainingDeposits = loadDeposits(address, activeChainId);
+      for (const stored of validDeposits) {
+        const idx = remainingDeposits.findIndex(d => d.commitment === stored.commitment);
+        if (idx >= 0) remainingDeposits[idx].withdrawn = true;
       }
-      saveDeposits(address, allDeposits, activeChainId);
-      setDeposits(allDeposits);
+      saveDeposits(address, remainingDeposits, activeChainId);
+      setDeposits(remainingDeposits);
 
-      const totalAmount = unwithdrawn.reduce((sum, d) => sum + BigInt(d.amount), BigInt(0));
+      const totalAmount = validDeposits.reduce((sum, d) => sum + BigInt(d.amount), BigInt(0));
       setPoolBalance('0');
 
       setProgress({
-        phase: 'done', current: unwithdrawn.length, total: unwithdrawn.length,
+        phase: 'done', current: validDeposits.length, total: validDeposits.length,
         message: `Withdrew ${ethers.utils.formatEther(totalAmount)} ${config.nativeCurrency.symbol} to ${freshRecipient.slice(0, 8)}...`,
       });
     } catch (e) {
@@ -150,7 +216,7 @@ export function useDustPool(chainId?: number) {
     } finally {
       isConsolidatingRef.current = false;
     }
-  }, [address, deposits, activeChainId, hasDustPool, dustPoolAddress, dustPoolDeploymentBlock, config.nativeCurrency.symbol]);
+  }, [address, deposits, activeChainId, hasDustPool, dustPoolAddress, dustPoolDeploymentBlock, config.nativeCurrency.symbol, loadPoolDeposits]);
 
   const resetProgress = useCallback(() => {
     setProgress({ phase: 'idle', current: 0, total: 0, message: '' });
