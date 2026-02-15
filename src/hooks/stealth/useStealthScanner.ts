@@ -4,6 +4,7 @@ import { ethers } from 'ethers';
 import {
   scanAnnouncements, setLastScannedBlock as saveLastScannedBlock,
   getLastScannedBlock, getAnnouncementCount, getAddressFromPrivateKey,
+  computeStealthPrivateKey,
   signWalletDrain, signWalletExecute, signUserOp,
   type StealthKeyPair, type ScanResult, type TokenBalance,
   DUST_POOL_ABI, STEALTH_ACCOUNT_FACTORY_ABI,
@@ -276,7 +277,7 @@ async function autoClaim7702(
     if (process.env.NODE_ENV === 'development') console.log('[AutoClaim/7702] Success:', data.txHash);
     return data;
   } catch (e) {
-    if (process.env.NODE_ENV === 'development') console.warn('[AutoClaim/7702] Error:', e);
+    console.error('[AutoClaim/7702] Error:', e);
     return null;
   }
 }
@@ -385,7 +386,7 @@ async function claimToPoolDeposit(
     }
 
     const wt = payment.walletType;
-    if (wt !== 'create2' && wt !== 'account') {
+    if (wt !== 'create2' && wt !== 'account' && wt !== 'eip7702') {
       if (process.env.NODE_ENV === 'development') console.warn('[PoolDeposit] Unsupported wallet type:', wt);
       return null;
     }
@@ -407,7 +408,54 @@ async function claimToPoolDeposit(
     let txHash: string;
     let leafIndex: number;
 
-    if (wt === 'account') {
+    if (wt === 'eip7702') {
+      // EIP-7702: delegate to subAccount7702, initialize with sponsor, execute pool deposit
+      if (process.env.NODE_ENV === 'development') console.log('[PoolDeposit/7702] Starting for', payment.announcement.stealthAddress);
+
+      const { signInitialize7702, buildSignedAuthorization } = await import('@/lib/stealth/eip7702');
+      const stealthAddress = payment.announcement.stealthAddress;
+
+      // Get sponsor address from API
+      const sponsorRes = await fetch('/api/delegate-7702');
+      const sponsorData = await sponsorRes.json();
+      if (!sponsorRes.ok) {
+        if (process.env.NODE_ENV === 'development') console.warn('[PoolDeposit/7702] Failed to get sponsor:', sponsorData.error);
+        return null;
+      }
+
+      // Build authorization and initialize signature
+      const authorization = await buildSignedAuthorization(payment.stealthPrivateKey, chainId);
+      const initializeSig = await signInitialize7702(
+        payment.stealthPrivateKey,
+        stealthAddress,
+        sponsorData.address,
+        chainId,
+      );
+
+      // Call pool-deposit mode on delegate-7702 API
+      if (process.env.NODE_ENV === 'development') console.log('[PoolDeposit/7702] Submitting pool-deposit...');
+      const res = await fetch('/api/delegate-7702', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stealthAddress,
+          authorization,
+          mode: 'pool-deposit',
+          initializeSig,
+          commitment: deposit.commitmentHex,
+          chainId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.warn('[PoolDeposit/7702] Failed:', data.error);
+        return null;
+      }
+
+      txHash = data.txHash;
+      leafIndex = data.leafIndex;
+
+    } else if (wt === 'account') {
       // ERC-4337: Build UserOp with execute(DustPool, balance, depositCalldata)
       if (process.env.NODE_ENV === 'development') console.log('[PoolDeposit] ERC-4337 direct pool deposit...');
 
@@ -526,7 +574,7 @@ async function claimToPoolDeposit(
 
     return { txHash, leafIndex, depositData: storedDeposit };
   } catch (e) {
-    if (process.env.NODE_ENV === 'development') console.warn('[PoolDeposit] Error:', e);
+    console.error('[PoolDeposit] Error:', e);
     return null;
   }
 }
@@ -583,6 +631,37 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
     }
   }, [address, chainId]);
 
+  // Re-derive private keys when stealth keys become available (after page refresh)
+  // Keys are not persisted to localStorage (security fix), so they must be re-computed
+  // from the user's stealth key pair and each payment's ephemeral public key.
+  useEffect(() => {
+    if (!stealthKeys || payments.length === 0) return;
+
+    let rederived = 0;
+    for (const p of payments) {
+      if (privateKeysRef.current.has(p.announcement.txHash)) continue;
+      if (p.claimed || p.keyMismatch) continue;
+      if (!p.announcement.ephemeralPublicKey) continue;
+
+      try {
+        const key = computeStealthPrivateKey(
+          stealthKeys.spendingPrivateKey,
+          stealthKeys.viewingPrivateKey,
+          p.announcement.ephemeralPublicKey,
+        );
+        if (key) {
+          privateKeysRef.current.set(p.announcement.txHash, key);
+          rederived++;
+        }
+      } catch {
+        // Skip payments where key derivation fails
+      }
+    }
+    if (rederived > 0 && process.env.NODE_ENV === 'development') {
+      console.log(`[Scanner] Re-derived ${rederived} private keys from stealth keys`);
+    }
+  }, [stealthKeys, payments]);
+
   // Persist payments whenever they change — keys are NOT persisted (security fix)
   useEffect(() => {
     if (address && payments.length > 0) {
@@ -590,11 +669,13 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
     }
   }, [address, chainId, payments]);
 
-  // Auto-claim: when new unclaimed payments appear and we have a recipient or pool mode
+  // Auto-claim: when new unclaimed payments appear, drain to recipient/wallet or hold for pool
   const tryAutoClaim = useCallback(async (newPayments: StealthPayment[]) => {
-    const recipient = autoClaimRecipientRef.current;
+    const explicitRecipient = autoClaimRecipientRef.current;
     const poolMode = claimToPoolRef.current;
-    // Need either a claim recipient for direct claim, or pool mode enabled
+    // Use explicit recipient, or fall back to connected wallet address
+    const recipient = explicitRecipient || address;
+    // Need either a claim destination or pool mode enabled
     if (!recipient && !poolMode) return;
 
     // Snapshot keys at start to prevent race condition if wallet switches mid-claim.
@@ -610,7 +691,7 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
       if ((!p.walletType || p.walletType === 'eoa') && bal < MIN_CLAIMABLE_BALANCE) return false;
       if (autoClaimingRef.current.has(txHash)) return false;
       // Pool-eligible payments are NOT auto-claimed — user deposits manually via dashboard button
-      if (poolMode && (p.walletType === 'create2' || p.walletType === 'account')) return false;
+      if (poolMode && (p.walletType === 'create2' || p.walletType === 'account' || p.walletType === 'eip7702')) return false;
       // 30-second cooldown after a failed attempt
       const lastAttempt = autoClaimCooldownRef.current.get(txHash);
       if (lastAttempt && now - lastAttempt < 30_000) return false;
@@ -652,17 +733,16 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
 
       let claimResult: { txHash: string } | null;
 
-      if (recipient) {
-        // Direct claim to recipient
-        claimResult = await autoClaimPayment(paymentWithKey, recipient, chainId);
-      } else {
-        // No recipient — skip
+      if (!recipient) {
+        // No recipient and no connected address — skip
         autoClaimingRef.current.delete(txHash);
         setPayments(prev => prev.map(p =>
           p.announcement.txHash === txHash ? { ...p, autoClaiming: false } : p
         ));
         continue;
       }
+
+      claimResult = await autoClaimPayment(paymentWithKey, recipient, chainId);
 
       if (claimResult) {
         // Zeroize private key — no longer needed after successful drain
@@ -960,7 +1040,7 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
         continue;
       }
 
-      if (payment.walletType !== 'create2' && payment.walletType !== 'account') {
+      if (payment.walletType !== 'create2' && payment.walletType !== 'account' && payment.walletType !== 'eip7702') {
         skipped++;
         onProgress(deposited, total, `Skipped ${i + 1}/${total} (${payment.walletType} type)`);
         continue;
@@ -1050,5 +1130,7 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
     }
   }, [chainId]);
 
-  return { payments, scan, scanInBackground, stopBackgroundScan, claimPayment, claimTokens, depositToPool, isScanning, progress, error };
+  const keysAvailable = privateKeysRef.current.size;
+
+  return { payments, scan, scanInBackground, stopBackgroundScan, claimPayment, claimTokens, depositToPool, isScanning, progress, error, keysAvailable };
 }
