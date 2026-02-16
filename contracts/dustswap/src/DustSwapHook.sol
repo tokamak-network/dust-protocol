@@ -134,17 +134,17 @@ contract DustSwapHook {
             return (this.beforeSwap.selector, 0, 0);
         }
 
-        // Decode the proof and pool selector from hookData
+        // Decode the proof from hookData
+        // Circuit has 8 public signals: [root, nullifierHash, recipient, relayer, fee, swapAmountOut, reserved1, reserved2]
         (
             uint256[2] memory pA,
             uint256[2][2] memory pB,
             uint256[2] memory pC,
-            uint256[6] memory pubSignals,
-            bool isETHPool
-        ) = abi.decode(hookData, (uint256[2], uint256[2][2], uint256[2], uint256[6], bool));
+            uint256[8] memory pubSignals
+        ) = abi.decode(hookData, (uint256[2], uint256[2][2], uint256[2], uint256[8]));
 
-        // Select the correct pool based on input token
-        IDustSwapPool pool = isETHPool ? dustSwapPoolETH : dustSwapPoolUSDC;
+        // Determine pool from swap direction (zeroForOne means selling currency0 = ETH)
+        IDustSwapPool pool = params.zeroForOne ? dustSwapPoolETH : dustSwapPoolUSDC;
 
         // Extract public signals
         bytes32 root = bytes32(pubSignals[0]);
@@ -153,6 +153,7 @@ contract DustSwapHook {
         address relayer = address(uint160(pubSignals[3]));
         uint256 relayerFee = pubSignals[4];
         uint256 swapAmountOut = pubSignals[5];
+        // pubSignals[6] = reserved1, pubSignals[7] = reserved2 (unused)
 
         // Validate minimum output (slippage protection)
         if (swapAmountOut == 0) revert InvalidMinimumOutput();
