@@ -72,8 +72,6 @@ function formatProofForContract(proof: any, publicSignals: string[]) {
       bigint,
       bigint,
       bigint,
-      bigint,
-      bigint,
     ],
   }
 }
@@ -85,7 +83,7 @@ function encodeHookData(
   contractProof: ReturnType<typeof formatProofForContract>
 ): `0x${string}` {
   return encodeAbiParameters(
-    parseAbiParameters('uint256[2], uint256[2][2], uint256[2], uint256[8]'),
+    parseAbiParameters('uint256[2], uint256[2][2], uint256[2], uint256[6]'),
     [contractProof.pA, contractProof.pB, contractProof.pC, contractProof.pubSignals]
   )
 }
