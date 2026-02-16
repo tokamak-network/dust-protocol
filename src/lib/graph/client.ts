@@ -1,0 +1,42 @@
+import { GraphQLClient } from 'graphql-request';
+
+const SUBGRAPH_URLS: Record<number, string | undefined> = {
+  // Thanos Sepolia: no subgraph deployed (custom network not supported on Studio free tier)
+  // Falls back to RPC automatically via isGraphAvailable()
+  111551119090: process.env.NEXT_PUBLIC_SUBGRAPH_URL_THANOS || undefined,
+  11155111: process.env.NEXT_PUBLIC_SUBGRAPH_URL_SEPOLIA
+    || 'https://api.studio.thegraph.com/query/1741961/dust-protocol-sepolia/v0.0.1',
+};
+
+const REQUEST_TIMEOUT_MS = 10_000;
+
+const clients = new Map<number, GraphQLClient>();
+
+/** Fetch wrapper that enforces a timeout via AbortController */
+const fetchWithTimeout: typeof fetch = (input, init) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(id));
+};
+
+/** Check whether The Graph is available for a given chain */
+export function isGraphAvailable(chainId: number): boolean {
+  const url = SUBGRAPH_URLS[chainId];
+  return !!url && url.length > 0;
+}
+
+export function getGraphClient(chainId: number): GraphQLClient {
+  const existing = clients.get(chainId);
+  if (existing) return existing;
+
+  const url = SUBGRAPH_URLS[chainId];
+  if (!url) {
+    throw new Error(`No subgraph configured for chain ${chainId}`);
+  }
+
+  const client = new GraphQLClient(url, {
+    fetch: fetchWithTimeout,
+  });
+  clients.set(chainId, client);
+  return client;
+}

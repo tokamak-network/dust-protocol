@@ -1,0 +1,19 @@
+{
+  "name": "dust-protocol-subgraph",
+  "version": "0.1.0",
+  "description": "The Graph subgraph for Dust Protocol stealth name registry and stealth meta-address registry",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph codegen && graph build",
+    "build:thanos": "graph codegen && graph build --network thanos-sepolia",
+    "build:sepolia": "graph codegen && graph build --network sepolia",
+    "deploy:studio:thanos": "graph deploy --studio dust-protocol-thanos",
+    "deploy:studio:sepolia": "graph deploy --studio dust-protocol-sepolia",
+    "create:local": "graph create --node http://localhost:8020/ dust-protocol-names",
+    "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 dust-protocol-names"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.71.0",
+    "@graphprotocol/graph-ts": "^0.35.1"
+  }
+}
