@@ -16,6 +16,7 @@ Currently deployed on **Thanos Sepolia** and **Ethereum Sepolia**.
 - **Unified Dashboard** — Single balance view aggregating unclaimed stealth payments + claim wallet holdings, with per-address breakdown
 - **Multi-Chain Support** — Chain selector in sidebar, switch between Thanos Sepolia and Ethereum Sepolia. All API routes, hooks, and scanner are chain-aware
 - **DustPool (ZK Privacy Pool)** — Withdraw funds from multiple stealth wallets into a single fresh address with zero on-chain linkability via Groth16 ZK proofs
+- **Privacy Swaps** — Trade any token with full privacy using Uniswap V4 hooks and ZK proofs. Deposit to privacy pool, generate proof, execute swap to stealth address with zero on-chain linkability
 
 ## Setup
 
@@ -142,6 +143,23 @@ Receiver's scanner discovers the payment automatically
 ```
 
 **How it preserves privacy:** Each name query generates a fresh ephemeral key pair server-side. The stealth address is an ERC-4337 smart account derived from the receiver's public spending key + the ephemeral key via ECDH. Only the receiver (with their viewing key) can identify the payment. The on-chain announcement happens *before* payment (eager pre-announcement), so the page can be closed at any time.
+
+### Privacy Swaps
+
+Trade tokens with full privacy using Uniswap V4 hooks and zero-knowledge proofs:
+
+1. **Deposit to DustPool** — Deposit ETH or USDC with a Poseidon commitment
+2. **Generate ZK proof** — Prove you own a deposit without revealing which one
+3. **Execute private swap** — Swap via Uniswap V4 with proof in hookData, output sent to stealth address
+4. **Zero linkability** — No on-chain connection between deposit and swap
+
+**Gas optimizations:**
+- O(1) Merkle root lookup (~208k gas saved)
+- Optimized circuit with 6 public inputs (~13k gas saved)
+- Storage packing and hardcoded zero hashes (~26k gas saved)
+- Total: ~247k gas savings (51% reduction)
+
+**Contracts:** DustSwapPoolETH, DustSwapPoolUSDC, DustSwapHook (Uniswap V4), Groth16 verifier
 
 ## Architecture
 
