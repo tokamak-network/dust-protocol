@@ -1,0 +1,34 @@
+type Name @entity(immutable: false) {
+  id: ID!                          # keccak256(lowercase name)
+  name: String!                    # "alice" (without .tok suffix)
+  owner: User!                     # Current owner (relation to User entity)
+  ownerAddress: Bytes!             # Current owner address (raw)
+  metaAddress: Bytes!              # Stealth meta-address (66 bytes)
+  registeredAt: BigInt!            # Registration block timestamp
+  updatedAt: BigInt!               # Last update block timestamp
+  transferHistory: [NameTransfer!]! @derivedFrom(field: "name")
+}
+
+type NameTransfer @entity(immutable: true) {
+  id: ID!                          # tx hash + "-" + log index
+  name: Name!                      # Relation to Name entity
+  from: Bytes!                     # Previous owner (0x0 for registration)
+  to: Bytes!                       # New owner
+  timestamp: BigInt!               # Block timestamp
+  blockNumber: BigInt!             # Block number
+}
+
+type StealthMetaAddress @entity(immutable: false) {
+  id: ID!                          # registrant address + "-" + schemeId
+  registrant: Bytes!               # User address
+  stealthMetaAddress: Bytes!       # Full stealth meta-address bytes
+  schemeId: BigInt!                # Scheme ID (1 = secp256k1)
+  registeredAt: BigInt!            # Block timestamp of last update
+}
+
+type User @entity(immutable: false) {
+  id: ID!                          # User address (lowercase hex)
+  names: [Name!]! @derivedFrom(field: "owner")
+  metaAddress: StealthMetaAddress  # Latest stealth meta-address
+  registeredNamesCount: BigInt!    # Total names owned
+}
