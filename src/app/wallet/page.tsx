@@ -584,9 +584,8 @@ export default function WalletPage() {
                     key={note.id}
                     p="14px"
                     borderRadius={radius.md}
-                    border={`1px solid ${
-                      note.spent ? colors.border.light : colors.border.accent
-                    }`}
+                    border={`1px solid ${note.spent ? colors.border.light : colors.border.accent
+                      }`}
                     bg={note.spent ? "rgba(255,255,255,0.01)" : colors.bg.card}
                     opacity={note.spent ? 0.55 : 1}
                     transition={transitions.fast}
@@ -659,19 +658,14 @@ export default function WalletPage() {
                       {/* Right: actions */}
                       <HStack gap="2px" flexShrink={0}>
                         {note.depositTxHash && (
-                          <Box
-                            as="a"
+                          <a
                             href={`${explorerBase}/tx/${note.depositTxHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            p="6px"
-                            borderRadius={radius.full}
-                            cursor="pointer"
-                            _hover={{ bg: colors.bg.hover }}
-                            transition={transitions.fast}
+                            style={{ padding: "6px", borderRadius: radius.full, cursor: "pointer", display: "inline-flex" }}
                           >
                             <ExternalLinkIcon size={14} color={colors.text.muted} />
-                          </Box>
+                          </a>
                         )}
                         <Box
                           as="button"
@@ -854,7 +848,7 @@ export default function WalletPage() {
                 cursor="pointer"
                 _hover={{ bg: colors.bg.hover }}
                 transition={transitions.fast}
-                onClick={scan}
+                onClick={() => scan()}
               >
                 {isScanning ? (
                   <Spinner size="xs" color={colors.accent.green} />
@@ -889,11 +883,10 @@ export default function WalletPage() {
                       key={addr}
                       p="14px"
                       borderRadius={radius.md}
-                      border={`1px solid ${
-                        bal > 0
-                          ? colors.border.accentGreen
-                          : colors.border.default
-                      }`}
+                      border={`1px solid ${bal > 0
+                        ? colors.border.accentGreen
+                        : colors.border.default
+                        }`}
                       bg={bal > 0 ? "rgba(34,197,94,0.03)" : colors.bg.card}
                       transition={transitions.fast}
                     >
@@ -949,20 +942,14 @@ export default function WalletPage() {
                           </Box>
                         </HStack>
                         {txHash && (
-                          <Box
-                            as="a"
+                          <a
                             href={`${explorerBase}/tx/${txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            p="6px"
-                            borderRadius={radius.full}
-                            cursor="pointer"
-                            _hover={{ bg: colors.bg.hover }}
-                            transition={transitions.fast}
-                            flexShrink={0}
+                            style={{ padding: "6px", borderRadius: radius.full, cursor: "pointer", display: "inline-flex", flexShrink: 0 }}
                           >
                             <ExternalLinkIcon size={14} color={colors.text.muted} />
-                          </Box>
+                          </a>
                         )}
                       </HStack>
                     </Box>
@@ -1061,22 +1048,23 @@ export default function WalletPage() {
                         </Box>
                       </HStack>
                       {note.depositTxHash && (
-                        <Box
-                          as="a"
+                        <a
                           href={`${explorerBase}/tx/${note.depositTxHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          fontSize="11px"
-                          color={colors.accent.indigo}
-                          _hover={{ textDecoration: "underline" }}
-                          display="flex"
-                          alignItems="center"
-                          gap="3px"
-                          flexShrink={0}
+                          style={{
+                            fontSize: "11px",
+                            color: colors.accent.indigo,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            flexShrink: 0,
+                            textDecoration: "none",
+                          }}
                         >
                           View
                           <ExternalLinkIcon size={10} color={colors.accent.indigo} />
-                        </Box>
+                        </a>
                       )}
                     </HStack>
                   ))}
@@ -1137,9 +1125,8 @@ export default function WalletPage() {
                   p="12px"
                   borderRadius={radius.md}
                   bg={depositToken === sym ? "rgba(74,117,240,0.1)" : colors.bg.elevated}
-                  border={`1px solid ${
-                    depositToken === sym ? colors.border.accent : colors.border.default
-                  }`}
+                  border={`1px solid ${depositToken === sym ? colors.border.accent : colors.border.default
+                    }`}
                   cursor="pointer"
                   transition={transitions.fast}
                   onClick={() => {
@@ -1261,9 +1248,9 @@ export default function WalletPage() {
             _hover={
               depositAmount && parseFloat(depositAmount) > 0 && !isDepositing
                 ? {
-                    boxShadow: buttonVariants.primary.hover.boxShadow,
-                    transform: buttonVariants.primary.hover.transform,
-                  }
+                  boxShadow: buttonVariants.primary.hover.boxShadow,
+                  transform: buttonVariants.primary.hover.transform,
+                }
                 : {}
             }
           >
@@ -1357,9 +1344,9 @@ export default function WalletPage() {
               _hover={
                 importJson.trim()
                   ? {
-                      boxShadow: buttonVariants.primary.hover.boxShadow,
-                      transform: buttonVariants.primary.hover.transform,
-                    }
+                    boxShadow: buttonVariants.primary.hover.boxShadow,
+                    transform: buttonVariants.primary.hover.transform,
+                  }
                   : {}
               }
             >

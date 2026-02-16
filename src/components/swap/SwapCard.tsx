@@ -449,7 +449,7 @@ export function SwapCard() {
               >
                 <VStack gap="8px" align="flex-start">
                   <HStack gap="8px" fontSize="13px" color="rgb(239,68,68)">
-                    <AlertCircleIcon boxSize="14px" />
+                    <AlertCircleIcon size={14} />
                     <Text fontWeight={600}>Pool Sync Failed</Text>
                   </HStack>
                   <Text fontSize="12px" color="rgba(255,255,255,0.6)" lineHeight="1.5">
@@ -853,9 +853,9 @@ export function SwapCard() {
                   isSwapping
                     ? {}
                     : {
-                        borderColor: colors.border.accent,
-                        transform: `rotate(${arrowRotation}deg) scale(1.1)`,
-                      }
+                      borderColor: colors.border.accent,
+                      transform: `rotate(${arrowRotation}deg) scale(1.1)`,
+                    }
                 }
                 _active={
                   isSwapping
@@ -935,8 +935,8 @@ export function SwapCard() {
                         priceImpact < 1
                           ? colors.accent.green
                           : priceImpact < 3
-                          ? colors.accent.cyan
-                          : colors.accent.red
+                            ? colors.accent.cyan
+                            : colors.accent.red
                       }
                     >
                       {priceImpact.toFixed(2)}%
@@ -984,16 +984,16 @@ export function SwapCard() {
                 swapState === "error"
                   ? resetSwapState
                   : buttonDisabled
-                  ? undefined
-                  : handleSwap
+                    ? undefined
+                    : handleSwap
               }
               _hover={
                 buttonDisabled
                   ? {}
                   : {
-                      boxShadow: buttonVariants.primary.hover.boxShadow,
-                      transform: buttonVariants.primary.hover.transform,
-                    }
+                    boxShadow: buttonVariants.primary.hover.boxShadow,
+                    transform: buttonVariants.primary.hover.transform,
+                  }
               }
               _active={
                 buttonDisabled
