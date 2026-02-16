@@ -65,13 +65,10 @@ function formatProofForContract(proof: any, publicSignals: string[]) {
       [BigInt(proof.pi_b[1][1]), BigInt(proof.pi_b[1][0])],
     ] as [[bigint, bigint], [bigint, bigint]],
     pC: [BigInt(proof.pi_c[0]), BigInt(proof.pi_c[1])] as [bigint, bigint],
+    // Circuit has 8 public signals: [root, nullifierHash, recipient, relayer, fee, swapAmountOut, reserved1, reserved2]
     pubSignals: publicSignals.map((s) => BigInt(s)) as [
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
+      bigint, bigint, bigint, bigint,
+      bigint, bigint, bigint, bigint,
     ],
   }
 }
@@ -83,7 +80,7 @@ function encodeHookData(
   contractProof: ReturnType<typeof formatProofForContract>
 ): `0x${string}` {
   return encodeAbiParameters(
-    parseAbiParameters('uint256[2], uint256[2][2], uint256[2], uint256[6]'),
+    parseAbiParameters('uint256[2], uint256[2][2], uint256[2], uint256[8]'),
     [contractProof.pA, contractProof.pB, contractProof.pC, contractProof.pubSignals]
   )
 }
