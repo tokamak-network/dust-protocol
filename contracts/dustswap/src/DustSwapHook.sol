@@ -122,7 +122,7 @@ contract DustSwapHook {
 
     /// @notice Called by PoolManager before a swap — validates the ZK proof
     /// @param hookData ABI-encoded Groth16 proof + pool selector:
-    ///        abi.encode(uint256[2] pA, uint256[2][2] pB, uint256[2] pC, uint256[8] pubSignals, bool isETHPool)
+    ///        abi.encode(uint256[2] pA, uint256[2][2] pB, uint256[2] pC, uint256[6] pubSignals, bool isETHPool)
     function beforeSwap(
         address sender,
         PoolKey calldata key,
@@ -139,9 +139,9 @@ contract DustSwapHook {
             uint256[2] memory pA,
             uint256[2][2] memory pB,
             uint256[2] memory pC,
-            uint256[8] memory pubSignals,
+            uint256[6] memory pubSignals,
             bool isETHPool
-        ) = abi.decode(hookData, (uint256[2], uint256[2][2], uint256[2], uint256[8], bool));
+        ) = abi.decode(hookData, (uint256[2], uint256[2][2], uint256[2], uint256[6], bool));
 
         // Select the correct pool based on input token
         IDustSwapPool pool = isETHPool ? dustSwapPoolETH : dustSwapPoolUSDC;
