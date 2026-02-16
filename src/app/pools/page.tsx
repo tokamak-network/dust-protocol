@@ -1185,81 +1185,65 @@ export default function PoolsPage() {
                 {contracts.dustSwapPoolETH && (
                   <Box>
                     <Text fontSize="11px" color={colors.text.muted} mb="4px">ETH Privacy Pool</Text>
-                    <Box
-                      as="a"
+                    <a
                       href={`${explorerBase}/address/${contracts.dustSwapPoolETH}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      display="flex"
-                      alignItems="center"
-                      gap="4px"
-                      _hover={{ textDecoration: "underline" }}
+                      style={{ display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}
                     >
                       <Text fontSize="12px" fontFamily={typography.fontFamily.mono} color={colors.accent.indigo}>
                         {shortenAddress(contracts.dustSwapPoolETH)}
                       </Text>
                       <ExternalLinkIcon size={11} color={colors.accent.indigo} />
-                    </Box>
+                    </a>
                   </Box>
                 )}
                 {contracts.dustSwapPoolUSDC && (
                   <Box>
                     <Text fontSize="11px" color={colors.text.muted} mb="4px">USDC Privacy Pool</Text>
-                    <Box
-                      as="a"
+                    <a
                       href={`${explorerBase}/address/${contracts.dustSwapPoolUSDC}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      display="flex"
-                      alignItems="center"
-                      gap="4px"
-                      _hover={{ textDecoration: "underline" }}
+                      style={{ display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}
                     >
                       <Text fontSize="12px" fontFamily={typography.fontFamily.mono} color={colors.accent.indigo}>
                         {shortenAddress(contracts.dustSwapPoolUSDC)}
                       </Text>
                       <ExternalLinkIcon size={11} color={colors.accent.indigo} />
-                    </Box>
+                    </a>
                   </Box>
                 )}
                 {contracts.dustSwapHook && (
                   <Box>
                     <Text fontSize="11px" color={colors.text.muted} mb="4px">DustSwap Hook</Text>
-                    <Box
-                      as="a"
+                    <a
                       href={`${explorerBase}/address/${contracts.dustSwapHook}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      display="flex"
-                      alignItems="center"
-                      gap="4px"
-                      _hover={{ textDecoration: "underline" }}
+                      style={{ display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}
                     >
                       <Text fontSize="12px" fontFamily={typography.fontFamily.mono} color={colors.accent.indigo}>
                         {shortenAddress(contracts.dustSwapHook)}
                       </Text>
                       <ExternalLinkIcon size={11} color={colors.accent.indigo} />
-                    </Box>
+                    </a>
                   </Box>
                 )}
                 {contracts.dustSwapVerifier && (
                   <Box>
                     <Text fontSize="11px" color={colors.text.muted} mb="4px">ZK Verifier</Text>
-                    <Box
-                      as="a"
+                    <a
                       href={`${explorerBase}/address/${contracts.dustSwapVerifier}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      display="flex"
-                      alignItems="center"
-                      gap="4px"
-                      _hover={{ textDecoration: "underline" }}
+                      style={{ display: "flex", alignItems: "center", gap: "4px", textDecoration: "none" }}
                     >
                       <Text fontSize="12px" fontFamily={typography.fontFamily.mono} color={colors.accent.indigo}>
                         {shortenAddress(contracts.dustSwapVerifier)}
                       </Text>
                       <ExternalLinkIcon size={11} color={colors.accent.indigo} />
-                    </Box>
+                    </a>
                   </Box>
                 )}
               </Box>

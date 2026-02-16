@@ -87,6 +87,11 @@ export class MerkleTree {
     return this.nextIndex;
   }
 
+  getLeaf(index: number): bigint | undefined {
+    if (index < 0 || index >= this.leaves.length) return undefined;
+    return this.leaves[index];
+  }
+
   async getProofAsync(leafIndex: number): Promise<MerkleProof> {
     if (leafIndex < 0 || leafIndex >= this.leaves.length) {
       throw new Error(`Leaf index ${leafIndex} out of range`);
