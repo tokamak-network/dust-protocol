@@ -30,22 +30,22 @@ contract InitializePoolSmall is Script {
     address constant USDC = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // Circle USDC on Sepolia
 
     // ─── Pool parameters (must match frontend: src/lib/swap/constants.ts) ───────
-    uint24 constant FEE = 500;          // 0.05%
-    int24 constant TICK_SPACING = 10;
+    uint24 constant FEE = 3000;         // 0.30%
+    int24 constant TICK_SPACING = 60;
 
     // sqrtPriceX96 for ETH = $2500 USDC
     // = sqrt(2500e6 / 1e18) * 2^96 = sqrt(2.5e-9) * 2^96
-    // Calculated: 3_961_408_125_713_216_879_677_197_516_800
-    uint160 constant SQRT_PRICE_X96 = 3961408125713216879677197516800;
+    // Calculated: 3_961_408_125_713_216_879_677_197
+    uint160 constant SQRT_PRICE_X96 = 3961408125713216879677197;
 
     // ─── Liquidity amounts (small — suitable for testnet faucets) ───────────────
     uint256 constant ETH_AMOUNT = 0.001 ether;     // 0.001 ETH - reduced for low balance
     uint256 constant USDC_AMOUNT = 1 * 1e6;        // 1 USDC (6 decimals)
     int256 constant LIQUIDITY_DELTA = 20_000;      // scaled down for 1 USDC
 
-    // Full-range tick bounds (must be divisible by TICK_SPACING)
-    int24 constant TICK_LOWER = -887270;
-    int24 constant TICK_UPPER = 887270;
+    // Full-range tick bounds (must be divisible by TICK_SPACING = 60)
+    int24 constant TICK_LOWER = -887220;
+    int24 constant TICK_UPPER = 887220;
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
