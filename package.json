@@ -1,6 +1,6 @@
 {
   "name": "dust-protocol",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Stealth payment infrastructure for Tokamak Network - payments that dissolve into the blockchain",
   "private": true,
   "scripts": {
