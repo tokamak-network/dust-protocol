@@ -2,8 +2,9 @@
 // MUST match Solidity logic exactly for root consistency
 
 import { poseidon2 } from './poseidon';
+import { MERKLE_TREE_DEPTH } from '@/lib/swap/constants';
 
-const TREE_DEPTH = 20;
+const TREE_DEPTH = MERKLE_TREE_DEPTH;
 
 export interface MerkleProof {
   pathElements: bigint[];

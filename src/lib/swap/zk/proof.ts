@@ -8,10 +8,15 @@ import { type Address, encodeAbiParameters, parseAbiParameters } from 'viem'
 import type { DepositNote, MerkleProof, Groth16Proof, ContractProof } from './commitment'
 import { formatProofForCircuit } from './merkle'
 import type { WorkerResponse } from './proof.worker'
+import {
+  SWAP_CIRCUIT_WASM_PATH,
+  SWAP_CIRCUIT_ZKEY_PATH,
+  SWAP_VERIFICATION_KEY_PATH,
+  PROOF_GENERATION_TIMEOUT,
+} from '@/lib/swap/constants'
 
-// Circuit files served from /public
-const WASM_PATH = '/circuits/privateSwap.wasm'
-const ZKEY_PATH = '/circuits/privateSwap_final.zkey'
+const WASM_PATH = SWAP_CIRCUIT_WASM_PATH
+const ZKEY_PATH = SWAP_CIRCUIT_ZKEY_PATH
 
 export type { Groth16Proof, ContractProof }
 
@@ -148,7 +153,7 @@ async function generateProofInWorker(
         workerPromises.delete(id)
         reject(new Error('Proof generation timed out'))
       }
-    }, 60000)
+    }, PROOF_GENERATION_TIMEOUT)
   })
 }
 
@@ -234,7 +239,7 @@ export async function verifyProofLocally(
   publicSignals: string[]
 ): Promise<boolean> {
   try {
-    const vKeyResponse = await fetch('/circuits/verification_key.json')
+    const vKeyResponse = await fetch(SWAP_VERIFICATION_KEY_PATH)
     const vKey = await vKeyResponse.json()
     return await groth16.verify(vKey, publicSignals, proof)
   } catch (error) {

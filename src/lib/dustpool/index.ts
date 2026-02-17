@@ -9,6 +9,7 @@ import {
   fromBytes32Hex,
 } from './poseidon';
 import { MerkleTree, type MerkleProof } from './merkle';
+import { RPC_LOG_BATCH_SIZE } from '@/lib/swap/constants';
 
 export { poseidon2, computeCommitment, computeNullifierHash, toBytes32Hex, fromBytes32Hex } from './poseidon';
 export { MerkleTree, type MerkleProof } from './merkle';
@@ -213,7 +214,7 @@ export async function buildTreeFromEvents(
 
   // Fetch in chunks to avoid RPC block range limits
   const currentBlock = await provider.getBlockNumber();
-  const MAX_RANGE = 50_000;
+  const MAX_RANGE = Number(RPC_LOG_BATCH_SIZE);
   let allLogs: ethers.providers.Log[] = [];
 
   for (let start = fromBlock; start <= currentBlock; start += MAX_RANGE) {
