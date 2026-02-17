@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Box, Text, VStack, HStack } from "@chakra-ui/react";
+import { AnimatePresence, motion } from "framer-motion";
 import QRCode from "qrcode";
-import { colors, radius, shadows, glass, transitions } from "@/lib/design/tokens";
 import { XIcon, CopyIcon, CheckIcon } from "@/components/stealth/icons";
 import { DustLogo } from "@/components/DustLogo";
 
@@ -39,107 +38,110 @@ export function ReceiveModal({ isOpen, onClose, tokName, payPath }: ReceiveModal
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* Backdrop */}
-      <Box position="fixed" inset="0" bgColor={colors.bg.overlay} zIndex={999}
-        onClick={onClose} />
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          />
 
-      {/* Modal */}
-      <Box position="fixed" inset="0" display="flex" alignItems="center" justifyContent="center"
-        zIndex={1000} p="16px" onClick={onClose}>
-        <Box bg={glass.modal.bg} borderRadius={radius.xl}
-          border={glass.modal.border}
-          boxShadow={shadows.modal} backdropFilter={glass.modal.backdropFilter}
-          maxW="400px" w="100%"
-          p="40px 32px" position="relative"
-          onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-
-          {/* Close button */}
-          <Box as="button" position="absolute" top="16px" right="16px"
-            w="36px" h="36px" borderRadius={radius.full}
-            border={`1px solid ${colors.border.default}`}
-            display="flex" alignItems="center" justifyContent="center"
-            cursor="pointer" _hover={{ bgColor: colors.bg.hover, borderColor: colors.border.light }}
-            transition={transitions.fast}
-            onClick={onClose}>
-            <XIcon size={16} color={colors.text.secondary} />
-          </Box>
-
-          {tokName ? (
-            <VStack gap="24px">
-              {/* Title */}
-              <VStack gap="6px">
-                <Text fontSize="22px" fontWeight={700} color={colors.text.primary}>Share Your Link</Text>
-                <Text fontSize="14px" color={colors.text.muted}>Anyone can pay you with this link</Text>
-              </VStack>
-
-              {/* QR Code */}
-              <Box p="16px" borderRadius={radius.lg}
-                border={`4px solid ${colors.accent.indigo}`}
-                boxShadow={`0 4px 20px ${colors.accent.indigo}25`}
-                bgColor="#fff">
-                <canvas ref={canvasRef} style={{ display: "block", borderRadius: "12px" }} />
-              </Box>
-
-              {/* .tok name pill */}
-              <Box px="20px" py="10px" bgColor={colors.bg.input}
-                borderRadius={radius.full}>
-                <Text fontSize="15px" fontWeight={700} color={colors.text.primary}
-                  textAlign="center">
-                  {tokName}
-                </Text>
-              </Box>
-
-              {/* Full URL row */}
-              <HStack
-                w="100%"
-                p="12px 14px"
-                bgColor={colors.bg.input}
-                borderRadius={radius.sm}
-                gap="10px"
+          {/* Modal container */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            className="relative w-full max-w-[440px] p-6 rounded-md border border-[rgba(255,255,255,0.1)] bg-[#06080F] shadow-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                <DustLogo size={16} color="#00FF41" />
+                <span className="text-sm font-bold text-white font-mono tracking-wider">
+                  [ RECEIVE ]
+                </span>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-[rgba(255,255,255,0.4)] hover:text-white transition-colors"
               >
-                <Text flex={1} fontSize="13px" color={colors.text.muted} truncate>
-                  {fullUrl}
-                </Text>
-                <Box
-                  as="button"
-                  p="6px"
-                  borderRadius={radius.full}
-                  cursor="pointer"
-                  _hover={{ bgColor: colors.bg.elevated }}
-                  onClick={handleCopy}
-                  flexShrink={0}
-                >
-                  {copied
-                    ? <CheckIcon size={16} color={colors.accent.indigo} />
-                    : <CopyIcon size={16} color={colors.text.muted} />
-                  }
-                </Box>
-              </HStack>
+                <XIcon size={20} />
+              </button>
+            </div>
 
-              {/* Branding */}
-              <HStack gap="6px" justify="center" opacity={0.6}>
-                <DustLogo size={18} color={colors.text.secondary} />
-                <Text fontSize="14px" fontWeight={700} color={colors.text.secondary} letterSpacing="-0.02em">
-                  Dust
-                </Text>
-              </HStack>
-            </VStack>
-          ) : (
-            <VStack gap="16px" py="20px">
-              <Text fontSize="18px" fontWeight={700} color={colors.text.primary} textAlign="center">
-                No Username Yet
-              </Text>
-              <Text fontSize="14px" color={colors.text.muted} textAlign="center" lineHeight="1.6">
-                Register a username to get a shareable payment link.
-              </Text>
-            </VStack>
-          )}
-        </Box>
-      </Box>
-    </>
+            {tokName ? (
+              <div className="flex flex-col gap-6">
+                {/* Title */}
+                <div className="flex flex-col gap-1.5 text-center">
+                  <p className="text-[22px] font-bold text-white">Share Your Link</p>
+                  <p className="text-sm text-[rgba(255,255,255,0.4)] font-mono">
+                    Anyone can pay you with this link
+                  </p>
+                </div>
+
+                {/* QR Code */}
+                <div className="flex justify-center">
+                  <div className="p-4 rounded-sm bg-white border-4 border-[#00FF41] shadow-[0_4px_20px_rgba(0,255,65,0.15)]">
+                    <canvas ref={canvasRef} style={{ display: "block", borderRadius: "8px" }} />
+                  </div>
+                </div>
+
+                {/* .tok name pill */}
+                <div className="flex justify-center">
+                  <div className="px-5 py-2.5 bg-[rgba(0,255,65,0.06)] border border-[rgba(0,255,65,0.2)] rounded-full">
+                    <p className="text-[15px] font-bold text-[#00FF41] font-mono text-center">
+                      {tokName}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Full URL row */}
+                <div className="flex items-center gap-2.5 w-full p-3 bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] rounded-sm">
+                  <p className="flex-1 text-[13px] text-[rgba(255,255,255,0.4)] font-mono truncate">
+                    {fullUrl}
+                  </p>
+                  <button
+                    onClick={handleCopy}
+                    className="flex-shrink-0 p-1.5 rounded-sm hover:text-[#00FF41] text-[rgba(255,255,255,0.4)] transition-colors"
+                  >
+                    {copied
+                      ? <CheckIcon size={16} color="#00FF41" />
+                      : <CopyIcon size={16} color="currentColor" />
+                    }
+                  </button>
+                </div>
+
+                {/* Branding */}
+                <div className="flex items-center justify-center gap-1.5 opacity-50">
+                  <DustLogo size={18} color="rgba(255,255,255,0.6)" />
+                  <span className="text-sm font-bold text-[rgba(255,255,255,0.6)] font-mono tracking-tight">
+                    Dust
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 py-5">
+                <p className="text-lg font-bold text-white text-center">No Username Yet</p>
+                <p className="text-sm text-[rgba(255,255,255,0.4)] font-mono text-center leading-relaxed">
+                  Register a username to get a shareable payment link.
+                </p>
+              </div>
+            )}
+
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Text, VStack, HStack, Input } from "@chakra-ui/react";
-import { colors, radius, shadows, glass, buttonVariants, inputStates, transitions } from "@/lib/design/tokens";
+import { AnimatePresence, motion } from "framer-motion";
 import { getChainConfig } from "@/config/chains";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ConsolidateProgress } from "@/hooks/stealth/useDustPool";
 import type { StoredDeposit } from "@/lib/dustpool";
 import { ethers } from "ethers";
+import { XIcon } from "@/components/stealth/icons";
 
 interface ConsolidateModalProps {
   isOpen: boolean;
@@ -34,8 +34,6 @@ export function ConsolidateModal({
   const symbol = getChainConfig(activeChainId).nativeCurrency.symbol;
   const [recipient, setRecipient] = useState("");
 
-  if (!isOpen) return null;
-
   const unwithdrawable = deposits.filter(d => !d.withdrawn);
   const isValidRecipient = ethers.utils.isAddress(recipient);
   const canConsolidate = isValidRecipient && unwithdrawable.length > 0 && !isConsolidating;
@@ -52,167 +50,152 @@ export function ConsolidateModal({
     : 0;
 
   return (
-    <Box
-      position="fixed" top={0} left={0} right={0} bottom={0} zIndex={1000}
-      display="flex" alignItems="center" justifyContent="center"
-      onClick={handleClose}
-    >
-      {/* Backdrop */}
-      <Box position="absolute" top={0} left={0} right={0} bottom={0} bg={colors.bg.overlay} />
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          />
 
-      {/* Modal */}
-      <Box
-        bg={glass.modal.bg}
-        borderRadius={radius.lg}
-        border={glass.modal.border}
-        boxShadow={shadows.modal}
-        backdropFilter={glass.modal.backdropFilter}
-        p="24px"
-        maxW="440px"
-        w="90%"
-        position="relative"
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-      >
-        <VStack gap="16px" align="stretch">
-          {/* Header */}
-          <HStack justifyContent="space-between">
-            <Text fontSize="18px" fontWeight={700} color={colors.text.primary}>
-              Withdraw from Pool
-            </Text>
-            {!isConsolidating && (
-              <Box as="button" onClick={handleClose} p="4px" cursor="pointer">
-                <Text fontSize="18px" color={colors.text.muted}>&times;</Text>
-              </Box>
-            )}
-          </HStack>
-
-          {/* Pool balance */}
-          <Box
-            p="16px"
-            bg={colors.bg.input}
-            borderRadius={radius.md}
+          {/* Modal container */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            className="relative w-full max-w-[440px] p-6 rounded-md border border-[rgba(255,255,255,0.1)] bg-[#06080F] shadow-2xl overflow-hidden"
           >
-            <Text fontSize="13px" color={colors.text.tertiary} mb="4px">Pool Balance</Text>
-            <Text fontSize="24px" fontWeight={800} color={colors.text.primary}>
-              {parseFloat(poolBalance).toFixed(6)} {symbol}
-            </Text>
-            <Text fontSize="12px" color={colors.text.muted} mt="4px">
-              {unwithdrawable.length} deposit{unwithdrawable.length !== 1 ? "s" : ""} in pool
-            </Text>
-          </Box>
-
-          {/* Deposit list */}
-          {unwithdrawable.length > 0 && (
-            <VStack gap="6px" align="stretch" maxH="150px" overflowY="auto">
-              {unwithdrawable.map((d, i) => (
-                <HStack
-                  key={d.commitment}
-                  p="8px 12px"
-                  bg={colors.bg.page}
-                  borderRadius={radius.sm}
-                  justifyContent="space-between"
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white font-mono tracking-wider">
+                  [ WITHDRAW ]
+                </span>
+              </div>
+              {!isConsolidating && (
+                <button
+                  onClick={handleClose}
+                  className="text-[rgba(255,255,255,0.4)] hover:text-white transition-colors"
                 >
-                  <Text fontSize="12px" color={colors.text.secondary}>
-                    Deposit #{i + 1}
-                  </Text>
-                  <Text fontSize="12px" fontWeight={600} color={colors.text.primary}>
-                    {parseFloat(ethers.utils.formatEther(d.amount)).toFixed(6)} {symbol}
-                  </Text>
-                </HStack>
-              ))}
-            </VStack>
-          )}
+                  <XIcon size={20} />
+                </button>
+              )}
+            </div>
 
-          {/* Recipient input */}
-          {progress.phase === 'idle' && (
-            <>
-              <Box>
-                <Text fontSize="13px" fontWeight={600} color={colors.text.secondary} mb="6px">
-                  Fresh recipient address
-                </Text>
-                <Input
-                  placeholder="0x..."
-                  value={recipient}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRecipient(e.target.value)}
-                  fontSize="13px"
-                  bg={inputStates.default.bg}
-                  border={inputStates.default.border}
-                  color={inputStates.default.color}
-                  borderRadius={radius.sm}
-                  _placeholder={{ color: inputStates.default.placeholder }}
-                  _focus={{ borderColor: inputStates.focus.borderColor, boxShadow: inputStates.focus.boxShadow }}
-                  fontFamily="mono"
-                  px="12px"
-                  transition={transitions.fast}
-                />
-                <Text fontSize="11px" color={colors.text.muted} mt="4px">
-                  Use a fresh address with no on-chain history for maximum privacy
-                </Text>
-              </Box>
+            <div className="flex flex-col gap-4">
+              {/* Pool balance */}
+              <div className="p-4 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)]">
+                <p className="text-[9px] text-[rgba(255,255,255,0.5)] uppercase tracking-wider font-mono mb-1">
+                  Pool Balance
+                </p>
+                <p className="text-2xl font-extrabold text-white font-mono">
+                  {parseFloat(poolBalance).toFixed(6)}{" "}
+                  <span className="text-base font-semibold text-[rgba(255,255,255,0.5)]">{symbol}</span>
+                </p>
+                <p className="text-xs text-[rgba(255,255,255,0.4)] font-mono mt-1">
+                  {unwithdrawable.length} deposit{unwithdrawable.length !== 1 ? "s" : ""} in pool
+                </p>
+              </div>
 
-              <Box
-                as="button"
-                p="12px"
-                bg={canConsolidate ? buttonVariants.primary.bg : colors.bg.elevated}
-                borderRadius={radius.md}
-                boxShadow={canConsolidate ? buttonVariants.primary.boxShadow : "none"}
-                cursor={canConsolidate ? "pointer" : "not-allowed"}
-                opacity={canConsolidate ? 1 : 0.5}
-                _hover={canConsolidate ? { boxShadow: buttonVariants.primary.hover.boxShadow, transform: buttonVariants.primary.hover.transform } : {}}
-                transition={transitions.fast}
-                onClick={() => canConsolidate && onConsolidate(recipient)}
-                textAlign="center"
-              >
-                <Text fontSize="14px" fontWeight={700} color={canConsolidate ? "#fff" : colors.text.muted}>
-                  Withdraw All
-                </Text>
-              </Box>
-            </>
-          )}
+              {/* Deposit list */}
+              {unwithdrawable.length > 0 && (
+                <div className="flex flex-col gap-1.5 max-h-[150px] overflow-y-auto">
+                  <p className="text-[9px] text-[rgba(255,255,255,0.5)] uppercase tracking-wider font-mono">
+                    Selected Deposits
+                  </p>
+                  {unwithdrawable.map((d, i) => (
+                    <div
+                      key={d.commitment}
+                      className="flex justify-between items-center p-2 rounded-sm bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]"
+                    >
+                      <span className="text-xs text-[rgba(255,255,255,0.6)] font-mono">
+                        Deposit #{i + 1}
+                      </span>
+                      <span className="text-xs font-semibold text-[#00FF41] font-mono">
+                        {parseFloat(ethers.utils.formatEther(d.amount)).toFixed(6)} {symbol}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-          {/* Progress */}
-          {(progress.phase === 'loading' || progress.phase === 'proving' || progress.phase === 'submitting') && (
-            <Box>
-              <Box
-                h="6px"
-                bg={colors.bg.elevated}
-                borderRadius={radius.full}
-                overflow="hidden"
-                mb="8px"
-              >
-                <Box
-                  h="100%"
-                  w={`${progressPercent}%`}
-                  bg={colors.accent.indigo}
-                  borderRadius={radius.full}
-                  transition="width 0.3s ease"
-                />
-              </Box>
-              <Text fontSize="13px" color={colors.text.secondary} textAlign="center">
-                {progress.message}
-              </Text>
-            </Box>
-          )}
+              {/* Recipient input — only shown when idle */}
+              {progress.phase === "idle" && (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[9px] text-[rgba(255,255,255,0.5)] uppercase tracking-wider font-mono">
+                      Destination Address
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="0x..."
+                      value={recipient}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRecipient(e.target.value)}
+                      className="w-full p-3 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] text-white font-mono text-sm focus:outline-none focus:border-[#00FF41] focus:bg-[rgba(0,255,65,0.02)] transition-all placeholder-[rgba(255,255,255,0.2)]"
+                    />
+                    <p className="text-[11px] text-[rgba(255,255,255,0.3)] font-mono">
+                      Use a fresh address with no on-chain history for maximum privacy
+                    </p>
+                  </div>
 
-          {/* Done */}
-          {progress.phase === 'done' && (
-            <Box p="12px" bg={buttonVariants.success.bg} border={buttonVariants.success.border} borderRadius={radius.md}>
-              <Text fontSize="13px" fontWeight={600} color={colors.accent.green} textAlign="center">
-                {progress.message}
-              </Text>
-            </Box>
-          )}
+                  <button
+                    onClick={() => canConsolidate && onConsolidate(recipient)}
+                    disabled={!canConsolidate}
+                    className="w-full py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    [ WITHDRAW_ALL_ZK ]
+                  </button>
+                </>
+              )}
 
-          {/* Error */}
-          {progress.phase === 'error' && (
-            <Box p="12px" bg={buttonVariants.danger.bg} border={buttonVariants.danger.border} borderRadius={radius.md}>
-              <Text fontSize="13px" fontWeight={600} color={colors.accent.red} textAlign="center">
-                {progress.message}
-              </Text>
-            </Box>
-          )}
-        </VStack>
-      </Box>
-    </Box>
+              {/* Progress bar — shown while proving/submitting/loading */}
+              {(progress.phase === "loading" || progress.phase === "proving" || progress.phase === "submitting") && (
+                <div className="flex flex-col gap-2">
+                  <div className="h-1.5 w-full bg-[rgba(255,255,255,0.08)] rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-[#00FF41] rounded-full"
+                      style={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                  <p className="text-xs text-[rgba(255,255,255,0.5)] font-mono text-center">
+                    {progress.message}
+                  </p>
+                </div>
+              )}
+
+              {/* Done state */}
+              {progress.phase === "done" && (
+                <div className="p-3 rounded-sm bg-[rgba(0,255,65,0.04)] border border-[rgba(0,255,65,0.15)]">
+                  <p className="text-sm font-semibold text-[#00FF41] font-mono text-center">
+                    {progress.message}
+                  </p>
+                </div>
+              )}
+
+              {/* Error state */}
+              {progress.phase === "error" && (
+                <div className="p-3 rounded-sm bg-[rgba(239,68,68,0.04)] border border-[rgba(239,68,68,0.15)]">
+                  <p className="text-sm font-semibold text-red-400 font-mono text-center">
+                    {progress.message}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }
