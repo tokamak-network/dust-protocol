@@ -105,21 +105,26 @@ function PoolStatsModal({
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-[480px] mx-4 bg-[rgba(10,10,15,0.95)] border border-[rgba(255,255,255,0.08)] rounded-xl shadow-2xl backdrop-blur-xl overflow-hidden">
+      <div className="w-full max-w-[480px] mx-4 bg-[rgba(10,10,15,0.95)] border border-[rgba(255,255,255,0.08)] rounded-sm shadow-2xl backdrop-blur-xl overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-[rgba(255,255,255,0.06)]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-              <ShieldIcon size={18} color="#fff" />
+            <div className="w-9 h-9 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] flex items-center justify-center">
+              <ShieldIcon size={18} color="#00FF41" />
             </div>
             <div>
-              <p className="text-base font-bold text-white">{pool.token.symbol} Privacy Pool</p>
-              <p className="text-[11px] text-[rgba(255,255,255,0.4)]">Poseidon commitment-based pool</p>
+              <p className="text-base font-bold text-white font-mono">{pool.token.symbol} Privacy Pool</p>
+              <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">Poseidon commitment-based pool</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-[rgba(255,255,255,0.06)] transition-all cursor-pointer"
+            className="p-2 rounded-sm hover:bg-[rgba(255,255,255,0.06)] transition-all cursor-pointer"
           >
             <XIcon size={15} color="rgba(255,255,255,0.4)" />
           </button>
@@ -128,12 +133,12 @@ function PoolStatsModal({
         {/* Content */}
         <div className="p-6 flex flex-col gap-4">
           {/* Pool Type Badge */}
-          <div className="p-3 rounded-sm bg-gradient-to-br from-[rgba(74,117,240,0.08)] to-[rgba(99,60,255,0.08)] border border-[rgba(74,117,240,0.15)]">
+          <div className="p-3 rounded-sm bg-[rgba(0,255,65,0.04)] border border-[rgba(0,255,65,0.15)]">
             <div className="flex items-center gap-2 mb-1">
               <LockIcon />
-              <span className="text-[11px] text-indigo-400 font-semibold">Privacy Pool</span>
+              <span className="text-[11px] text-[#00FF41] font-semibold font-mono">Privacy Pool</span>
             </div>
-            <p className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed">
+            <p className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed font-mono">
               Deposits are hidden using Poseidon hash commitments. Withdrawals require ZK-SNARK proofs, ensuring complete sender-receiver unlinkability.
             </p>
           </div>
@@ -141,39 +146,39 @@ function PoolStatsModal({
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-2.5">
             <div className="p-3 rounded-sm bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)]">
-              <div className="flex items-center gap-1.5 mb-1 text-cyan-400">
+              <div className="flex items-center gap-1.5 mb-1 text-[#00FF41]">
                 <BarChartIcon />
-                <span className="text-[11px] text-[rgba(255,255,255,0.4)] font-medium">Total Deposits</span>
+                <span className="text-[11px] text-[rgba(255,255,255,0.4)] font-medium font-mono">Total Deposits</span>
               </div>
               <p className="text-[13px] font-mono text-white font-medium">{depositCount}</p>
-              <p className="text-[10px] text-[rgba(255,255,255,0.3)] mt-0.5">On-chain commitments</p>
+              <p className="text-[10px] text-[rgba(255,255,255,0.3)] mt-0.5 font-mono">On-chain commitments</p>
             </div>
 
             <div className="p-3 rounded-sm bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)]">
-              <div className="flex items-center gap-1.5 mb-1 text-green-400">
+              <div className="flex items-center gap-1.5 mb-1 text-[#00FF41]">
                 <CoinsIcon />
-                <span className="text-[11px] text-[rgba(255,255,255,0.4)] font-medium">Your Notes</span>
+                <span className="text-[11px] text-[rgba(255,255,255,0.4)] font-medium font-mono">Your Notes</span>
               </div>
               <p className="text-[13px] font-mono text-white font-medium">{notesCount}</p>
-              <p className="text-[10px] text-[rgba(255,255,255,0.3)] mt-0.5">Unspent deposit notes</p>
+              <p className="text-[10px] text-[rgba(255,255,255,0.3)] mt-0.5 font-mono">Unspent deposit notes</p>
             </div>
           </div>
 
           {/* Your Balance */}
           {notesCount > 0 && (
-            <div className="p-3 rounded-sm bg-gradient-to-br from-[rgba(255,255,255,0.03)] to-[rgba(255,255,255,0.01)] border border-[rgba(255,255,255,0.08)]">
+            <div className="p-3 rounded-sm bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)]">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="text-[11px] text-[rgba(255,255,255,0.4)]">Your Balance</p>
-                  <p className="text-base font-mono text-indigo-400 font-semibold">
+                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">Your Balance</p>
+                  <p className="text-base font-mono text-[#00FF41] font-semibold">
                     {formatNumber(notesBalance, pool.token.decimals > 6 ? 4 : 2)} {pool.token.symbol}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[11px] text-[rgba(255,255,255,0.4)]">Status</p>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">Status</p>
                   <div className="flex items-center gap-1 justify-end">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                    <span className="text-xs text-green-400 font-semibold">Ready</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41]" />
+                    <span className="text-xs text-[#00FF41] font-semibold font-mono">Ready</span>
                   </div>
                 </div>
               </div>
@@ -182,16 +187,16 @@ function PoolStatsModal({
 
           {/* Contract Address */}
           {pool.poolAddress && (
-            <div className="p-3 rounded-sm bg-[rgba(34,197,94,0.04)] border border-[rgba(34,197,94,0.12)]">
-              <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1">Pool Contract</p>
+            <div className="p-3 rounded-sm bg-[rgba(0,255,65,0.04)] border border-[rgba(0,255,65,0.12)]">
+              <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1 font-mono">Pool Contract</p>
               <a
                 href={`${explorerBase}/address/${pool.poolAddress}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 no-underline"
               >
-                <span className="text-xs font-mono text-indigo-400">{shortenAddress(pool.poolAddress)}</span>
-                <ExternalLinkIcon size={12} color="#818cf8" />
+                <span className="text-xs font-mono text-[#00FF41]">{shortenAddress(pool.poolAddress)}</span>
+                <ExternalLinkIcon size={12} color="#00FF41" />
               </a>
             </div>
           )}
@@ -227,67 +232,71 @@ function PoolRow({
       className="w-full text-left cursor-pointer"
       onClick={() => onViewStats(pool)}
     >
-      <div className="p-[3px] rounded-lg bg-gradient-to-br from-[rgba(49,78,160,0.2)] to-[rgba(74,117,240,0.13)] hover:from-[rgba(49,78,160,0.35)] hover:to-[rgba(74,117,240,0.27)] transition-all">
-        <div className="bg-[rgba(10,10,18,0.95)] rounded-[13px] p-4">
+      <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-sm backdrop-blur-sm hover:border-[rgba(0,255,65,0.15)] hover:bg-[rgba(0,255,65,0.02)] transition-all relative">
+        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+        <div className="p-4">
           <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 items-center">
             {/* Pool Name */}
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0">
-                <span className="text-[13px] font-bold text-white">
+              <div className="w-9 h-9 rounded-sm bg-[rgba(255,255,255,0.06)] flex items-center justify-center shrink-0">
+                <span className="text-[13px] font-bold text-white font-mono">
                   {pool.token.symbol === "ETH" ? "E" : "$"}
                 </span>
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold text-white">{pool.token.symbol}</span>
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-[rgba(74,117,240,0.1)]">
-                    <ShieldIcon size={10} color="#818cf8" />
-                    <span className="text-[10px] text-indigo-400 font-semibold">Privacy</span>
+                  <span className="text-sm font-semibold text-white font-mono">{pool.token.symbol}</span>
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-[rgba(0,255,65,0.1)]">
+                    <ShieldIcon size={10} color="#00FF41" />
+                    <span className="text-[10px] text-[#00FF41] font-semibold font-mono">Privacy</span>
                   </div>
                 </div>
-                <p className="text-[11px] text-[rgba(255,255,255,0.4)]">{pool.token.name} Privacy Pool</p>
+                <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">{pool.token.name} Privacy Pool</p>
               </div>
             </div>
 
             {/* Deposits (hidden on mobile) */}
             <div className="hidden sm:block">
               {isLoading ? (
-                <div className="w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                <div className="w-3 h-3 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin" />
               ) : (
                 <div>
                   <p className="text-[13px] font-mono text-white">{depositCount}</p>
-                  <p className="text-[10px] text-[rgba(255,255,255,0.4)]">Deposits</p>
+                  <p className="text-[10px] text-[rgba(255,255,255,0.4)] font-mono">Deposits</p>
                 </div>
               )}
             </div>
 
             {/* Your Notes (hidden on mobile) */}
             <div className="hidden sm:block">
-              <p className={`text-[13px] font-mono ${notesCount > 0 ? "text-green-400" : "text-white"}`}>{notesCount}</p>
-              <p className="text-[10px] text-[rgba(255,255,255,0.4)]">Your Notes</p>
+              <p className={`text-[13px] font-mono ${notesCount > 0 ? "text-[#00FF41]" : "text-white"}`}>{notesCount}</p>
+              <p className="text-[10px] text-[rgba(255,255,255,0.4)] font-mono">Your Notes</p>
             </div>
 
             {/* Status (hidden on mobile) */}
             <div className="hidden sm:block">
               {isActive ? (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-sm bg-[rgba(34,197,94,0.1)] w-fit">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                  <span className="text-[11px] text-green-400 font-semibold">Active</span>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-sm bg-[rgba(0,255,65,0.1)] w-fit">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41]" />
+                  <span className="text-[11px] text-[#00FF41] font-semibold font-mono">Active</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-1 px-2 py-1 rounded-sm bg-[rgba(239,68,68,0.1)] w-fit">
                   <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                  <span className="text-[11px] text-red-400 font-semibold">Unavailable</span>
+                  <span className="text-[11px] text-red-400 font-semibold font-mono">Unavailable</span>
                 </div>
               )}
             </div>
 
             {/* Action */}
             <button
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-sm border transition-all text-xs font-semibold text-white font-mono
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-sm border transition-all text-xs font-semibold font-mono
                 ${isActive
-                  ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.08)] cursor-pointer"
-                  : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.06)] cursor-not-allowed opacity-50"}`}
+                  ? "bg-[rgba(0,255,65,0.1)] border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] text-[#00FF41] cursor-pointer"
+                  : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.06)] text-white cursor-not-allowed opacity-40"}`}
               onClick={(e) => {
                 e.stopPropagation();
                 if (isActive) onDeposit(pool);
@@ -365,22 +374,27 @@ function PoolDepositModal({
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]"
       onClick={(e) => { if (e.target === e.currentTarget && !isProcessing) handleClose(); }}
     >
-      <div className="w-full max-w-[440px] mx-4 bg-[rgba(10,10,15,0.95)] border border-[rgba(255,255,255,0.08)] rounded-xl shadow-2xl backdrop-blur-xl overflow-hidden">
+      <div className="w-full max-w-[440px] mx-4 bg-[rgba(10,10,15,0.95)] border border-[rgba(255,255,255,0.08)] rounded-sm shadow-2xl backdrop-blur-xl overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-              <ShieldIcon size={18} color="#fff" />
+            <div className="w-9 h-9 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] flex items-center justify-center">
+              <ShieldIcon size={18} color="#00FF41" />
             </div>
             <div>
-              <p className="text-base font-bold text-white">Deposit {pool.token.symbol}</p>
-              <p className="text-[11px] text-[rgba(255,255,255,0.4)]">Add to the {pool.token.symbol} privacy pool</p>
+              <p className="text-base font-bold text-white font-mono">Deposit {pool.token.symbol}</p>
+              <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">Add to the {pool.token.symbol} privacy pool</p>
             </div>
           </div>
           {!isProcessing && (
             <button
               onClick={handleClose}
-              className="p-2 rounded-full hover:bg-[rgba(255,255,255,0.06)] transition-all cursor-pointer"
+              className="p-2 rounded-sm hover:bg-[rgba(255,255,255,0.06)] transition-all cursor-pointer"
             >
               <XIcon size={15} color="rgba(255,255,255,0.4)" />
             </button>
@@ -393,10 +407,10 @@ function PoolDepositModal({
           {!isProcessing && !isSuccess && !isError && (
             <div className="flex flex-col gap-5">
               {/* Info */}
-              <div className="p-3 rounded-sm bg-[rgba(74,117,240,0.06)] border border-[rgba(74,117,240,0.15)]">
+              <div className="p-3 rounded-sm bg-[rgba(0,255,65,0.04)] border border-[rgba(0,255,65,0.15)]">
                 <div className="flex items-start gap-2">
-                  <div className="mt-0.5 shrink-0"><ShieldIcon size={14} color="#818cf8" /></div>
-                  <p className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed">
+                  <div className="mt-0.5 shrink-0"><ShieldIcon size={14} color="#00FF41" /></div>
+                  <p className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed font-mono">
                     Deposits are hidden using Poseidon commitments. Your deposit note is stored locally for swap execution.
                   </p>
                 </div>
@@ -411,7 +425,7 @@ function PoolDepositModal({
                       key={denom}
                       className={`flex-1 py-2.5 rounded-sm border cursor-pointer transition-all text-center font-mono text-[13px] font-semibold
                         ${amount === denom
-                          ? "bg-[rgba(74,117,240,0.12)] border-[rgba(74,117,240,0.3)] text-indigo-400"
+                          ? "bg-[rgba(0,255,65,0.1)] border-[rgba(0,255,65,0.3)] text-[#00FF41]"
                           : "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.08)] text-white hover:bg-[rgba(255,255,255,0.07)]"}`}
                       onClick={() => setAmount(denom)}
                     >
@@ -438,10 +452,10 @@ function PoolDepositModal({
 
               {/* Deposit button */}
               <button
-                className={`w-full py-3.5 rounded-full text-[15px] font-bold text-white text-center transition-all
+                className={`w-full py-3.5 rounded-sm text-[15px] font-bold text-center transition-all font-mono tracking-wider
                   ${amount && parseFloat(amount) > 0
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 cursor-pointer hover:-translate-y-0.5"
-                    : "bg-[rgba(255,255,255,0.04)] cursor-not-allowed opacity-50"}`}
+                    ? "bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] text-[#00FF41] cursor-pointer"
+                    : "bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white cursor-not-allowed opacity-40"}`}
                 onClick={() => {
                   console.log('[PoolDepositModal] Deposit button clicked, amount:', amount);
                   if (amount && parseFloat(amount) > 0) {
@@ -460,9 +474,9 @@ function PoolDepositModal({
           {/* Processing */}
           {isProcessing && (
             <div className="flex flex-col items-center gap-4 py-6">
-              <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm font-semibold text-white">{stepLabel}</p>
-              <p className="text-xs text-[rgba(255,255,255,0.4)] text-center">Please confirm the transaction in your wallet</p>
+              <div className="w-8 h-8 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm font-semibold text-white font-mono">{stepLabel}</p>
+              <p className="text-xs text-[rgba(255,255,255,0.4)] text-center font-mono">Please confirm the transaction in your wallet</p>
             </div>
           )}
 
@@ -471,23 +485,23 @@ function PoolDepositModal({
             <div className="flex flex-col gap-4">
               <div className="text-center py-2">
                 <div className="inline-flex mb-3">
-                  <ShieldCheckIcon size={40} color="#22c55e" />
+                  <ShieldCheckIcon size={40} color="#00FF41" />
                 </div>
-                <p className="text-base font-bold text-white mb-1">Deposit Successful</p>
-                <p className="text-[13px] text-[rgba(255,255,255,0.5)]">{amount} {pool.token.symbol} deposited to privacy pool</p>
+                <p className="text-base font-bold text-white mb-1 font-mono">Deposit Successful</p>
+                <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{amount} {pool.token.symbol} deposited to privacy pool</p>
               </div>
 
               {/* Note Details */}
               {depositNote && (
-                <div className="p-3 rounded-sm bg-[rgba(74,117,240,0.06)] border border-[rgba(74,117,240,0.15)]">
-                  <p className="text-xs text-indigo-400 font-semibold mb-2">Deposit Note Details</p>
+                <div className="p-3 rounded-sm bg-[rgba(0,255,65,0.04)] border border-[rgba(0,255,65,0.15)]">
+                  <p className="text-xs text-[#00FF41] font-semibold mb-2 font-mono">Deposit Note Details</p>
                   <div className="flex flex-col gap-1.5">
                     <div className="flex justify-between">
-                      <span className="text-[11px] text-[rgba(255,255,255,0.4)]">Leaf Index</span>
+                      <span className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">Leaf Index</span>
                       <span className="text-[11px] font-mono text-white">#{depositNote.leafIndex ?? 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[11px] text-[rgba(255,255,255,0.4)]">Commitment</span>
+                      <span className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">Commitment</span>
                       <span className="text-[11px] font-mono text-white">
                         {depositNote.commitment ? (() => {
                           const hex = `0x${depositNote.commitment.toString(16).padStart(64, '0')}`;
@@ -496,7 +510,7 @@ function PoolDepositModal({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[11px] text-[rgba(255,255,255,0.4)]">Secret</span>
+                      <span className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">Secret</span>
                       <span className="text-[11px] font-mono text-white">
                         {depositNote.secret ? (() => {
                           const hex = `0x${depositNote.secret.toString(16).padStart(64, '0')}`;
@@ -509,14 +523,14 @@ function PoolDepositModal({
               )}
 
               <div className="p-3 rounded-sm bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.15)]">
-                <p className="text-xs text-amber-400 font-semibold mb-1">Save Your Deposit Note</p>
-                <p className="text-[11px] text-[rgba(255,255,255,0.4)] leading-relaxed">
+                <p className="text-xs text-amber-400 font-semibold mb-1 font-mono">Save Your Deposit Note</p>
+                <p className="text-[11px] text-[rgba(255,255,255,0.4)] leading-relaxed font-mono">
                   Your deposit note has been saved to this browser. If you clear browser data, you will lose access to this deposit.
                 </p>
               </div>
 
               <button
-                className="w-full py-3.5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 text-[15px] font-bold text-white text-center cursor-pointer hover:-translate-y-0.5 transition-all"
+                className="w-full py-3.5 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] text-[15px] font-bold text-[#00FF41] text-center cursor-pointer transition-all font-mono tracking-wider"
                 onClick={handleClose}
               >
                 Done
@@ -531,19 +545,19 @@ function PoolDepositModal({
                 <div className="inline-flex mb-3">
                   <AlertCircleIcon size={40} color="#ef4444" />
                 </div>
-                <p className="text-base font-bold text-white mb-1">Deposit Failed</p>
-                <p className="text-[13px] text-[rgba(255,255,255,0.5)]">{depositError}</p>
+                <p className="text-base font-bold text-white mb-1 font-mono">Deposit Failed</p>
+                <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{depositError}</p>
               </div>
 
               <div className="flex gap-3">
                 <button
-                  className="flex-1 py-3.5 rounded-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.07)] text-sm font-semibold text-white text-center cursor-pointer transition-all"
+                  className="flex-1 py-3.5 rounded-sm bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.07)] text-sm font-semibold text-white text-center cursor-pointer transition-all font-mono"
                   onClick={handleClose}
                 >
                   Cancel
                 </button>
                 <button
-                  className="flex-1 py-3.5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 text-sm font-bold text-white text-center cursor-pointer hover:-translate-y-0.5 transition-all"
+                  className="flex-1 py-3.5 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] text-sm font-bold text-[#00FF41] text-center cursor-pointer transition-all font-mono tracking-wider"
                   onClick={onReset}
                 >
                   Try Again
@@ -728,27 +742,27 @@ export default function PoolsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-[28px] font-bold text-white tracking-tight mb-1">Privacy Pools</h1>
-            <p className="text-sm text-[rgba(255,255,255,0.5)]">Deposit to privacy pools and manage your deposit notes</p>
+            <h1 className="text-[28px] font-bold text-white tracking-tight mb-1 font-mono">[Privacy Pools]</h1>
+            <p className="text-sm text-[rgba(255,255,255,0.5)] font-mono">Deposit to privacy pools and manage your deposit notes</p>
           </div>
           {swapSupported && (
             <button
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 text-sm font-bold text-white cursor-pointer hover:-translate-y-0.5 transition-all shrink-0"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider shrink-0"
               onClick={() => handleDeposit(pools[0])}
             >
-              <PlusIcon size={16} color="#fff" />
+              <PlusIcon size={16} color="#00FF41" />
               New Deposit
             </button>
           )}
         </div>
 
         {/* Info Banner */}
-        <div className="p-4 rounded-lg bg-[rgba(74,117,240,0.06)] border border-[rgba(74,117,240,0.15)]">
+        <div className="p-4 rounded-sm bg-[rgba(0,255,65,0.04)] border border-[rgba(0,255,65,0.15)]">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 shrink-0"><ShieldIcon size={18} color="#818cf8" /></div>
+            <div className="mt-0.5 shrink-0"><ShieldIcon size={18} color="#00FF41" /></div>
             <div>
-              <p className="text-sm font-semibold text-white mb-1">DustSwap Privacy Pools</p>
-              <p className="text-[13px] text-[rgba(255,255,255,0.4)] leading-relaxed">
+              <p className="text-sm font-semibold text-white mb-1 font-mono">DustSwap Privacy Pools</p>
+              <p className="text-[13px] text-[rgba(255,255,255,0.4)] leading-relaxed font-mono">
                 Privacy pools use Poseidon hash commitments and ZK-SNARK proofs to enable
                 private token swaps. Deposits are anonymized in the pool, and withdrawals
                 produce unlinkable outputs to stealth addresses.
@@ -760,41 +774,47 @@ export default function PoolsPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Total Deposits */}
-          <div className="p-[3px] rounded-lg bg-gradient-to-br from-indigo-900 via-indigo-500 to-indigo-900">
-            <div className="bg-[rgba(10,10,18,0.95)] rounded-[13px] p-4 text-center">
-              <p className="text-xs text-[rgba(255,255,255,0.4)] mb-1">Total Deposits</p>
-              <p className="text-[22px] font-mono font-bold text-white">
-                {countsLoading
-                  ? <span className="inline-block w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin align-middle" />
-                  : totalDeposits}
-              </p>
-            </div>
+          <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-sm backdrop-blur-sm p-4 text-center relative">
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+            <p className="text-[9px] uppercase tracking-wider font-mono text-[rgba(255,255,255,0.5)] mb-1">Total Deposits</p>
+            <p className="text-[22px] font-mono font-bold text-white">
+              {countsLoading
+                ? <span className="inline-block w-4 h-4 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin align-middle" />
+                : totalDeposits}
+            </p>
           </div>
 
           {/* Active Pools */}
-          <div className="p-[3px] rounded-lg bg-gradient-to-br from-green-900/30 via-green-500/50 to-green-900/30">
-            <div className="bg-[rgba(10,10,18,0.95)] rounded-[13px] p-4 text-center">
-              <p className="text-xs text-[rgba(255,255,255,0.4)] mb-1">Active Pools</p>
-              <p className="text-[22px] font-mono font-bold text-white">{activePools}</p>
-            </div>
+          <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-sm backdrop-blur-sm p-4 text-center relative">
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+            <p className="text-[9px] uppercase tracking-wider font-mono text-[rgba(255,255,255,0.5)] mb-1">Active Pools</p>
+            <p className="text-[22px] font-mono font-bold text-white">{activePools}</p>
           </div>
 
           {/* Your Notes */}
-          <div className="p-[3px] rounded-lg bg-gradient-to-br from-violet-900/30 via-violet-500/50 to-violet-900/30">
-            <div className="bg-[rgba(10,10,18,0.95)] rounded-[13px] p-4 text-center">
-              <p className="text-xs text-[rgba(255,255,255,0.4)] mb-1">Your Notes</p>
-              <p className="text-[22px] font-mono font-bold text-white">
-                {notesLoading
-                  ? <span className="inline-block w-4 h-4 border-2 border-violet-400 border-t-transparent rounded-full animate-spin align-middle" />
-                  : totalNotes}
-              </p>
-            </div>
+          <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-sm backdrop-blur-sm p-4 text-center relative">
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+            <p className="text-[9px] uppercase tracking-wider font-mono text-[rgba(255,255,255,0.5)] mb-1">Your Notes</p>
+            <p className="text-[22px] font-mono font-bold text-white">
+              {notesLoading
+                ? <span className="inline-block w-4 h-4 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin align-middle" />
+                : totalNotes}
+            </p>
           </div>
         </div>
 
         {/* Pool List */}
         <div className="flex flex-col gap-3">
-          <h2 className="text-[18px] font-bold text-white tracking-tight">Available Pools</h2>
+          <h2 className="text-[18px] font-bold text-white tracking-tight font-mono">[Available Pools]</h2>
 
           {/* Table Header (desktop) */}
           <div className="hidden sm:grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2">
@@ -821,21 +841,21 @@ export default function PoolsPage() {
 
           {/* Swap Not Supported */}
           {!swapSupported && isConnected && (
-            <div className="p-4 rounded-lg bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.2)]">
+            <div className="p-4 rounded-sm bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.2)]">
               <div className="flex flex-col gap-3">
                 <div className="flex items-start gap-2.5">
                   <div className="mt-0.5"><AlertCircleIcon size={16} color="#f59e0b" /></div>
                   <div className="flex flex-col gap-1.5 flex-1">
-                    <p className="text-[13px] font-semibold text-amber-400">
+                    <p className="text-[13px] font-semibold text-amber-400 font-mono">
                       Privacy Pools Only Available on Ethereum Sepolia
                     </p>
-                    <p className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed">
+                    <p className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed font-mono">
                       DustSwap is currently deployed on Ethereum Sepolia testnet. More chains coming soon!
                     </p>
                   </div>
                 </div>
                 <button
-                  className="w-full py-2.5 rounded-sm bg-[rgba(245,158,11,0.12)] border border-[rgba(245,158,11,0.3)] hover:bg-[rgba(245,158,11,0.18)] hover:border-[rgba(245,158,11,0.4)] text-[13px] font-semibold text-amber-400 cursor-pointer transition-all"
+                  className="w-full py-2.5 rounded-sm bg-[rgba(245,158,11,0.12)] border border-[rgba(245,158,11,0.3)] hover:bg-[rgba(245,158,11,0.18)] hover:border-[rgba(245,158,11,0.4)] text-[13px] font-semibold text-amber-400 cursor-pointer transition-all font-mono"
                   onClick={() => switchChain?.({ chainId: 11155111 })}
                 >
                   Switch to Ethereum Sepolia
@@ -847,62 +867,62 @@ export default function PoolsPage() {
 
         {/* Contract Addresses */}
         {swapSupported && (
-          <div className="p-4 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)]">
-            <p className="text-sm font-semibold text-white mb-3">Contract Addresses</p>
+          <div className="p-4 rounded-sm bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)]">
+            <p className="text-[9px] uppercase tracking-wider font-mono text-[rgba(255,255,255,0.5)] mb-3">Contract Addresses</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {contracts.dustSwapPoolETH && (
                 <div>
-                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1">ETH Privacy Pool</p>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1 font-mono">ETH Privacy Pool</p>
                   <a
                     href={`${explorerBase}/address/${contracts.dustSwapPoolETH}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 no-underline"
                   >
-                    <span className="text-xs font-mono text-indigo-400">{shortenAddress(contracts.dustSwapPoolETH)}</span>
-                    <ExternalLinkIcon size={11} color="#818cf8" />
+                    <span className="text-xs font-mono text-[#00FF41]">{shortenAddress(contracts.dustSwapPoolETH)}</span>
+                    <ExternalLinkIcon size={11} color="#00FF41" />
                   </a>
                 </div>
               )}
               {contracts.dustSwapPoolUSDC && (
                 <div>
-                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1">USDC Privacy Pool</p>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1 font-mono">USDC Privacy Pool</p>
                   <a
                     href={`${explorerBase}/address/${contracts.dustSwapPoolUSDC}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 no-underline"
                   >
-                    <span className="text-xs font-mono text-indigo-400">{shortenAddress(contracts.dustSwapPoolUSDC)}</span>
-                    <ExternalLinkIcon size={11} color="#818cf8" />
+                    <span className="text-xs font-mono text-[#00FF41]">{shortenAddress(contracts.dustSwapPoolUSDC)}</span>
+                    <ExternalLinkIcon size={11} color="#00FF41" />
                   </a>
                 </div>
               )}
               {contracts.dustSwapHook && (
                 <div>
-                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1">DustSwap Hook</p>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1 font-mono">DustSwap Hook</p>
                   <a
                     href={`${explorerBase}/address/${contracts.dustSwapHook}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 no-underline"
                   >
-                    <span className="text-xs font-mono text-indigo-400">{shortenAddress(contracts.dustSwapHook)}</span>
-                    <ExternalLinkIcon size={11} color="#818cf8" />
+                    <span className="text-xs font-mono text-[#00FF41]">{shortenAddress(contracts.dustSwapHook)}</span>
+                    <ExternalLinkIcon size={11} color="#00FF41" />
                   </a>
                 </div>
               )}
               {contracts.dustSwapVerifier && (
                 <div>
-                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1">ZK Verifier</p>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1 font-mono">ZK Verifier</p>
                   <a
                     href={`${explorerBase}/address/${contracts.dustSwapVerifier}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 no-underline"
                   >
-                    <span className="text-xs font-mono text-indigo-400">{shortenAddress(contracts.dustSwapVerifier)}</span>
-                    <ExternalLinkIcon size={11} color="#818cf8" />
+                    <span className="text-xs font-mono text-[#00FF41]">{shortenAddress(contracts.dustSwapVerifier)}</span>
+                    <ExternalLinkIcon size={11} color="#00FF41" />
                   </a>
                 </div>
               )}
