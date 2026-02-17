@@ -1,9 +1,6 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
-import { Box, Text, VStack, HStack, Input, Spinner, Flex } from "@chakra-ui/react";
-import { Button } from "../ui/button";
-import { keyframes, Keyframes } from "@emotion/react";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import {
   useStealthAddress,
   useStealthScanner,
@@ -67,11 +64,6 @@ const colors: ColorTokens = {
 };
 
 const radius: RadiusTokens = { xl: "20px", lg: "16px", md: "12px", sm: "8px", xs: "6px" };
-
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
 
 type ViewType = "home" | "send" | "inbox" | "history" | "settings";
 
@@ -247,203 +239,207 @@ export const PrivateWallet = () => {
 
   if (!isConnected) {
     return (
-      <Box w="100%" p="48px 32px" bgColor={colors.bg.card} borderRadius={radius.xl} border={`1px solid ${colors.border.default}`} textAlign="center">
-        <VStack gap="24px">
-          <Box color={colors.accent.indigo} opacity={0.9}><ShieldIcon size={48} /></Box>
-          <VStack gap="8px">
-            <Text fontSize="20px" fontWeight={600} color={colors.text.primary}>Private Wallet</Text>
-            <Text fontSize="14px" color={colors.text.muted} maxW="280px" lineHeight="1.6">
+      <div
+        className="w-full p-12 px-8 text-center rounded-[20px] border"
+        style={{ background: colors.bg.card, borderColor: colors.border.default }}
+      >
+        <div className="flex flex-col items-center gap-6">
+          <div style={{ color: colors.accent.indigo, opacity: 0.9 }}><ShieldIcon size={48} /></div>
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[20px] font-semibold text-white">Private Wallet</span>
+            <span className="text-sm text-[rgba(255,255,255,0.3)] max-w-[280px] leading-relaxed">
               Send and receive payments that cannot be traced to your identity
-            </Text>
-          </VStack>
+            </span>
+          </div>
 
-          <VStack gap="12px" w="100%" maxW="320px">
+          <div className="flex flex-col gap-3 w-full max-w-xs">
             {/* Social login buttons — only when Privy is configured */}
             {isPrivyEnabled && (
               <>
-                <Button
-                  w="100%" h="46px"
-                  bgColor={colors.bg.input}
-                  borderRadius={radius.sm}
-                  border={`1px solid ${colors.border.default}`}
-                  fontWeight={500} fontSize="14px"
-                  color={colors.text.primary}
-                  _hover={{ bgColor: colors.bg.elevated, borderColor: colors.border.light }}
+                <button
+                  className="w-full h-[46px] flex items-center justify-center gap-2.5 rounded-sm border text-sm font-medium cursor-pointer transition-colors"
+                  style={{ background: colors.bg.input, borderColor: colors.border.default, color: colors.text.primary }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.elevated; (e.currentTarget as HTMLButtonElement).style.borderColor = colors.border.light; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.input; (e.currentTarget as HTMLButtonElement).style.borderColor = colors.border.default; }}
                   onClick={() => privyLogin({ loginMethods: ['google'] })}
                 >
-                  <HStack gap="10px">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                    </svg>
-                    <Text>Continue with Google</Text>
-                  </HStack>
-                </Button>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  Continue with Google
+                </button>
 
-                <Button
-                  w="100%" h="46px"
-                  bgColor={colors.bg.input}
-                  borderRadius={radius.sm}
-                  border={`1px solid ${colors.border.default}`}
-                  fontWeight={500} fontSize="14px"
-                  color={colors.text.primary}
-                  _hover={{ bgColor: colors.bg.elevated, borderColor: colors.border.light }}
+                <button
+                  className="w-full h-[46px] flex items-center justify-center gap-2.5 rounded-sm border text-sm font-medium cursor-pointer transition-colors"
+                  style={{ background: colors.bg.input, borderColor: colors.border.default, color: colors.text.primary }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.elevated; (e.currentTarget as HTMLButtonElement).style.borderColor = colors.border.light; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.input; (e.currentTarget as HTMLButtonElement).style.borderColor = colors.border.default; }}
                   onClick={() => privyLogin({ loginMethods: ['email'] })}
                 >
-                  <HStack gap="10px">
-                    <MailIcon size={18} color={colors.text.tertiary} />
-                    <Text>Continue with Email</Text>
-                  </HStack>
-                </Button>
+                  <MailIcon size={18} color={colors.text.tertiary} />
+                  Continue with Email
+                </button>
 
-                <Button
-                  w="100%" h="46px"
-                  bgColor={colors.bg.input}
-                  borderRadius={radius.sm}
-                  border={`1px solid ${colors.border.default}`}
-                  fontWeight={500} fontSize="14px"
-                  color={colors.text.primary}
-                  _hover={{ bgColor: colors.bg.elevated, borderColor: colors.border.light }}
+                <button
+                  className="w-full h-[46px] flex items-center justify-center gap-2.5 rounded-sm border text-sm font-medium cursor-pointer transition-colors"
+                  style={{ background: colors.bg.input, borderColor: colors.border.default, color: colors.text.primary }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.elevated; (e.currentTarget as HTMLButtonElement).style.borderColor = colors.border.light; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.bg.input; (e.currentTarget as HTMLButtonElement).style.borderColor = colors.border.default; }}
                   onClick={() => privyLogin({ loginMethods: ['farcaster'] })}
                 >
-                  <HStack gap="10px">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M5.5 3h13v18h-2.25v-7.5a4.25 4.25 0 0 0-8.5 0V21H5.5V3z" fill="#855DCD"/>
-                      <path d="M3 5.5L5.5 3h13L21 5.5H3z" fill="#855DCD"/>
-                    </svg>
-                    <Text>Continue with Farcaster</Text>
-                  </HStack>
-                </Button>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.5 3h13v18h-2.25v-7.5a4.25 4.25 0 0 0-8.5 0V21H5.5V3z" fill="#855DCD"/>
+                    <path d="M3 5.5L5.5 3h13L21 5.5H3z" fill="#855DCD"/>
+                  </svg>
+                  Continue with Farcaster
+                </button>
 
                 {/* Divider */}
-                <HStack w="100%" gap="12px" align="center" py="4px">
-                  <Box flex={1} h="1px" bgColor={colors.border.default} />
-                  <Text fontSize="11px" color={colors.text.muted} textTransform="uppercase" letterSpacing="0.1em" fontWeight={500}>or</Text>
-                  <Box flex={1} h="1px" bgColor={colors.border.default} />
-                </HStack>
+                <div className="flex items-center gap-3 py-1">
+                  <div className="flex-1 h-px" style={{ background: colors.border.default }} />
+                  <span className="text-[11px] uppercase tracking-widest font-medium" style={{ color: colors.text.muted }}>or</span>
+                  <div className="flex-1 h-px" style={{ background: colors.border.default }} />
+                </div>
               </>
             )}
 
             {/* Wallet connect button */}
-            <Button
-              w="100%" h="46px"
-              bgColor={colors.accent.indigoDark}
-              borderRadius={radius.sm}
-              fontWeight={500} fontSize="14px"
-              color="#fff"
-              _hover={{ bgColor: colors.accent.indigo }}
+            <button
+              className="w-full h-[46px] flex items-center justify-center gap-2.5 rounded-sm text-sm font-medium text-white cursor-pointer transition-colors"
+              style={{ background: colors.accent.indigoDark }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.accent.indigo; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.accent.indigoDark; }}
               onClick={() => connect({ connector: injected() })}
             >
-              <HStack gap="10px">
-                <WalletIcon size={18} />
-                <Text>Connect Wallet</Text>
-              </HStack>
-            </Button>
-          </VStack>
-        </VStack>
-      </Box>
+              <WalletIcon size={18} />
+              Connect Wallet
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
   if (!stealthKeys) {
     return (
-      <Box w="100%" p="48px 32px" bgColor={colors.bg.card} borderRadius={radius.xl} border={`1px solid ${colors.border.default}`} animation={`${fadeIn} 0.4s ease-out`}>
-        <VStack gap="32px">
-          <VStack gap="16px" textAlign="center">
-            <Box color={colors.accent.indigo} opacity={0.9}><KeyIcon size={44} /></Box>
-            <VStack gap="8px">
-              <Text fontSize="20px" fontWeight={600} color={colors.text.primary}>Activate Private Mode</Text>
-              <Text fontSize="14px" color={colors.text.muted} maxW="320px" lineHeight="1.6">
+      <div
+        className="w-full p-12 px-8 rounded-[20px] border animate-[fadeIn_0.4s_ease-out]"
+        style={{ background: colors.bg.card, borderColor: colors.border.default }}
+      >
+        <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+        <div className="flex flex-col items-center gap-8">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <div style={{ color: colors.accent.indigo, opacity: 0.9 }}><KeyIcon size={44} /></div>
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-[20px] font-semibold text-white">Activate Private Mode</span>
+              <span className="text-sm leading-relaxed max-w-xs" style={{ color: colors.text.muted }}>
                 Create your private receiving address. Anyone can send to it, but only you can access the funds.
-              </Text>
-            </VStack>
-          </VStack>
+              </span>
+            </div>
+          </div>
 
           {setupStep === "welcome" && (
-            <Button h="46px" px="28px" bgColor={colors.accent.indigoDark} borderRadius={radius.sm} fontWeight={500} fontSize="14px" color="#fff"
-              _hover={{ bgColor: colors.accent.indigo }} onClick={handleSetup} disabled={isKeyLoading || isSigningMessage}>
+            <button
+              className="h-[46px] px-7 rounded-sm text-sm font-medium text-white cursor-pointer transition-colors disabled:opacity-50"
+              style={{ background: colors.accent.indigoDark }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.accent.indigo; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = colors.accent.indigoDark; }}
+              onClick={handleSetup}
+              disabled={isKeyLoading || isSigningMessage}
+            >
               Create Private Address
-            </Button>
+            </button>
           )}
 
           {setupStep === "signing" && (
-            <VStack gap="12px">
-              <Spinner size="md" color={colors.accent.indigo} />
-              <Text fontSize="13px" color={colors.text.muted}>Sign the message in your wallet...</Text>
-            </VStack>
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-8 h-8 border-2 border-[#7c7fff] border-t-transparent rounded-full animate-spin" />
+              <span className="text-[13px]" style={{ color: colors.text.muted }}>Sign the message in your wallet...</span>
+            </div>
           )}
 
           {keyError && (
-            <HStack gap="8px" p="12px 16px" bgColor="rgba(248, 113, 113, 0.08)" borderRadius={radius.xs}>
+            <div className="flex items-center gap-2 px-4 py-3 rounded-sm" style={{ background: "rgba(248,113,113,0.08)", borderRadius: radius.xs }}>
               <AlertCircleIcon size={16} color={colors.accent.red} />
-              <Text fontSize="13px" color={colors.accent.red}>{keyError}</Text>
-            </HStack>
+              <span className="text-[13px]" style={{ color: colors.accent.red }}>{keyError}</span>
+            </div>
           )}
 
-          <Box p="14px 16px" bgColor={colors.bg.input} borderRadius={radius.sm} border={`1px solid ${colors.border.default}`}>
-            <HStack gap="12px" align="flex-start">
-              <Box color={colors.text.muted} flexShrink={0} mt="1px"><InfoIcon size={14} /></Box>
-              <Text fontSize="12px" color={colors.text.muted} lineHeight="1.5">
+          <div className="p-3.5 px-4 rounded-sm border" style={{ background: colors.bg.input, borderColor: colors.border.default }}>
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 mt-0.5" style={{ color: colors.text.muted }}><InfoIcon size={14} /></div>
+              <span className="text-[12px] leading-relaxed" style={{ color: colors.text.muted }}>
                 Your private address is derived from your wallet signature. You can recover it anytime by signing the same message.
-              </Text>
-            </HStack>
-          </Box>
-        </VStack>
-      </Box>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box w="100%" bgColor={colors.bg.card} borderRadius={radius.xl} border={`1.5px solid ${colors.border.default}`} overflow="hidden"
-      animation={`${fadeIn} 0.3s ease-out`} boxShadow="0 8px 32px rgba(0, 0, 0, 0.4)">
+    <div
+      className="w-full rounded-[20px] overflow-hidden animate-[fadeIn_0.3s_ease-out]"
+      style={{ background: colors.bg.card, border: `1.5px solid ${colors.border.default}`, boxShadow: "0 8px 32px rgba(0,0,0,0.4)" }}
+    >
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
       {/* Header */}
-      <Box p="24px" borderBottom={`1px solid ${colors.border.default}`} bgGradient="linear(180deg, rgba(124, 127, 255, 0.04) 0%, transparent 100%)">
-        <Flex justify="space-between" align="flex-start">
-          <VStack align="flex-start" gap="10px">
-            <Text fontSize="11px" color={colors.accent.indigo} textTransform="uppercase" letterSpacing="0.12em" fontWeight={700}>Private Wallet</Text>
-            <HStack gap="14px" align="center">
+      <div
+        className="p-6 border-b"
+        style={{ borderColor: colors.border.default, background: "linear-gradient(180deg, rgba(124,127,255,0.04) 0%, transparent 100%)" }}
+      >
+        <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-2.5">
+            <span className="text-[11px] uppercase tracking-[0.12em] font-bold" style={{ color: colors.accent.indigo }}>Private Wallet</span>
+            <div className="flex items-center gap-3.5">
               {ownedNames.length > 0 ? (
-                <Text fontSize="20px" fontWeight={700} color={colors.text.primary}>{ownedNames[0].fullName}</Text>
+                <span className="text-[20px] font-bold text-white">{ownedNames[0].fullName}</span>
               ) : (
-                <Text fontSize="14px" color={colors.text.secondary} fontFamily="'JetBrains Mono', monospace">{metaAddress?.slice(0, 18)}...</Text>
+                <span className="text-sm font-mono" style={{ color: colors.text.secondary }}>{metaAddress?.slice(0, 18)}...</span>
               )}
-              <Button h="32px" px="14px" bgColor={copied ? "rgba(0, 214, 143, 0.2)" : colors.bg.elevated} borderRadius={radius.xs}
-                border={`1.5px solid ${copied ? colors.accent.green : colors.border.light}`} fontSize="12px" fontWeight={600}
-                color={copied ? colors.accent.greenBright : colors.text.secondary}
-                _hover={{ bgColor: colors.accent.indigo, borderColor: colors.accent.indigo, color: "#fff" }}
-                onClick={() => handleCopy(ownedNames.length > 0 ? ownedNames[0].fullName : metaAddress || "")}>
-                <HStack gap="6px">
-                  {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
-                  <Text>{copied ? "Copied" : "Copy"}</Text>
-                </HStack>
-              </Button>
-            </HStack>
+              <button
+                className="h-8 px-3.5 rounded-sm text-[12px] font-semibold cursor-pointer transition-colors flex items-center gap-1.5"
+                style={{
+                  background: copied ? "rgba(0,214,143,0.2)" : colors.bg.elevated,
+                  border: `1.5px solid ${copied ? colors.accent.green : colors.border.light}`,
+                  color: copied ? colors.accent.greenBright : colors.text.secondary,
+                }}
+                onClick={() => handleCopy(ownedNames.length > 0 ? ownedNames[0].fullName : metaAddress || "")}
+              >
+                {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
             {isRegistered && (
-              <HStack gap="6px">
+              <div className="flex items-center gap-1.5">
                 <CheckCircleIcon size={13} color={colors.accent.greenBright} />
-                <Text fontSize="12px" color={colors.accent.greenBright} fontWeight={600}>Registered on-chain</Text>
-              </HStack>
+                <span className="text-[12px] font-semibold" style={{ color: colors.accent.greenBright }}>Registered on-chain</span>
+              </div>
             )}
-          </VStack>
+          </div>
           {pendingPayments.length > 0 && (
-            <Button h="36px" px="16px" bgGradient="linear(135deg, rgba(255, 190, 11, 0.15) 0%, rgba(255, 190, 11, 0.05) 100%)"
-              borderRadius={radius.sm} border="1.5px solid rgba(255, 190, 11, 0.5)"
-              _hover={{ bgGradient: "linear(135deg, rgba(255, 190, 11, 0.25) 0%, rgba(255, 190, 11, 0.1) 100%)" }}
-              onClick={() => setView("inbox")}>
-              <HStack gap="8px">
-                <InboxIcon size={16} color={colors.accent.amber} />
-                <Text fontSize="13px" fontWeight={700} color={colors.accent.amber}>{pendingPayments.length} pending</Text>
-              </HStack>
-            </Button>
+            <button
+              className="h-9 px-4 rounded-sm flex items-center gap-2 cursor-pointer transition-colors"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,190,11,0.15) 0%, rgba(255,190,11,0.05) 100%)",
+                border: "1.5px solid rgba(255,190,11,0.5)",
+              }}
+              onClick={() => setView("inbox")}
+            >
+              <InboxIcon size={16} color={colors.accent.amber} />
+              <span className="text-[13px] font-bold" style={{ color: colors.accent.amber }}>{pendingPayments.length} pending</span>
+            </button>
           )}
-        </Flex>
-      </Box>
+        </div>
+      </div>
 
       {/* Navigation */}
-      <Flex p="10px 12px" gap="4px" borderBottom={`1px solid ${colors.border.default}`} bgColor={colors.bg.input} justify="space-between">
+      <div className="flex p-2.5 px-3 gap-1 border-b justify-between" style={{ borderColor: colors.border.default, background: colors.bg.input }}>
         {([
           { id: "home", label: "Home", Icon: HomeIcon },
           { id: "send", label: "Send", Icon: SendIcon },
@@ -451,55 +447,43 @@ export const PrivateWallet = () => {
           { id: "history", label: "History", Icon: HistoryIcon },
           { id: "settings", label: "", Icon: SettingsIcon },
         ] as const).map((item) => (
-          <Button
+          <button
             key={item.id}
-            h="36px"
-            px={item.label ? "12px" : "10px"}
-            minW={item.label ? "auto" : "36px"}
-            bgColor={view === item.id ? colors.bg.elevated : "transparent"}
-            borderRadius={radius.xs}
-            border={view === item.id ? `1.5px solid ${colors.accent.indigo}` : "1.5px solid transparent"}
-            fontWeight={view === item.id ? 600 : 500}
-            fontSize="12px"
-            color={view === item.id ? colors.text.primary : colors.text.tertiary}
-            _hover={{ bgColor: colors.bg.elevated, color: colors.text.primary }}
+            className="h-9 rounded-sm cursor-pointer transition-colors flex items-center justify-center gap-1.5 relative"
+            style={{
+              padding: item.label ? "0 12px" : "0 10px",
+              minWidth: item.label ? "auto" : "36px",
+              background: view === item.id ? colors.bg.elevated : "transparent",
+              border: view === item.id ? `1.5px solid ${colors.accent.indigo}` : "1.5px solid transparent",
+              fontWeight: view === item.id ? 600 : 500,
+              fontSize: "12px",
+              color: view === item.id ? colors.text.primary : colors.text.tertiary,
+            }}
             onClick={() => setView(item.id)}
-            position="relative"
           >
-            <HStack gap="6px">
-              <item.Icon size={16} color={view === item.id ? colors.accent.indigo : colors.text.tertiary} />
-              {item.label && <Text>{item.label}</Text>}
-            </HStack>
+            <item.Icon size={16} color={view === item.id ? colors.accent.indigo : colors.text.tertiary} />
+            {item.label && <span>{item.label}</span>}
             {item.id === "inbox" && pendingPayments.length > 0 && (
-              <Box
-                position="absolute"
-                top="-4px"
-                right="-4px"
-                minW="18px"
-                h="18px"
-                px="5px"
-                borderRadius="9px"
-                bgColor={colors.accent.amber}
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
+              <span
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-[5px] rounded-[9px] flex items-center justify-center text-[10px] font-bold text-black"
+                style={{ background: colors.accent.amber }}
               >
-                <Text fontSize="10px" fontWeight={700} color="#000">{pendingPayments.length}</Text>
-              </Box>
+                {pendingPayments.length}
+              </span>
             )}
-          </Button>
+          </button>
         ))}
-      </Flex>
+      </div>
 
       {/* Content */}
-      <Box p="20px">
-        {view === "home" && <HomeView {...{ colors, radius, fadeIn, ownedNames, nameRegistryConfigured, nameInput, setNameInput, isCheckingName, isNameAvailable, formatName, validateName, handleRegisterName, isNameLoading, setView, scan, isRegistered, isKeyLoading, registrationSuccess, handleCopy }} />}
-        {view === "send" && <SendView {...{ colors, radius, fadeIn, sendStep, recipient, setRecipient, amount, setAmount, isResolving, resolvedAddress, handleSendPreview, handleSend, setSendStep, lastGeneratedAddress, isSendLoading, sendTxHash, resetSendFlow, sendError }} />}
-        {view === "inbox" && <InboxView {...{ colors, radius, fadeIn, payments, isScanning, scan, claimAddressesInitialized, claimAddresses, selectedIndex: selectedClaimIndex, selectAddress: selectClaimAddress, handleClaim, claimingIndex, claimedTx, scanError }} />}
-        {view === "history" && <HistoryView {...{ colors, radius, fadeIn, payments }} />}
-        {view === "settings" && <SettingsView {...{ colors, radius, fadeIn, metaAddress, handleCopy, copied, claimAddressesInitialized, claimAddresses, clearKeys }} />}
-      </Box>
-    </Box>
+      <div className="p-5">
+        {view === "home" && <HomeView {...{ colors, radius, ownedNames, nameRegistryConfigured, nameInput, setNameInput, isCheckingName, isNameAvailable, formatName, validateName, handleRegisterName, isNameLoading, setView, scan, isRegistered, isKeyLoading, registrationSuccess, handleCopy }} />}
+        {view === "send" && <SendView {...{ colors, radius, sendStep, recipient, setRecipient, amount, setAmount, isResolving, resolvedAddress, handleSendPreview, handleSend, setSendStep, lastGeneratedAddress, isSendLoading, sendTxHash, resetSendFlow, sendError }} />}
+        {view === "inbox" && <InboxView {...{ colors, radius, payments, isScanning, scan, claimAddressesInitialized, claimAddresses, selectedIndex: selectedClaimIndex, selectAddress: selectClaimAddress, handleClaim, claimingIndex, claimedTx, scanError }} />}
+        {view === "history" && <HistoryView {...{ colors, radius, payments }} />}
+        {view === "settings" && <SettingsView {...{ colors, radius, metaAddress, handleCopy, copied, claimAddressesInitialized, claimAddresses, clearKeys }} />}
+      </div>
+    </div>
   );
 };
 
@@ -507,7 +491,6 @@ export const PrivateWallet = () => {
 interface HomeViewProps {
   colors: ColorTokens;
   radius: RadiusTokens;
-  fadeIn: Keyframes;
   ownedNames: OwnedName[];
   nameRegistryConfigured: boolean;
   nameInput: string;
@@ -529,7 +512,6 @@ interface HomeViewProps {
 interface SendViewProps {
   colors: ColorTokens;
   radius: RadiusTokens;
-  fadeIn: Keyframes;
   sendStep: "input" | "confirm" | "success";
   recipient: string;
   setRecipient: (v: string) => void;
@@ -550,7 +532,6 @@ interface SendViewProps {
 interface InboxViewProps {
   colors: ColorTokens;
   radius: RadiusTokens;
-  fadeIn: Keyframes;
   payments: StealthPayment[];
   isScanning: boolean;
   scan: () => void;
@@ -567,7 +548,6 @@ interface InboxViewProps {
 interface SettingsViewProps {
   colors: ColorTokens;
   radius: RadiusTokens;
-  fadeIn: Keyframes;
   metaAddress: string | null;
   handleCopy: (text: string) => void;
   copied: boolean;
@@ -579,601 +559,647 @@ interface SettingsViewProps {
 interface HistoryViewProps {
   colors: ColorTokens;
   radius: RadiusTokens;
-  fadeIn: Keyframes;
   payments: StealthPayment[];
 }
 
 // Sub-components
-const HomeView = ({ colors, radius, fadeIn, ownedNames, nameRegistryConfigured, nameInput, setNameInput, isCheckingName, isNameAvailable, formatName, validateName, handleRegisterName, isNameLoading, setView, scan, isRegistered, isKeyLoading, registrationSuccess, handleCopy }: HomeViewProps) => (
-  <VStack gap="16px" align="stretch" animation={`${fadeIn} 0.25s ease-out`}>
-    <Box p="20px" bgGradient="linear(180deg, rgba(124, 127, 255, 0.06) 0%, transparent 100%)" borderRadius={radius.md} border={`1.5px solid ${colors.border.default}`}>
-      <VStack gap="16px" align="stretch">
-        <HStack justify="space-between">
-          <HStack gap="10px">
+const HomeView = ({ colors, radius, ownedNames, nameRegistryConfigured, nameInput, setNameInput, isCheckingName, isNameAvailable, formatName, validateName, handleRegisterName, isNameLoading, setView, scan, isRegistered, isKeyLoading, registrationSuccess, handleCopy }: HomeViewProps) => (
+  <div className="flex flex-col gap-4 animate-[fadeIn_0.25s_ease-out]">
+    <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+    <div
+      className="p-5 rounded-xl border"
+      style={{ background: "linear-gradient(180deg, rgba(124,127,255,0.06) 0%, transparent 100%)", borderColor: colors.border.default, border: `1.5px solid ${colors.border.default}` }}
+    >
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
             <TagIcon size={17} color={colors.accent.indigo} />
-            <Text fontSize="15px" fontWeight={600} color={colors.text.primary}>Your Private Name</Text>
-          </HStack>
+            <span className="text-[15px] font-semibold text-white">Your Private Name</span>
+          </div>
           {ownedNames.length > 0 && (
-            <Box px="10px" py="4px" bgColor="rgba(0, 214, 143, 0.15)" borderRadius={radius.xs} border="1px solid rgba(0, 214, 143, 0.4)">
-              <Text fontSize="11px" color={colors.accent.greenBright} fontWeight={600}>Registered</Text>
-            </Box>
+            <div className="px-2.5 py-1 rounded-sm border text-[11px] font-semibold" style={{ background: "rgba(0,214,143,0.15)", borderColor: "rgba(0,214,143,0.4)", color: colors.accent.greenBright }}>
+              Registered
+            </div>
           )}
-        </HStack>
+        </div>
         {ownedNames.length > 0 ? (
-          <VStack gap="10px" align="stretch">
+          <div className="flex flex-col gap-2.5">
             {ownedNames.map((name: OwnedName) => (
-              <HStack key={name.name} p="14px 16px" bgColor={colors.bg.input} borderRadius={radius.sm} justify="space-between" border={`1px solid ${colors.border.default}`}>
-                <Text fontSize="17px" fontWeight={700} color={colors.text.primary}>{name.fullName}</Text>
-              </HStack>
+              <div key={name.name} className="flex items-center justify-between px-4 py-3.5 rounded-sm border" style={{ background: colors.bg.input, borderColor: colors.border.default }}>
+                <span className="text-[17px] font-bold text-white">{name.fullName}</span>
+              </div>
             ))}
-          </VStack>
+          </div>
         ) : nameRegistryConfigured ? (
-          <VStack gap="14px" align="stretch">
-            <Text fontSize="13px" color={colors.text.tertiary}>Register a name so others can send to you easily</Text>
-            <HStack gap="12px">
-              <Box position="relative" flex={1}>
-                <Input placeholder="yourname" value={nameInput} onChange={(e: ChangeEvent<HTMLInputElement>) => setNameInput(e.target.value)} h="48px" bgColor={colors.bg.input}
-                  border={`1.5px solid ${colors.border.default}`} borderRadius={radius.sm} color={colors.text.primary} fontSize="15px" px="16px" pr="55px"
-                  _placeholder={{ color: colors.text.muted }} _focus={{ borderColor: colors.accent.indigo, boxShadow: colors.glow.indigo }} />
-                <Text position="absolute" right="16px" top="50%" transform="translateY(-50%)" fontSize="15px" fontWeight={600} color={colors.accent.indigo}>{NAME_SUFFIX}</Text>
-              </Box>
-              <Button h="48px" px="24px" bgColor={colors.bg.elevated} borderRadius={radius.sm} border={`1.5px solid ${colors.border.light}`}
-                fontWeight={600} fontSize="14px" color={colors.text.primary} _hover={{ bgColor: colors.accent.indigo, borderColor: colors.accent.indigo }}
-                onClick={handleRegisterName} disabled={!isNameAvailable || isNameLoading || isCheckingName}>
-                {isNameLoading ? <Spinner size="sm" /> : "Register"}
-              </Button>
-            </HStack>
-            {isCheckingName && <HStack gap="6px"><Spinner size="xs" color={colors.accent.indigo} /><Text fontSize="12px" color={colors.text.secondary}>Checking...</Text></HStack>}
+          <div className="flex flex-col gap-3.5">
+            <span className="text-[13px]" style={{ color: colors.text.tertiary }}>Register a name so others can send to you easily</span>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <input
+                  className="w-full h-12 px-4 pr-14 rounded-sm border text-white text-[15px] font-mono placeholder:text-[rgba(255,255,255,0.25)] focus:outline-none transition-colors"
+                  style={{ background: colors.bg.input, borderColor: colors.border.default }}
+                  placeholder="yourname"
+                  value={nameInput}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setNameInput(e.target.value)}
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[15px] font-semibold" style={{ color: colors.accent.indigo }}>{NAME_SUFFIX}</span>
+              </div>
+              <button
+                className="h-12 px-6 rounded-sm border text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                style={{ background: colors.bg.elevated, borderColor: colors.border.light, color: colors.text.primary }}
+                onClick={handleRegisterName}
+                disabled={!isNameAvailable || isNameLoading || isCheckingName}
+              >
+                {isNameLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Register"}
+              </button>
+            </div>
+            {isCheckingName && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 border border-[#7c7fff] border-t-transparent rounded-full animate-spin" />
+                <span className="text-[12px]" style={{ color: colors.text.secondary }}>Checking...</span>
+              </div>
+            )}
             {!isCheckingName && isNameAvailable === true && nameInput && (
-              <HStack gap="6px"><CheckCircleIcon size={14} color={colors.accent.greenBright} /><Text fontSize="13px" color={colors.accent.greenBright} fontWeight={600}>{formatName(nameInput)} is available</Text></HStack>
+              <div className="flex items-center gap-1.5">
+                <CheckCircleIcon size={14} color={colors.accent.greenBright} />
+                <span className="text-[13px] font-semibold" style={{ color: colors.accent.greenBright }}>{formatName(nameInput)} is available</span>
+              </div>
             )}
             {!isCheckingName && isNameAvailable === false && nameInput && (
-              <HStack gap="6px"><AlertCircleIcon size={14} color={colors.accent.red} /><Text fontSize="13px" color={colors.accent.red} fontWeight={600}>{formatName(nameInput)} is already taken</Text></HStack>
+              <div className="flex items-center gap-1.5">
+                <AlertCircleIcon size={14} color={colors.accent.red} />
+                <span className="text-[13px] font-semibold" style={{ color: colors.accent.red }}>{formatName(nameInput)} is already taken</span>
+              </div>
             )}
             {!isCheckingName && isNameAvailable === null && nameInput && validateName(nameInput).valid && (
-              <HStack gap="6px"><AlertCircleIcon size={14} color={colors.accent.amber} /><Text fontSize="13px" color={colors.accent.amber} fontWeight={500}>Could not check availability</Text></HStack>
+              <div className="flex items-center gap-1.5">
+                <AlertCircleIcon size={14} color={colors.accent.amber} />
+                <span className="text-[13px] font-medium" style={{ color: colors.accent.amber }}>Could not check availability</span>
+              </div>
             )}
-          </VStack>
-        ) : <Text fontSize="13px" color={colors.text.muted}>Name registry not available</Text>}
-      </VStack>
-    </Box>
+          </div>
+        ) : <span className="text-[13px]" style={{ color: colors.text.muted }}>Name registry not available</span>}
+      </div>
+    </div>
 
-    <HStack gap="14px">
-      <Button flex={1} h="72px" bgGradient="linear(135deg, rgba(124, 127, 255, 0.1) 0%, rgba(124, 127, 255, 0.02) 100%)"
-        borderRadius={radius.md} border={`1.5px solid ${colors.accent.indigo}`}
-        _hover={{ bgGradient: "linear(135deg, rgba(124, 127, 255, 0.18) 0%, rgba(124, 127, 255, 0.05) 100%)", boxShadow: colors.glow.indigo }}
-        onClick={() => setView("send")}>
-        <HStack gap="12px"><ArrowUpRightIcon size={24} color={colors.accent.indigoBright} /><Text fontSize="16px" fontWeight={600} color={colors.text.primary}>Send</Text></HStack>
-      </Button>
-      <Button flex={1} h="72px" bgGradient="linear(135deg, rgba(0, 214, 143, 0.1) 0%, rgba(0, 214, 143, 0.02) 100%)"
-        borderRadius={radius.md} border={`1.5px solid ${colors.accent.green}`}
-        _hover={{ bgGradient: "linear(135deg, rgba(0, 214, 143, 0.18) 0%, rgba(0, 214, 143, 0.05) 100%)", boxShadow: colors.glow.green }}
-        onClick={() => { setView("inbox"); scan(); }}>
-        <HStack gap="12px"><ArrowDownLeftIcon size={24} color={colors.accent.greenBright} /><Text fontSize="16px" fontWeight={600} color={colors.text.primary}>Receive</Text></HStack>
-      </Button>
-    </HStack>
+    <div className="flex gap-3.5">
+      <button
+        className="flex-1 h-[72px] rounded-xl flex items-center justify-center gap-3 cursor-pointer transition-all"
+        style={{
+          background: "linear-gradient(135deg, rgba(124,127,255,0.1) 0%, rgba(124,127,255,0.02) 100%)",
+          border: `1.5px solid ${colors.accent.indigo}`,
+        }}
+        onClick={() => setView("send")}
+      >
+        <ArrowUpRightIcon size={24} color={colors.accent.indigoBright} />
+        <span className="text-base font-semibold text-white">Send</span>
+      </button>
+      <button
+        className="flex-1 h-[72px] rounded-xl flex items-center justify-center gap-3 cursor-pointer transition-all"
+        style={{
+          background: "linear-gradient(135deg, rgba(0,214,143,0.1) 0%, rgba(0,214,143,0.02) 100%)",
+          border: `1.5px solid ${colors.accent.green}`,
+        }}
+        onClick={() => { setView("inbox"); scan(); }}
+      >
+        <ArrowDownLeftIcon size={24} color={colors.accent.greenBright} />
+        <span className="text-base font-semibold text-white">Receive</span>
+      </button>
+    </div>
 
     {registrationSuccess && (
-      <Box p="14px 18px" bgColor="rgba(0, 214, 143, 0.1)" borderRadius={radius.md} border="1.5px solid rgba(0, 214, 143, 0.4)" animation={`${fadeIn} 0.3s ease-out`}>
-        <HStack gap="10px">
+      <div className="p-3.5 px-[18px] rounded-xl border-[1.5px] border-[rgba(0,214,143,0.4)] animate-[fadeIn_0.3s_ease-out]" style={{ background: "rgba(0,214,143,0.1)" }}>
+        <div className="flex items-center gap-2.5">
           <CheckCircleIcon size={18} color={colors.accent.greenBright} />
-          <VStack align="flex-start" gap="2px">
-            <Text fontSize="13px" fontWeight={600} color={colors.accent.greenBright}>Registered successfully</Text>
-            <Text fontSize="12px" color={colors.text.secondary}>Name and on-chain identity are both live</Text>
-          </VStack>
-        </HStack>
-      </Box>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[13px] font-semibold" style={{ color: colors.accent.greenBright }}>Registered successfully</span>
+            <span className="text-[12px]" style={{ color: colors.text.secondary }}>Name and on-chain identity are both live</span>
+          </div>
+        </div>
+      </div>
     )}
 
-    <Box p="18px 20px" bgColor={colors.bg.input} borderRadius={radius.md} border={`1px solid ${colors.border.default}`}>
-      <VStack gap="14px" align="stretch">
-        <HStack gap="10px">
+    <div className="p-[18px] px-5 rounded-xl border" style={{ background: colors.bg.input, borderColor: colors.border.default }}>
+      <div className="flex flex-col gap-3.5">
+        <div className="flex items-center gap-2.5">
           <LockIcon size={16} color={colors.accent.indigo} />
-          <Text fontSize="13px" fontWeight={600} color={colors.text.secondary}>How it works</Text>
-        </HStack>
-        <VStack gap="10px" align="stretch">
-          <HStack gap="10px" align="flex-start">
-            <Text fontSize="12px" color={colors.text.muted} minW="18px" textAlign="center" fontWeight={600}>1</Text>
-            <Text fontSize="12px" color={colors.text.tertiary} lineHeight="1.5">Share your <Text as="span" color={colors.accent.indigoBright} fontWeight={600}>.tok</Text> name or address with the sender</Text>
-          </HStack>
-          <HStack gap="10px" align="flex-start">
-            <Text fontSize="12px" color={colors.text.muted} minW="18px" textAlign="center" fontWeight={600}>2</Text>
-            <Text fontSize="12px" color={colors.text.tertiary} lineHeight="1.5">Each payment generates a unique stealth address</Text>
-          </HStack>
-          <HStack gap="10px" align="flex-start">
-            <Text fontSize="12px" color={colors.text.muted} minW="18px" textAlign="center" fontWeight={600}>3</Text>
-            <Text fontSize="12px" color={colors.text.tertiary} lineHeight="1.5">Only you can discover and claim the funds</Text>
-          </HStack>
-        </VStack>
-      </VStack>
-    </Box>
-  </VStack>
+          <span className="text-[13px] font-semibold" style={{ color: colors.text.secondary }}>How it works</span>
+        </div>
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-start gap-2.5">
+            <span className="text-[12px] min-w-[18px] text-center font-semibold" style={{ color: colors.text.muted }}>1</span>
+            <span className="text-[12px] leading-relaxed" style={{ color: colors.text.tertiary }}>Share your <span className="font-semibold" style={{ color: colors.accent.indigoBright }}>.tok</span> name or address with the sender</span>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span className="text-[12px] min-w-[18px] text-center font-semibold" style={{ color: colors.text.muted }}>2</span>
+            <span className="text-[12px] leading-relaxed" style={{ color: colors.text.tertiary }}>Each payment generates a unique stealth address</span>
+          </div>
+          <div className="flex items-start gap-2.5">
+            <span className="text-[12px] min-w-[18px] text-center font-semibold" style={{ color: colors.text.muted }}>3</span>
+            <span className="text-[12px] leading-relaxed" style={{ color: colors.text.tertiary }}>Only you can discover and claim the funds</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 );
 
-const SendView = ({ colors, radius, fadeIn, sendStep, recipient, setRecipient, amount, setAmount, isResolving, resolvedAddress, handleSendPreview, handleSend, setSendStep, lastGeneratedAddress, isSendLoading, sendTxHash, resetSendFlow, sendError }: SendViewProps) => {
+const SendView = ({ colors, radius, sendStep, recipient, setRecipient, amount, setAmount, isResolving, resolvedAddress, handleSendPreview, handleSend, setSendStep, lastGeneratedAddress, isSendLoading, sendTxHash, resetSendFlow, sendError }: SendViewProps) => {
   const { activeChainId } = useAuth();
   const chainConfig = getChainConfig(activeChainId);
   const symbol = chainConfig.nativeCurrency.symbol;
   return (
-  <VStack gap="20px" align="stretch" animation={`${fadeIn} 0.25s ease-out`}>
+  <div className="flex flex-col gap-5 animate-[fadeIn_0.25s_ease-out]">
+    <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     {sendStep === "input" && (
       <>
-        <VStack gap="4px" align="flex-start">
-          <Text fontSize="16px" fontWeight={600} color={colors.text.primary}>Send Private Payment</Text>
-          <Text fontSize="13px" color={colors.text.muted}>Only the recipient can access these funds</Text>
-        </VStack>
-        <VStack gap="16px" align="stretch">
-          <Box>
-            <Text fontSize="12px" color={colors.text.tertiary} mb="8px" fontWeight={500}>Recipient</Text>
-            <Input placeholder={`alice${NAME_SUFFIX} or st:thanos:0x...`} value={recipient} onChange={(e: ChangeEvent<HTMLInputElement>) => setRecipient(e.target.value)}
-              h="48px" bgColor={colors.bg.input} border={`1px solid ${colors.border.default}`} borderRadius={radius.sm}
-              color={colors.text.primary} fontSize="14px" px="14px" _placeholder={{ color: colors.text.muted }}
-              _focus={{ borderColor: colors.accent.indigo, boxShadow: colors.glow.indigo }} />
-            <Box h="20px" mt="6px">
-              {isResolving && <HStack gap="5px"><Spinner size="xs" color={colors.text.muted} /><Text fontSize="11px" color={colors.text.muted}>Resolving...</Text></HStack>}
-              {!isResolving && resolvedAddress && !recipient.startsWith("st:") && (
-                <HStack gap="5px"><CheckCircleIcon size={11} color={colors.accent.green} /><Text fontSize="11px" color={colors.accent.green}>Resolved: {resolvedAddress.slice(0, 28)}...</Text></HStack>
+        <div className="flex flex-col gap-1">
+          <span className="text-base font-semibold text-white">Send Private Payment</span>
+          <span className="text-[13px]" style={{ color: colors.text.muted }}>Only the recipient can access these funds</span>
+        </div>
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="text-[9px] uppercase tracking-wider font-mono block mb-2" style={{ color: colors.text.tertiary }}>Recipient</label>
+            <input
+              className="w-full h-12 px-3.5 rounded-sm border text-sm font-mono transition-colors focus:outline-none"
+              style={{ background: colors.bg.input, borderColor: colors.border.default, color: colors.text.primary }}
+              placeholder={`alice${NAME_SUFFIX} or st:thanos:0x...`}
+              value={recipient}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setRecipient(e.target.value)}
+            />
+            <div className="h-5 mt-1.5">
+              {isResolving && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 border border-[rgba(255,255,255,0.4)] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[11px]" style={{ color: colors.text.muted }}>Resolving...</span>
+                </div>
               )}
-            </Box>
-          </Box>
-          <Box>
-            <Text fontSize="12px" color={colors.text.tertiary} mb="8px" fontWeight={500}>Amount</Text>
-            <Input placeholder="0.0" type="number" step="0.001" value={amount} onChange={(e: ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
-              h="56px" bgColor={colors.bg.input} border={`1px solid ${colors.border.default}`} borderRadius={radius.sm}
-              color={colors.text.primary} fontSize="24px" fontWeight={500} fontFamily="'JetBrains Mono', monospace" px="14px"
-              _placeholder={{ color: colors.text.muted }} _focus={{ borderColor: colors.accent.indigo, boxShadow: colors.glow.indigo }} />
-            <Text fontSize="11px" color={colors.text.muted} mt="6px">{symbol} on {chainConfig.name}</Text>
-          </Box>
-        </VStack>
-        <Button h="48px" bgColor={colors.accent.indigoDark} borderRadius={radius.sm} fontWeight={500} fontSize="14px" color="#fff"
-          _hover={{ bgColor: colors.accent.indigo }} onClick={handleSendPreview}
-          disabled={(!resolvedAddress && !recipient.startsWith("st:")) || !amount || isSendLoading || isResolving}>
+              {!isResolving && resolvedAddress && !recipient.startsWith("st:") && (
+                <div className="flex items-center gap-1.5">
+                  <CheckCircleIcon size={11} color={colors.accent.green} />
+                  <span className="text-[11px]" style={{ color: colors.accent.green }}>Resolved: {resolvedAddress.slice(0, 28)}...</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="text-[9px] uppercase tracking-wider font-mono block mb-2" style={{ color: colors.text.tertiary }}>Amount</label>
+            <input
+              className="w-full h-14 px-3.5 rounded-sm border text-2xl font-medium font-mono transition-colors focus:outline-none"
+              style={{ background: colors.bg.input, borderColor: colors.border.default, color: colors.text.primary }}
+              placeholder="0.0"
+              type="number"
+              step="0.001"
+              value={amount}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
+            />
+            <span className="text-[11px] mt-1.5 block" style={{ color: colors.text.muted }}>{symbol} on {chainConfig.name}</span>
+          </div>
+        </div>
+        <button
+          className="h-12 w-full rounded-sm text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: colors.accent.indigoDark }}
+          onClick={handleSendPreview}
+          disabled={(!resolvedAddress && !recipient.startsWith("st:")) || !amount || isSendLoading || isResolving}
+        >
           Preview Payment
-        </Button>
+        </button>
       </>
     )}
 
     {sendStep === "confirm" && lastGeneratedAddress && (
       <>
-        <VStack gap="4px" align="flex-start">
-          <Text fontSize="16px" fontWeight={600} color={colors.text.primary}>Confirm Payment</Text>
-          <Text fontSize="13px" color={colors.text.muted}>Review before sending</Text>
-        </VStack>
-        <Box p="20px" bgColor={colors.bg.input} borderRadius={radius.md} border={`1px solid ${colors.border.default}`}>
-          <VStack gap="16px" align="stretch">
-            <HStack justify="space-between">
-              <Text fontSize="13px" color={colors.text.muted}>Amount</Text>
-              <Text fontSize="18px" fontWeight={600} color={colors.text.primary} fontFamily="'JetBrains Mono', monospace">{amount} {symbol}</Text>
-            </HStack>
-            <Box h="1px" bgColor={colors.border.default} />
-            <HStack justify="space-between">
-              <Text fontSize="13px" color={colors.text.muted}>To</Text>
-              <Text fontSize="13px" color={colors.text.primary} fontFamily="'JetBrains Mono', monospace">{recipient.includes(".tok") ? recipient : `${recipient.slice(0, 14)}...`}</Text>
-            </HStack>
-          </VStack>
-        </Box>
-        <Box p="14px 16px" bgColor="rgba(52, 211, 153, 0.04)" borderRadius={radius.sm} border="1px solid rgba(52, 211, 153, 0.1)">
-          <HStack gap="10px"><LockIcon size={16} color={colors.accent.green} /><Text fontSize="12px" color={colors.text.tertiary}>This payment is private. Only the recipient can access these funds.</Text></HStack>
-        </Box>
-        <HStack gap="10px">
-          <Button flex={1} h="44px" bgColor={colors.bg.elevated} borderRadius={radius.sm} border={`1px solid ${colors.border.default}`}
-            fontWeight={500} fontSize="13px" color={colors.text.primary} _hover={{ bgColor: colors.bg.hover }} onClick={() => setSendStep("input")}>Back</Button>
-          <Button flex={2} h="44px" bgColor={colors.accent.indigoDark} borderRadius={radius.sm} fontWeight={500} fontSize="13px" color="#fff"
-            _hover={{ bgColor: colors.accent.indigo }} onClick={handleSend} disabled={isSendLoading}>
-            {isSendLoading ? <Spinner size="sm" /> : "Send Payment"}
-          </Button>
-        </HStack>
+        <div className="flex flex-col gap-1">
+          <span className="text-base font-semibold text-white">Confirm Payment</span>
+          <span className="text-[13px]" style={{ color: colors.text.muted }}>Review before sending</span>
+        </div>
+        <div className="p-5 rounded-xl border" style={{ background: colors.bg.input, borderColor: colors.border.default }}>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[13px]" style={{ color: colors.text.muted }}>Amount</span>
+              <span className="text-[18px] font-semibold font-mono text-white">{amount} {symbol}</span>
+            </div>
+            <div className="h-px" style={{ background: colors.border.default }} />
+            <div className="flex items-center justify-between">
+              <span className="text-[13px]" style={{ color: colors.text.muted }}>To</span>
+              <span className="text-[13px] font-mono text-white">{recipient.includes(".tok") ? recipient : `${recipient.slice(0, 14)}...`}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5 px-4 py-3.5 rounded-sm border border-[rgba(52,211,153,0.1)]" style={{ background: "rgba(52,211,153,0.04)" }}>
+          <LockIcon size={16} color={colors.accent.green} />
+          <span className="text-[12px]" style={{ color: colors.text.tertiary }}>This payment is private. Only the recipient can access these funds.</span>
+        </div>
+        <div className="flex gap-2.5">
+          <button
+            className="flex-1 h-11 rounded-sm border text-[13px] font-medium transition-colors"
+            style={{ background: colors.bg.elevated, borderColor: colors.border.default, color: colors.text.primary }}
+            onClick={() => setSendStep("input")}
+          >
+            Back
+          </button>
+          <button
+            className="flex-[2] h-11 rounded-sm text-[13px] font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            style={{ background: colors.accent.indigoDark }}
+            onClick={handleSend}
+            disabled={isSendLoading}
+          >
+            {isSendLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Send Payment"}
+          </button>
+        </div>
       </>
     )}
 
     {sendStep === "success" && (
-      <VStack gap="24px" py="28px" animation={`${fadeIn} 0.3s ease-out`}>
-        <Box p="16px" bgColor="rgba(52, 211, 153, 0.08)" borderRadius="50%"><CheckCircleIcon size={32} color={colors.accent.green} /></Box>
-        <VStack gap="6px">
-          <Text fontSize="18px" fontWeight={600} color={colors.text.primary}>Payment Sent</Text>
-          <Text fontSize="13px" color={colors.text.muted} textAlign="center">{amount} {symbol} sent privately to {recipient.includes(".tok") ? recipient : "recipient"}</Text>
-        </VStack>
+      <div className="flex flex-col items-center gap-6 py-7 animate-[fadeIn_0.3s_ease-out]">
+        <div className="p-4 rounded-full" style={{ background: "rgba(52,211,153,0.08)" }}>
+          <CheckCircleIcon size={32} color={colors.accent.green} />
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="text-[18px] font-semibold text-white">Payment Sent</span>
+          <span className="text-[13px] text-center" style={{ color: colors.text.muted }}>{amount} {symbol} sent privately to {recipient.includes(".tok") ? recipient : "recipient"}</span>
+        </div>
         {sendTxHash && (
-          <VStack gap="10px" w="100%" maxW="360px">
-            <Box p="10px 12px" bgColor={colors.bg.input} borderRadius={radius.xs} border={`1px solid ${colors.border.default}`} w="100%">
-              <Text fontSize="11px" color={colors.text.secondary} fontFamily="'JetBrains Mono', monospace" wordBreak="break-all" lineHeight="1.5">{sendTxHash}</Text>
-            </Box>
+          <div className="flex flex-col items-center gap-2.5 w-full max-w-sm">
+            <div className="p-2.5 px-3 rounded-sm border w-full" style={{ background: colors.bg.input, borderColor: colors.border.default }}>
+              <span className="text-[11px] font-mono leading-relaxed break-all" style={{ color: colors.text.secondary }}>{sendTxHash}</span>
+            </div>
             <a href={`${getChainConfig(activeChainId).blockExplorerUrl}/tx/${sendTxHash}`} target="_blank" rel="noopener noreferrer">
-              <HStack gap="6px" px="12px" py="6px" bgColor={colors.bg.elevated} borderRadius={radius.xs} border={`1px solid ${colors.border.light}`} _hover={{ bgColor: colors.bg.hover, borderColor: colors.accent.indigo }}>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border cursor-pointer transition-colors" style={{ background: colors.bg.elevated, borderColor: colors.border.light }}>
                 <ArrowUpRightIcon size={13} color={colors.accent.indigo} />
-                <Text fontSize="12px" color={colors.accent.indigo} fontWeight={500}>View on Explorer</Text>
-              </HStack>
+                <span className="text-[12px] font-medium" style={{ color: colors.accent.indigo }}>View on Explorer</span>
+              </div>
             </a>
-          </VStack>
+          </div>
         )}
-        <Button h="44px" px="28px" bgColor={colors.accent.indigoDark} borderRadius={radius.sm} fontWeight={500} fontSize="13px" color="#fff"
-          _hover={{ bgColor: colors.accent.indigo }} onClick={resetSendFlow}>Send Another</Button>
-      </VStack>
+        <button
+          className="h-11 px-7 rounded-sm text-[13px] font-medium text-white transition-colors"
+          style={{ background: colors.accent.indigoDark }}
+          onClick={resetSendFlow}
+        >
+          Send Another
+        </button>
+      </div>
     )}
 
     {sendError && (
-      <HStack gap="6px" p="12px 14px" bgColor="rgba(248, 113, 113, 0.08)" borderRadius={radius.xs}>
-        <AlertCircleIcon size={14} color={colors.accent.red} /><Text fontSize="12px" color={colors.accent.red}>{sendError}</Text>
-      </HStack>
+      <div className="flex items-center gap-1.5 px-3.5 py-3 rounded-sm" style={{ background: "rgba(248,113,113,0.08)" }}>
+        <AlertCircleIcon size={14} color={colors.accent.red} />
+        <span className="text-[12px]" style={{ color: colors.accent.red }}>{sendError}</span>
+      </div>
     )}
-  </VStack>
+  </div>
   );
 };
 
-const InboxView = ({ colors, radius, fadeIn, payments, isScanning, scan, claimAddressesInitialized, claimAddresses, selectedIndex, selectAddress, handleClaim, claimingIndex, claimedTx, scanError }: InboxViewProps) => {
+const InboxView = ({ colors, radius, payments, isScanning, scan, claimAddressesInitialized, claimAddresses, selectedIndex, selectAddress, handleClaim, claimingIndex, claimedTx, scanError }: InboxViewProps) => {
   const { activeChainId } = useAuth();
   const symbol = getChainConfig(activeChainId).nativeCurrency.symbol;
   const accentColor = colors.accent.green;
   const accentBright = colors.accent.greenBright;
   const accentDark = colors.accent.greenDark;
-  const glowColor = colors.glow.green;
 
   return (
-    <VStack gap="16px" align="stretch" animation={`${fadeIn} 0.25s ease-out`}>
-      {/* Header with Mode Toggle */}
-      <Flex justify="space-between" align="center" pb="12px" borderBottom={`1px solid ${colors.border.default}`}>
-        <VStack gap="2px" align="flex-start">
-          <Text fontSize="18px" fontWeight={600} color={colors.text.primary}>Inbox</Text>
-          <Text fontSize="12px" color={colors.text.muted}>Receiving payments</Text>
-        </VStack>
-        <HStack gap="10px">
-          {/* Scan Button */}
-          <Button
-            h="38px" px="14px"
-            bgColor={colors.bg.elevated}
-            borderRadius={radius.xs}
-            border={`1px solid ${colors.border.light}`}
-            fontWeight={500} fontSize="12px"
-            color={colors.text.secondary}
-            _hover={{ bgColor: colors.bg.hover, borderColor: accentColor }}
+    <div className="flex flex-col gap-4 animate-[fadeIn_0.25s_ease-out]">
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      {/* Header */}
+      <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: colors.border.default }}>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[18px] font-semibold text-white">Inbox</span>
+          <span className="text-[12px]" style={{ color: colors.text.muted }}>Receiving payments</span>
+        </div>
+        <div className="flex gap-2.5">
+          <button
+            className="h-[38px] px-3.5 rounded-sm border text-[12px] font-medium transition-colors disabled:opacity-50 flex items-center justify-center"
+            style={{ background: colors.bg.elevated, borderColor: colors.border.light, color: colors.text.secondary }}
             onClick={() => scan()}
             disabled={isScanning}
           >
-            {isScanning ? <Spinner size="xs" /> : <RefreshIcon size={14} />}
-          </Button>
-        </HStack>
-      </Flex>
+            {isScanning
+              ? <div className="w-3.5 h-3.5 border border-white border-t-transparent rounded-full animate-spin" />
+              : <RefreshIcon size={14} />
+            }
+          </button>
+        </div>
+      </div>
 
       {/* Claim Address Selector */}
       {claimAddressesInitialized && claimAddresses.length > 0 && (
-        <HStack gap="8px" flexWrap="wrap">
-          <Text fontSize="11px" color={colors.text.muted} fontWeight={500}>Claim to:</Text>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-medium" style={{ color: colors.text.muted }}>Claim to:</span>
           {claimAddresses.slice(0, 3).map((addr: ClaimAddress, idx: number) => (
-            <Button
+            <button
               key={addr.address}
-              h="28px" px="12px"
-              bgColor={selectedIndex === idx ? accentColor : "transparent"}
-              borderRadius={radius.xs}
-              border={`1px solid ${selectedIndex === idx ? accentColor : colors.border.default}`}
-              fontSize="11px" fontWeight={500}
-              color={selectedIndex === idx ? colors.bg.page : colors.text.muted}
-              _hover={{ borderColor: accentColor }}
+              className="h-7 px-3 rounded-sm border text-[11px] font-medium cursor-pointer transition-colors"
+              style={{
+                background: selectedIndex === idx ? accentColor : "transparent",
+                borderColor: selectedIndex === idx ? accentColor : colors.border.default,
+                color: selectedIndex === idx ? colors.bg.page : colors.text.muted,
+              }}
               onClick={() => selectAddress(idx)}
             >
               {addr.label || `Wallet ${idx + 1}`}
-            </Button>
+            </button>
           ))}
-        </HStack>
+        </div>
       )}
 
       {/* Success State */}
       {claimedTx && (
-        <Box
-          p="20px"
-          bgGradient="linear(135deg, rgba(0, 214, 143, 0.1) 0%, rgba(0, 214, 143, 0.02) 100%)"
-          borderRadius={radius.lg}
-          border="1px solid rgba(0, 214, 143, 0.3)"
+        <div
+          className="p-5 rounded-[16px] border border-[rgba(0,214,143,0.3)]"
+          style={{ background: "linear-gradient(135deg, rgba(0,214,143,0.1) 0%, rgba(0,214,143,0.02) 100%)" }}
         >
-          <VStack gap="16px" align="stretch">
-            <HStack gap="12px">
-              <Box p="10px" bgColor="rgba(0, 214, 143, 0.15)" borderRadius="50%">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-full" style={{ background: "rgba(0,214,143,0.15)" }}>
                 <CheckCircleIcon size={20} color={accentBright} />
-              </Box>
-              <VStack align="flex-start" gap="2px">
-                <Text fontSize="15px" fontWeight={600} color={colors.text.primary}>Payment Claimed!</Text>
-                <Text fontSize="12px" color={colors.text.muted}>Funds sent to your wallet</Text>
-              </VStack>
-            </HStack>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[15px] font-semibold text-white">Payment Claimed!</span>
+                <span className="text-[12px]" style={{ color: colors.text.muted }}>Funds sent to your wallet</span>
+              </div>
+            </div>
 
-            <Box p="12px 14px" bgColor="rgba(0, 0, 0, 0.25)" borderRadius={radius.sm}>
-              <Text fontSize="10px" color={colors.text.muted} mb="6px" fontWeight={500}>Transaction Hash</Text>
-              <Text fontSize="11px" color={accentBright} fontFamily="'JetBrains Mono', monospace" wordBreak="break-all" lineHeight="1.6">
-                {claimedTx}
-              </Text>
-            </Box>
+            <div className="p-3 px-3.5 rounded-sm" style={{ background: "rgba(0,0,0,0.25)" }}>
+              <span className="text-[10px] font-medium block mb-1.5" style={{ color: colors.text.muted }}>Transaction Hash</span>
+              <span className="text-[11px] font-mono leading-relaxed break-all" style={{ color: accentBright }}>{claimedTx}</span>
+            </div>
 
             <a href={`${getChainConfig(activeChainId).blockExplorerUrl}/tx/${claimedTx}`} target="_blank" rel="noopener noreferrer">
-              <Button
-                w="100%" h="40px"
-                bgColor="rgba(0, 214, 143, 0.15)"
-                borderRadius={radius.sm}
-                border="1px solid rgba(0, 214, 143, 0.3)"
-                fontWeight={500} fontSize="13px"
-                color={accentBright}
-                _hover={{ bgColor: "rgba(0, 214, 143, 0.25)" }}
+              <button
+                className="w-full h-10 rounded-sm border border-[rgba(0,214,143,0.3)] flex items-center justify-center gap-2 text-[13px] font-medium transition-colors"
+                style={{ background: "rgba(0,214,143,0.15)", color: accentBright }}
               >
-                <HStack gap="8px">
-                  <ArrowUpRightIcon size={14} color={accentBright} />
-                  <Text>View on Explorer</Text>
-                </HStack>
-              </Button>
+                <ArrowUpRightIcon size={14} color={accentBright} />
+                View on Explorer
+              </button>
             </a>
-          </VStack>
-        </Box>
+          </div>
+        </div>
       )}
 
-      {/* Payments List - Only show unclaimed payments */}
+      {/* Payments List */}
       {(() => {
         const pendingList = payments.filter(p => !p.claimed);
         return pendingList.length === 0 ? (
-          <Box
-            p="48px 24px"
-            bgColor={colors.bg.input}
-            borderRadius={radius.lg}
-            border={`1px solid ${colors.border.default}`}
-            textAlign="center"
+          <div
+            className="p-12 px-6 rounded-[16px] border text-center"
+            style={{ background: colors.bg.input, borderColor: colors.border.default }}
           >
-            <VStack gap="14px">
-              <Box p="16px" bgColor={colors.bg.elevated} borderRadius="50%">
+            <div className="flex flex-col items-center gap-3.5">
+              <div className="p-4 rounded-full" style={{ background: colors.bg.elevated }}>
                 <InboxIcon size={32} color={colors.text.muted} />
-              </Box>
-              <VStack gap="6px">
-                <Text fontSize="15px" fontWeight={500} color={colors.text.primary}>No pending payments</Text>
-                <Text fontSize="13px" color={colors.text.muted} maxW="240px" lineHeight="1.5">
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-[15px] font-medium text-white">No pending payments</span>
+                <span className="text-[13px] max-w-[240px] leading-relaxed" style={{ color: colors.text.muted }}>
                   When someone sends you a private payment, it will appear here
-                </Text>
-              </VStack>
-            </VStack>
-          </Box>
+                </span>
+              </div>
+            </div>
+          </div>
         ) : (
-          <VStack gap="10px" align="stretch">
+          <div className="flex flex-col gap-2.5">
             {pendingList.map((payment: StealthPayment) => {
               const index = payments.indexOf(payment);
               const balance = parseFloat(payment.balance || "0");
-            // Sponsored wallet types (create2, account, eip7702) can claim any amount
-            // Only apply dust check for EOA wallets where user pays their own gas
-            const isTooLowForGas = balance > 0 && balance < MIN_CLAIMABLE_BALANCE && (!payment.walletType || payment.walletType === 'eoa');
-            const canClaim = !payment.claimed && !payment.keyMismatch && !isTooLowForGas;
+              const isTooLowForGas = balance > 0 && balance < MIN_CLAIMABLE_BALANCE && (!payment.walletType || payment.walletType === 'eoa');
+              const canClaim = !payment.claimed && !payment.keyMismatch && !isTooLowForGas;
 
-            return (
-              <Box
-                key={payment.announcement.txHash}
-                p="18px"
-                bgColor={colors.bg.input}
-                borderRadius={radius.md}
-                border={`1px solid ${canClaim ? "rgba(0, 214, 143, 0.3)" : colors.border.default}`}
-                opacity={payment.claimed || isTooLowForGas ? 0.5 : 1}
-                transition="all 0.2s ease"
-                _hover={canClaim ? { borderColor: accentColor, boxShadow: glowColor } : {}}
-              >
-                <HStack justify="space-between" align="center">
-                  <HStack gap="14px">
-                    <Box
-                      p="10px"
-                      bgColor={payment.claimed ? "rgba(0, 214, 143, 0.1)" : canClaim ? "rgba(0, 214, 143, 0.1)" : colors.bg.elevated}
-                      borderRadius={radius.sm}
-                    >
-                      {payment.claimed ? (
-                        <CheckCircleIcon size={18} color={colors.accent.green} />
-                      ) : canClaim ? (
-                        <ArrowDownLeftIcon size={18} color={colors.accent.green} />
-                      ) : (
-                        <AlertCircleIcon size={18} color={colors.text.muted} />
-                      )}
-                    </Box>
-                    <VStack align="flex-start" gap="2px">
-                      <Text fontSize="18px" fontWeight={600} color={colors.text.primary} fontFamily="'JetBrains Mono', monospace">
-                        {balance.toFixed(4)} {symbol}
-                      </Text>
-                      <Text fontSize="11px" color={colors.text.muted}>
-                        Block #{payment.announcement.blockNumber.toLocaleString()}
-                      </Text>
-                    </VStack>
-                  </HStack>
+              return (
+                <div
+                  key={payment.announcement.txHash}
+                  className="p-[18px] rounded-xl transition-all duration-200"
+                  style={{
+                    background: colors.bg.input,
+                    border: `1px solid ${canClaim ? "rgba(0,214,143,0.3)" : colors.border.default}`,
+                    opacity: payment.claimed || isTooLowForGas ? 0.5 : 1,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className="p-2.5 rounded-sm"
+                        style={{ background: payment.claimed ? "rgba(0,214,143,0.1)" : canClaim ? "rgba(0,214,143,0.1)" : colors.bg.elevated }}
+                      >
+                        {payment.claimed ? (
+                          <CheckCircleIcon size={18} color={colors.accent.green} />
+                        ) : canClaim ? (
+                          <ArrowDownLeftIcon size={18} color={colors.accent.green} />
+                        ) : (
+                          <AlertCircleIcon size={18} color={colors.text.muted} />
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[18px] font-semibold font-mono text-white">
+                          {balance.toFixed(4)} {symbol}
+                        </span>
+                        <span className="text-[11px]" style={{ color: colors.text.muted }}>
+                          Block #{payment.announcement.blockNumber.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
 
-                  {payment.claimed ? (
-                    <HStack gap="6px" px="12px" py="6px" bgColor="rgba(0, 214, 143, 0.1)" borderRadius={radius.xs}>
-                      <CheckCircleIcon size={12} color={colors.accent.green} />
-                      <Text fontSize="12px" fontWeight={500} color={colors.accent.green}>Claimed</Text>
-                    </HStack>
-                  ) : payment.keyMismatch ? (
-                    <HStack gap="6px" px="12px" py="6px" bgColor="rgba(255, 107, 107, 0.1)" borderRadius={radius.xs}>
-                      <AlertCircleIcon size={12} color={colors.accent.red} />
-                      <Text fontSize="12px" fontWeight={500} color={colors.accent.red}>Key Mismatch</Text>
-                    </HStack>
-                  ) : isTooLowForGas ? (
-                    <HStack gap="6px" px="12px" py="6px" bgColor="rgba(255, 190, 11, 0.1)" borderRadius={radius.xs}>
-                      <Text fontSize="12px" fontWeight={500} color={colors.accent.amber}>Dust</Text>
-                    </HStack>
-                  ) : (
-                    <Button
-                      h="38px" px="20px"
-                      bgColor={accentColor}
-                      borderRadius={radius.sm}
-                      fontWeight={500} fontSize="13px"
-                      color={colors.bg.page}
-                      _hover={{ bgColor: accentDark }}
-                      onClick={() => handleClaim(index)}
-                      disabled={claimingIndex === index}
-                    >
-                      {claimingIndex === index ? (
-                        <HStack gap="8px">
-                          <Spinner size="sm" />
-                          <Text>Claiming...</Text>
-                        </HStack>
-                      ) : (
-                        <HStack gap="6px">
-                          <Text>Claim</Text>
-                        </HStack>
-                      )}
-                    </Button>
+                    {payment.claimed ? (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm" style={{ background: "rgba(0,214,143,0.1)" }}>
+                        <CheckCircleIcon size={12} color={colors.accent.green} />
+                        <span className="text-[12px] font-medium" style={{ color: colors.accent.green }}>Claimed</span>
+                      </div>
+                    ) : payment.keyMismatch ? (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm" style={{ background: "rgba(255,107,107,0.1)" }}>
+                        <AlertCircleIcon size={12} color={colors.accent.red} />
+                        <span className="text-[12px] font-medium" style={{ color: colors.accent.red }}>Key Mismatch</span>
+                      </div>
+                    ) : isTooLowForGas ? (
+                      <div className="px-3 py-1.5 rounded-sm" style={{ background: "rgba(255,190,11,0.1)" }}>
+                        <span className="text-[12px] font-medium" style={{ color: colors.accent.amber }}>Dust</span>
+                      </div>
+                    ) : (
+                      <button
+                        className="h-[38px] px-5 rounded-sm text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        style={{ background: accentColor, color: colors.bg.page }}
+                        onClick={() => handleClaim(index)}
+                        disabled={claimingIndex === index}
+                      >
+                        {claimingIndex === index ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            Claiming...
+                          </>
+                        ) : "Claim"}
+                      </button>
+                    )}
+                  </div>
+
+                  {payment.keyMismatch && (
+                    <p className="text-[11px] mt-2.5 pl-[52px]" style={{ color: colors.accent.red }}>
+                      Your current keys don&apos;t match this payment
+                    </p>
                   )}
-                </HStack>
-
-                {payment.keyMismatch && (
-                  <Text fontSize="11px" color={colors.accent.red} mt="10px" pl="52px">
-                    Your current keys don&apos;t match this payment
-                  </Text>
-                )}
-              </Box>
-            );
+                </div>
+              );
             })}
-          </VStack>
+          </div>
         );
       })()}
 
       {scanError && (
-        <Box p="12px 14px" bgColor="rgba(255, 107, 107, 0.08)" borderRadius={radius.xs}>
-          <HStack gap="8px">
+        <div className="p-3 px-3.5 rounded-sm" style={{ background: "rgba(255,107,107,0.08)" }}>
+          <div className="flex items-center gap-2">
             <AlertCircleIcon size={14} color={colors.accent.red} />
-            <Text fontSize="12px" color={colors.accent.red}>{scanError}</Text>
-          </HStack>
-        </Box>
+            <span className="text-[12px]" style={{ color: colors.accent.red }}>{scanError}</span>
+          </div>
+        </div>
       )}
-    </VStack>
+    </div>
   );
 };
 
-const HistoryView = ({ colors, radius, fadeIn, payments }: HistoryViewProps) => {
+const HistoryView = ({ colors, radius, payments }: HistoryViewProps) => {
   const { activeChainId } = useAuth();
   const claimedPayments = payments.filter(p => p.claimed);
   const EXPLORER_BASE = getChainConfig(activeChainId).blockExplorerUrl;
 
   return (
-    <VStack gap="16px" align="stretch" animation={`${fadeIn} 0.25s ease-out`}>
-      <VStack gap="4px" align="flex-start">
-        <Text fontSize="18px" fontWeight={600} color={colors.text.primary}>History</Text>
-        <Text fontSize="13px" color={colors.text.muted}>Your claimed payments</Text>
-      </VStack>
+    <div className="flex flex-col gap-4 animate-[fadeIn_0.25s_ease-out]">
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+      <div className="flex flex-col gap-1">
+        <span className="text-[18px] font-semibold text-white">History</span>
+        <span className="text-[13px]" style={{ color: colors.text.muted }}>Your claimed payments</span>
+      </div>
 
       {claimedPayments.length === 0 ? (
-        <Box
-          p="48px 24px"
-          bgColor={colors.bg.input}
-          borderRadius={radius.lg}
-          border={`1px solid ${colors.border.default}`}
-          textAlign="center"
+        <div
+          className="p-12 px-6 rounded-[16px] border text-center"
+          style={{ background: colors.bg.input, borderColor: colors.border.default }}
         >
-          <VStack gap="14px">
-            <Box p="16px" bgColor={colors.bg.elevated} borderRadius="50%">
+          <div className="flex flex-col items-center gap-3.5">
+            <div className="p-4 rounded-full" style={{ background: colors.bg.elevated }}>
               <HistoryIcon size={32} color={colors.text.muted} />
-            </Box>
-            <VStack gap="6px">
-              <Text fontSize="15px" fontWeight={500} color={colors.text.primary}>No history yet</Text>
-              <Text fontSize="13px" color={colors.text.muted} maxW="240px" lineHeight="1.5">
+            </div>
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="text-[15px] font-medium text-white">No history yet</span>
+              <span className="text-[13px] max-w-[240px] leading-relaxed" style={{ color: colors.text.muted }}>
                 Claimed payments will appear here
-              </Text>
-            </VStack>
-          </VStack>
-        </Box>
+              </span>
+            </div>
+          </div>
+        </div>
       ) : (
-        <VStack gap="10px" align="stretch">
+        <div className="flex flex-col gap-2.5">
           {claimedPayments.map((payment: StealthPayment) => (
-              <Box
-                key={payment.announcement.txHash}
-                p="16px"
-                bgColor={colors.bg.input}
-                borderRadius={radius.md}
-                border={`1px solid ${colors.border.default}`}
-              >
-                <HStack justify="space-between" align="center">
-                  <HStack gap="12px">
-                    <Box p="10px" bgColor="rgba(0, 214, 143, 0.1)" borderRadius={radius.sm}>
-                      <CheckCircleIcon size={18} color={colors.accent.green} />
-                    </Box>
-                    <VStack align="flex-start" gap="2px">
-                      <HStack gap="6px">
-                        <Text fontSize="14px" fontWeight={600} color={colors.accent.green}>Claimed</Text>
-                      </HStack>
-                      <Text fontSize="11px" color={colors.text.muted}>
-                        Block #{payment.announcement.blockNumber.toLocaleString()}
-                      </Text>
-                    </VStack>
-                  </HStack>
-                  <a href={`${EXPLORER_BASE}/tx/${payment.announcement.txHash}`} target="_blank" rel="noopener noreferrer">
-                    <Button
-                      h="32px" px="12px"
-                      bgColor={colors.bg.elevated}
-                      borderRadius={radius.xs}
-                      border={`1px solid ${colors.border.light}`}
-                      fontWeight={500} fontSize="11px"
-                      color={colors.text.secondary}
-                      _hover={{ borderColor: colors.accent.indigo, color: colors.accent.indigo }}
-                    >
-                      <HStack gap="5px">
-                        <ArrowUpRightIcon size={12} />
-                        <Text>Explorer</Text>
-                      </HStack>
-                    </Button>
-                  </a>
-                </HStack>
-              </Box>
+            <div
+              key={payment.announcement.txHash}
+              className="p-4 rounded-xl border"
+              style={{ background: colors.bg.input, borderColor: colors.border.default }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-sm" style={{ background: "rgba(0,214,143,0.1)" }}>
+                    <CheckCircleIcon size={18} color={colors.accent.green} />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-semibold" style={{ color: colors.accent.green }}>Claimed</span>
+                    <span className="text-[11px]" style={{ color: colors.text.muted }}>
+                      Block #{payment.announcement.blockNumber.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <a href={`${EXPLORER_BASE}/tx/${payment.announcement.txHash}`} target="_blank" rel="noopener noreferrer">
+                  <button
+                    className="h-8 px-3 rounded-sm border text-[11px] font-medium transition-colors flex items-center gap-1.5"
+                    style={{ background: colors.bg.elevated, borderColor: colors.border.light, color: colors.text.secondary }}
+                  >
+                    <ArrowUpRightIcon size={12} />
+                    Explorer
+                  </button>
+                </a>
+              </div>
+            </div>
           ))}
-        </VStack>
+        </div>
       )}
 
       {claimedPayments.length > 0 && (
-        <Box p="12px 16px" bgColor={colors.bg.input} borderRadius={radius.sm} border={`1px solid ${colors.border.default}`}>
-          <HStack justify="space-between" align="center">
-            <Text fontSize="12px" color={colors.text.muted}>Total payments claimed</Text>
-            <Text fontSize="14px" fontWeight={600} color={colors.accent.green}>
-              {claimedPayments.length}
-            </Text>
-          </HStack>
-        </Box>
+        <div className="flex items-center justify-between px-4 py-3 rounded-sm border" style={{ background: colors.bg.input, borderColor: colors.border.default }}>
+          <span className="text-[12px]" style={{ color: colors.text.muted }}>Total payments claimed</span>
+          <span className="text-sm font-semibold" style={{ color: colors.accent.green }}>
+            {claimedPayments.length}
+          </span>
+        </div>
       )}
-    </VStack>
+    </div>
   );
 };
 
-const SettingsView = ({ colors, radius, fadeIn, metaAddress, handleCopy, copied, claimAddressesInitialized, claimAddresses, clearKeys }: SettingsViewProps) => {
+const SettingsView = ({ colors, radius, metaAddress, handleCopy, copied, claimAddressesInitialized, claimAddresses, clearKeys }: SettingsViewProps) => {
   const { activeChainId } = useAuth();
   const symbol = getChainConfig(activeChainId).nativeCurrency.symbol;
   return (
-  <VStack gap="20px" align="stretch" animation={`${fadeIn} 0.25s ease-out`}>
-    <VStack gap="4px" align="flex-start">
-      <Text fontSize="18px" fontWeight={600} color={colors.text.primary}>Settings</Text>
-      <Text fontSize="14px" color={colors.text.muted}>Manage your private wallet</Text>
-    </VStack>
+  <div className="flex flex-col gap-5 animate-[fadeIn_0.25s_ease-out]">
+    <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+    <div className="flex flex-col gap-1">
+      <span className="text-[18px] font-semibold text-white">Settings</span>
+      <span className="text-sm" style={{ color: colors.text.muted }}>Manage your private wallet</span>
+    </div>
 
-    <Box p="20px" bgColor={colors.bg.input} borderRadius={radius.lg} border={`1px solid ${colors.border.default}`}>
-      <VStack gap="14px" align="stretch">
-        <HStack gap="10px"><KeyIcon size={16} color={colors.text.muted} /><Text fontSize="13px" color={colors.text.muted} fontWeight={500}>Private Address</Text></HStack>
-        <Box p="14px 16px" bgColor={colors.bg.page} borderRadius={radius.md} border={`1px solid ${colors.border.default}`}>
-          <Text fontSize="12px" color={colors.text.tertiary} fontFamily="'JetBrains Mono', monospace" wordBreak="break-all" lineHeight="1.6">{metaAddress}</Text>
-        </Box>
-        <Button h="40px" bgColor={colors.bg.page} borderRadius={radius.xs} border={`1px solid ${colors.border.default}`}
-          fontWeight={500} fontSize="13px" color={colors.text.primary} _hover={{ bgColor: colors.bg.hover }} onClick={() => handleCopy(metaAddress || "")}>
-          <HStack gap="8px">{copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}<Text>{copied ? "Copied" : "Copy Address"}</Text></HStack>
-        </Button>
-      </VStack>
-    </Box>
+    <div className="p-5 rounded-[16px] border" style={{ background: colors.bg.input, borderColor: colors.border.default }}>
+      <div className="flex flex-col gap-3.5">
+        <div className="flex items-center gap-2.5">
+          <KeyIcon size={16} color={colors.text.muted} />
+          <span className="text-[13px] font-medium" style={{ color: colors.text.muted }}>Private Address</span>
+        </div>
+        <div className="p-3.5 px-4 rounded-xl border" style={{ background: colors.bg.page, borderColor: colors.border.default }}>
+          <span className="text-[12px] font-mono leading-relaxed break-all" style={{ color: colors.text.tertiary }}>{metaAddress}</span>
+        </div>
+        <button
+          className="h-10 w-full rounded-sm border text-[13px] font-medium transition-colors flex items-center justify-center gap-2"
+          style={{ background: colors.bg.page, borderColor: colors.border.default, color: colors.text.primary }}
+          onClick={() => handleCopy(metaAddress || "")}
+        >
+          {copied ? <CheckIcon size={14} /> : <CopyIcon size={14} />}
+          {copied ? "Copied" : "Copy Address"}
+        </button>
+      </div>
+    </div>
 
     {claimAddressesInitialized && (
-      <Box p="20px" bgColor={colors.bg.input} borderRadius={radius.lg} border={`1px solid ${colors.border.default}`}>
-        <VStack gap="14px" align="stretch">
-          <HStack gap="10px"><WalletIcon size={16} color={colors.text.muted} /><Text fontSize="13px" color={colors.text.muted} fontWeight={500}>Claim Addresses</Text></HStack>
+      <div className="p-5 rounded-[16px] border" style={{ background: colors.bg.input, borderColor: colors.border.default }}>
+        <div className="flex flex-col gap-3.5">
+          <div className="flex items-center gap-2.5">
+            <WalletIcon size={16} color={colors.text.muted} />
+            <span className="text-[13px] font-medium" style={{ color: colors.text.muted }}>Claim Addresses</span>
+          </div>
           {claimAddresses.map((addr: ClaimAddress, idx: number) => (
-            <HStack key={addr.address} p="14px 16px" bgColor={colors.bg.page} borderRadius={radius.md} justify="space-between">
-              <VStack align="flex-start" gap="3px">
-                <Text fontSize="14px" fontWeight={500} color={colors.text.primary}>{addr.label || `Wallet ${idx + 1}`}</Text>
-                <Text fontSize="11px" color={colors.text.muted} fontFamily="'JetBrains Mono', monospace">{addr.address.slice(0, 14)}...{addr.address.slice(-10)}</Text>
-              </VStack>
-              <Text fontSize="14px" fontWeight={500} color={colors.accent.green} fontFamily="'JetBrains Mono', monospace">{parseFloat(addr.balance || "0").toFixed(4)} {symbol}</Text>
-            </HStack>
+            <div key={addr.address} className="flex items-center justify-between px-4 py-3.5 rounded-xl" style={{ background: colors.bg.page }}>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-white">{addr.label || `Wallet ${idx + 1}`}</span>
+                <span className="text-[11px] font-mono" style={{ color: colors.text.muted }}>{addr.address.slice(0, 14)}...{addr.address.slice(-10)}</span>
+              </div>
+              <span className="text-sm font-medium font-mono" style={{ color: colors.accent.green }}>{parseFloat(addr.balance || "0").toFixed(4)} {symbol}</span>
+            </div>
           ))}
-        </VStack>
-      </Box>
+        </div>
+      </div>
     )}
 
-    <Box p="20px" bgColor="rgba(239, 68, 68, 0.03)" borderRadius={radius.lg} border="1px solid rgba(239, 68, 68, 0.12)">
-      <VStack gap="14px" align="stretch">
-        <HStack gap="10px"><TrashIcon size={16} color={colors.accent.red} /><Text fontSize="13px" color={colors.accent.red} fontWeight={500}>Danger Zone</Text></HStack>
-        <Button h="44px" bgColor="rgba(239, 68, 68, 0.1)" borderRadius={radius.xs} fontWeight={500} fontSize="14px" color={colors.accent.red}
-          border="1px solid rgba(239, 68, 68, 0.2)" _hover={{ bgColor: "rgba(239, 68, 68, 0.15)" }} onClick={clearKeys}>Reset Private Wallet</Button>
-        <Text fontSize="12px" color={colors.text.muted}>This will clear your keys. You can recover them by signing with the same wallet.</Text>
-      </VStack>
-    </Box>
-  </VStack>
+    <div className="p-5 rounded-[16px] border border-[rgba(239,68,68,0.12)]" style={{ background: "rgba(239,68,68,0.03)" }}>
+      <div className="flex flex-col gap-3.5">
+        <div className="flex items-center gap-2.5">
+          <TrashIcon size={16} color={colors.accent.red} />
+          <span className="text-[13px] font-medium" style={{ color: colors.accent.red }}>Danger Zone</span>
+        </div>
+        <button
+          className="h-11 w-full rounded-sm border border-[rgba(239,68,68,0.2)] text-sm font-medium transition-colors"
+          style={{ background: "rgba(239,68,68,0.1)", color: colors.accent.red }}
+          onClick={clearKeys}
+        >
+          Reset Private Wallet
+        </button>
+        <span className="text-[12px]" style={{ color: colors.text.muted }}>This will clear your keys. You can recover them by signing with the same wallet.</span>
+      </div>
+    </div>
+  </div>
   );
 };

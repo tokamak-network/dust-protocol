@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Box, Text, VStack, HStack } from "@chakra-ui/react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import QRCode from "qrcode";
-import { colors, radius } from "@/lib/design/tokens";
 import { CopyIcon, CheckIcon } from "@/components/stealth/icons";
 
 interface AddressDisplayProps {
@@ -48,57 +46,45 @@ export function AddressDisplay({ address, label }: AddressDisplayProps) {
     : "";
 
   return (
-    <VStack gap="16px">
+    <div className="flex flex-col items-center gap-4">
       {label && (
-        <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>
+        <span className="text-[13px] text-[rgba(255,255,255,0.4)] font-medium">
           {label}
-        </Text>
+        </span>
       )}
 
       {/* QR Code */}
-      <Box
-        p="12px"
-        borderRadius={radius.lg}
-        border={`3px solid ${colors.accent.indigo}`}
-        boxShadow={`0 4px 20px ${colors.accent.indigo}25`}
-        bgColor="#fff"
+      <div
+        className="p-3 rounded-[16px] bg-white"
+        style={{
+          border: "3px solid #7c7fff",
+          boxShadow: "0 4px 20px rgba(124,127,255,0.15)",
+        }}
       >
         <canvas
           ref={canvasRef}
           style={{ display: "block", borderRadius: "8px" }}
         />
-      </Box>
+      </div>
 
       {/* Address with copy */}
-      <Box
-        as="button"
-        w="100%"
-        p="12px 16px"
-        bgColor={colors.bg.input}
-        borderRadius={radius.sm}
-        border={`1px solid ${colors.border.default}`}
-        cursor="pointer"
-        _hover={{ borderColor: colors.accent.indigo }}
+      <button
+        className="w-full px-4 py-3 bg-[rgba(255,255,255,0.04)] rounded-sm border border-[rgba(255,255,255,0.06)] cursor-pointer hover:border-[#7c7fff] transition-[border-color] duration-150"
         onClick={handleCopy}
-        transition="border-color 0.15s"
       >
-        <HStack justify="space-between" align="center">
-          <Text
-            fontSize="14px"
-            fontWeight={600}
-            color={colors.text.primary}
-            fontFamily="'JetBrains Mono', monospace"
-            letterSpacing="-0.01em"
+        <div className="flex items-center justify-between">
+          <span
+            className="text-sm font-semibold text-white font-mono tracking-tight"
           >
             {truncated}
-          </Text>
+          </span>
           {copied ? (
-            <CheckIcon size={16} color={colors.accent.indigo} />
+            <CheckIcon size={16} color="#7c7fff" />
           ) : (
-            <CopyIcon size={16} color={colors.text.muted} />
+            <CopyIcon size={16} color="rgba(255,255,255,0.4)" />
           )}
-        </HStack>
-      </Box>
-    </VStack>
+        </div>
+      </button>
+    </div>
   );
 }

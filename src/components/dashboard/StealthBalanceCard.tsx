@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
-import { colors, radius, shadows, transitions } from "@/lib/design/tokens";
+import React, { useEffect, useRef } from "react";
 import { getChainConfig } from "@/config/chains";
 import { useAuth } from "@/contexts/AuthContext";
 import type { StealthPayment } from "@/lib/design/types";
@@ -27,97 +25,85 @@ export function StealthBalanceCard({ payments, isScanning, scan }: StealthBalanc
   const totalBalance = validPayments.reduce((sum, p) => sum + parseFloat(p.originalAmount || p.balance || "0"), 0);
 
   return (
-    <Box
-      p="3px"
-      borderRadius={radius.lg}
-      bg="linear-gradient(135deg, #2B5AE2 0%, #4A75F0 50%, #2B5AE2 100%)"
-      boxShadow={shadows.card}
+    <div
+      className="p-[3px] rounded-[18px]"
+      style={{
+        background: "linear-gradient(135deg, #2B5AE2 0%, #4A75F0 50%, #2B5AE2 100%)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+      }}
     >
-      <Box
-        p="28px"
-        bg={colors.bg.cardSolid}
-        borderRadius="17px"
-      >
-        <VStack gap="24px" align="stretch">
+      <div className="p-7 bg-[#0d0f1a] rounded-[17px]">
+        <div className="flex flex-col gap-6">
           {/* Header */}
-          <HStack justify="space-between" align="center">
-            <HStack gap="8px" align="center">
-              <Text fontSize="17px" fontWeight={700} color={colors.text.primary}>Your Stealth Balances</Text>
-              <InfoIcon size={16} color={colors.text.muted} />
-            </HStack>
-            <Box
-              as="button"
-              p="8px"
-              borderRadius={radius.full}
-              cursor="pointer"
-              _hover={{ bgColor: colors.bg.hover }}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[17px] font-bold text-white">Your Stealth Balances</span>
+              <InfoIcon size={16} color="rgba(255,255,255,0.3)" />
+            </div>
+            <button
+              className="p-2 rounded-full cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-colors duration-150"
               onClick={() => scan()}
-              transition={transitions.fast}
             >
-              {isScanning
-                ? <Spinner size="sm" color={colors.accent.indigo} />
-                : <RefreshIcon size={18} color={colors.text.muted} />
-              }
-            </Box>
-          </HStack>
+              {isScanning ? (
+                <div className="w-[18px] h-[18px] border-2 border-[#7c7fff] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <RefreshIcon size={18} color="rgba(255,255,255,0.3)" />
+              )}
+            </button>
+          </div>
 
           {/* Big balance */}
-          <Box>
-            <HStack align="baseline" gap="8px">
-              <Text fontSize="42px" fontWeight={800} color={colors.text.primary} lineHeight="1" letterSpacing="-0.03em">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[42px] font-extrabold text-white leading-none tracking-tight">
                 {totalBalance.toFixed(4)}
-              </Text>
-              <Text fontSize="18px" fontWeight={500} color={colors.text.muted}>{symbol}</Text>
-            </HStack>
-          </Box>
+              </span>
+              <span className="text-[18px] font-medium text-[rgba(255,255,255,0.4)]">{symbol}</span>
+            </div>
+          </div>
 
           {/* Token summary */}
           {validPayments.length > 0 && (
-            <Box borderTop={`1px solid ${colors.border.default}`} pt="16px">
-              <HStack justify="space-between" align="center">
-                <HStack gap="14px">
-                  <Box
-                    w="44px" h="44px"
-                    borderRadius={radius.full}
-                    bg="linear-gradient(135deg, rgba(42, 114, 229, 0.08) 0%, rgba(42, 114, 229, 0.15) 100%)"
-                    border="1.5px solid rgba(42, 114, 229, 0.2)"
-                    display="flex" alignItems="center" justifyContent="center"
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3.5">
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center"
+                    style={{
+                      background: "linear-gradient(135deg, rgba(42,114,229,0.08) 0%, rgba(42,114,229,0.15) 100%)",
+                      border: "1.5px solid rgba(42,114,229,0.2)",
+                    }}
                   >
                     <ChainIcon size={28} chainId={activeChainId} />
-                  </Box>
-                  <VStack align="flex-start" gap="2px">
-                    <Text fontSize="16px" fontWeight={700} color={colors.text.primary}>{symbol}</Text>
-                    <Text fontSize="13px" color={colors.text.muted}>{chainConfig.name}</Text>
-                  </VStack>
-                </HStack>
-                <VStack align="flex-end" gap="2px">
-                  <Text fontSize="17px" fontWeight={700} color={colors.text.primary}>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-base font-bold text-white">{symbol}</span>
+                    <span className="text-[13px] text-[rgba(255,255,255,0.4)]">{chainConfig.name}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-[17px] font-bold text-white">
                     {totalBalance.toFixed(4)}
-                  </Text>
-                  <Text fontSize="12px" color={colors.text.muted}>
+                  </span>
+                  <span className="text-[12px] text-[rgba(255,255,255,0.4)]">
                     {validPayments.length} payment{validPayments.length !== 1 ? "s" : ""}
-                  </Text>
-                </VStack>
-              </HStack>
-            </Box>
+                  </span>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Footer */}
-          <Box
-            p="12px 16px"
-            bgColor="rgba(43, 90, 226, 0.04)"
-            borderRadius={radius.sm}
-            textAlign="center"
-          >
-            <Text fontSize="14px" color={colors.accent.indigo} fontWeight={600}>
+          <div className="px-4 py-3 bg-[rgba(43,90,226,0.04)] rounded-sm text-center">
+            <span className="text-sm text-[#7c7fff] font-semibold">
               {validPayments.length === 0
                 ? "No payments yet"
                 : "Payments received privately through Dust"
               }
-            </Text>
-          </Box>
-        </VStack>
-      </Box>
-    </Box>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
-import { colors, radius } from "@/lib/design/tokens";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { getChainConfig } from "@/config/chains";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBalancePoller } from "@/hooks/stealth/useBalancePoller";
@@ -105,86 +103,73 @@ export function NoOptInPayment({
 
   if (status === "resolving") {
     return (
-      <VStack gap="16px" py="24px">
-        <Spinner size="md" color={colors.accent.indigo} />
-        <Text fontSize="14px" color={colors.text.muted}>
+      <div className="flex flex-col items-center gap-4 py-6">
+        <div className="w-8 h-8 border-2 border-[#7c7fff] border-t-transparent rounded-full animate-spin" />
+        <span className="text-sm text-[rgba(255,255,255,0.4)]">
           Generating stealth address...
-        </Text>
-      </VStack>
+        </span>
+      </div>
     );
   }
 
   if (status === "error") {
     return (
-      <VStack gap="16px" py="24px">
-        <AlertCircleIcon size={32} color={colors.accent.red} />
-        <Text fontSize="14px" color={colors.accent.red} textAlign="center" px="8px">
+      <div className="flex flex-col items-center gap-4 py-6">
+        <AlertCircleIcon size={32} color="#ff6b6b" />
+        <p className="text-sm text-[#ff6b6b] text-center px-2">
           {error || "Something went wrong"}
-        </Text>
-        <Box
-          as="button"
-          px="24px"
-          py="10px"
-          bgColor={colors.accent.indigo}
-          color="white"
-          borderRadius={radius.sm}
-          fontSize="14px"
-          fontWeight={600}
-          cursor="pointer"
+        </p>
+        <button
+          className="px-6 py-2.5 bg-[#7c7fff] text-white rounded-sm text-sm font-semibold cursor-pointer hover:opacity-90 transition-opacity"
           onClick={handleRetry}
-          _hover={{ opacity: 0.9 }}
         >
           Retry
-        </Box>
-      </VStack>
+        </button>
+      </div>
     );
   }
 
   if (status === "deposit_detected") {
     return (
-      <VStack gap="20px" py="24px">
-        <Box p="16px" bgColor="rgba(43, 90, 226, 0.08)" borderRadius="50%">
-          <CheckCircleIcon size={36} color={colors.accent.indigo} />
-        </Box>
-        <VStack gap="6px">
-          <Text fontSize="20px" fontWeight={700} color={colors.text.primary}>
+      <div className="flex flex-col items-center gap-5 py-6">
+        <div className="p-4 bg-[rgba(43,90,226,0.08)] rounded-full">
+          <CheckCircleIcon size={36} color="#7c7fff" />
+        </div>
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="text-[20px] font-bold text-white">
             Payment Received!
-          </Text>
-          <Text fontSize="15px" color={colors.text.secondary} fontFamily="'JetBrains Mono', monospace">
+          </span>
+          <span className="text-[15px] text-[rgba(255,255,255,0.7)] font-mono">
             {depositAmount !== "0" ? depositAmount : externalPaymentAmount || ""} {symbol}
-          </Text>
-          <Text fontSize="13px" color={colors.text.muted}>
+          </span>
+          <span className="text-[13px] text-[rgba(255,255,255,0.4)]">
             Sent to {displayName}
-          </Text>
-        </VStack>
-      </VStack>
+          </span>
+        </div>
+      </div>
     );
   }
 
   // status === "ready"
   return (
-    <VStack gap="20px">
+    <div className="flex flex-col items-center gap-5">
       <style>{`@keyframes dust-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
       {/* Status pill */}
-      <HStack
-        gap="8px"
-        px="14px"
-        py="8px"
-        bgColor="rgba(43, 90, 226, 0.06)"
-        borderRadius={radius.full}
-        border="1px solid rgba(43, 90, 226, 0.12)"
+      <div
+        className="flex items-center gap-2 px-3.5 py-2 rounded-full"
+        style={{
+          background: "rgba(43,90,226,0.06)",
+          border: "1px solid rgba(43,90,226,0.12)",
+        }}
       >
-        <Box
-          w="8px"
-          h="8px"
-          borderRadius="50%"
-          bgColor={colors.accent.indigo}
-          animation="dust-pulse 2s ease-in-out infinite"
+        <div
+          className="w-2 h-2 rounded-full bg-[#7c7fff]"
+          style={{ animation: "dust-pulse 2s ease-in-out infinite" }}
         />
-        <Text fontSize="13px" color={colors.accent.indigo} fontWeight={600}>
+        <span className="text-[13px] text-[#7c7fff] font-semibold">
           Waiting for payment...
-        </Text>
-      </HStack>
+        </span>
+      </div>
 
       {/* Address + QR */}
       {stealthAddress && (
@@ -195,27 +180,26 @@ export function NoOptInPayment({
       )}
 
       {/* Instructions */}
-      <VStack gap="8px" w="100%">
-        <HStack
-          gap="8px"
-          p="12px"
-          bgColor="rgba(43, 90, 226, 0.04)"
-          borderRadius={radius.sm}
-          border="1px solid rgba(43, 90, 226, 0.1)"
-          w="100%"
+      <div className="flex flex-col gap-2 w-full">
+        <div
+          className="flex items-center gap-2 p-3 rounded-sm w-full"
+          style={{
+            background: "rgba(43,90,226,0.04)",
+            border: "1px solid rgba(43,90,226,0.1)",
+          }}
         >
-          <Box flexShrink={0}>
-            <ShieldIcon size={14} color={colors.accent.indigo} />
-          </Box>
-          <Text fontSize="12px" color={colors.text.tertiary}>
+          <div className="shrink-0">
+            <ShieldIcon size={14} color="#7c7fff" />
+          </div>
+          <span className="text-[12px] text-[rgba(255,255,255,0.4)]">
             This is a one-time stealth address. Send any amount of {symbol} from any wallet.
-          </Text>
-        </HStack>
+          </span>
+        </div>
 
-        <Text fontSize="11px" color={colors.text.muted} textAlign="center">
+        <span className="text-[11px] text-[rgba(255,255,255,0.3)] text-center">
           You can close this page — the address is ready to receive
-        </Text>
-      </VStack>
-    </VStack>
+        </span>
+      </div>
+    </div>
   );
 }
