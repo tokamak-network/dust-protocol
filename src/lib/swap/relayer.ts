@@ -78,10 +78,10 @@ export async function getRelayerInfo(): Promise<RelayerInfo | null> {
 
     const data = await response.json()
     return {
-      address: data.address,
+      address: data.relayerAddress || data.address,
       chain: data.chain || 'Unknown',
       chainId: data.chainId || 0,
-      feeBps: data.fee || RELAYER_FEE_BPS,
+      feeBps: data.feeBps || data.fee || RELAYER_FEE_BPS,
       balance: data.balance || '0',
     }
   } catch (error) {
@@ -108,7 +108,7 @@ export async function submitToRelayer(request: RelayRequest): Promise<RelayerRes
       swapParams: request.swapParams,
     })
 
-    const response = await fetch(`${DUST_SWAP_RELAYER_URL}/relay`, {
+    const response = await fetch(`${DUST_SWAP_RELAYER_URL}/swap`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),

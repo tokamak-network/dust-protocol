@@ -23,6 +23,7 @@ export interface ChainContracts {
   dustSwapPoolUSDC: string | null;
   dustSwapHook: string | null;
   dustSwapVerifier: string | null;
+  dustSwapRouter: string | null;  // Production router (replaces PoolSwapTest)
   uniswapV4PoolManager: string | null;
   uniswapV4StateView: string | null;
   uniswapV4Quoter: string | null;
@@ -92,6 +93,7 @@ const THANOS_SEPOLIA_CONFIG: ChainConfig = {
     dustSwapPoolUSDC: null,
     dustSwapHook: null,
     dustSwapVerifier: null,
+    dustSwapRouter: null,
     uniswapV4PoolManager: null,
     uniswapV4StateView: null,
     uniswapV4Quoter: null,
@@ -154,15 +156,16 @@ const ETHEREUM_SEPOLIA_CONFIG: ChainConfig = {
     subAccount7702: '0xdf34D138d1E0beC7127c32E9Aa1273E8B4DE7dFF', // OZ ReentrancyGuard fixed version
     nameRegistryMerkle: '0x0000000000000000000000000000000000000000', // placeholder — deploy pending
     nameVerifier: null,
-    // DustSwap contracts — deployed 2026-02-16 on Ethereum Sepolia
-    dustSwapPoolETH: '0xD342940442AC499656a514e5C355d2b82975155B',
-    dustSwapPoolUSDC: '0xa4218b115219ba96e2c5CAAaC42D0d04D60e3269',
-    dustSwapHook: '0x605F8a92D488960174108035c41d376Ed25A00C0', // Redeployed via CREATE2 with correct permission bits
-    dustSwapVerifier: '0x1677C9c4E575C910B9bCaF398D615B9F3775d0f1', // Production Groth16 verifier
+    // DustSwap V2 contracts — deployed 2026-02-17 on Ethereum Sepolia (privacy architecture)
+    dustSwapPoolETH: '0x52FAc2AC445b6a5b7351cb809DCB0194CEa223D0',
+    dustSwapPoolUSDC: '0xc788576786381d41B8F5180D0B92A15497CF72B3',
+    dustSwapHook: '0x09b6a164917F8ab6e8b552E47bD3957cAe6d80C4', // CREATE2 deployed, flags 0xC4 (beforeSwap + afterSwap + afterSwapReturnDelta)
+    dustSwapVerifier: '0x1677C9c4E575C910B9bCaF398D615B9F3775d0f1', // Production Groth16 verifier (unchanged)
+    dustSwapRouter: '0x82faD70Aa95480F719Da4B81E17607EF3A631F42', // Production router (replaces PoolSwapTest)
     uniswapV4PoolManager: '0x93805603e0167574dFe2F50ABdA8f42C85002FD8',
     uniswapV4StateView: '0x9C1CF9F4C496b7Df66d4EaBbff127Db6Af3c1C14',
     uniswapV4Quoter: '0xc3b43472250ab15dD91DB8900ce10f77fbDd22DB',
-    uniswapV4SwapRouter: '0x25eC587b262F30E4e8AE13643255a5f0F9E049aD', // PoolSwapTest
+    uniswapV4SwapRouter: '0x25eC587b262F30E4e8AE13643255a5f0F9E049aD', // PoolSwapTest (legacy, kept for reference)
   },
   creationCodes: {
     // Same as Thanos — compiled from identical source with same Solc 0.8.20
