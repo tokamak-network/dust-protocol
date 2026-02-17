@@ -14,6 +14,19 @@ export const ETH_ADDRESS = '0x0000000000000000000000000000000000000000' as const
 /** USDC on Ethereum Sepolia (Circle official) */
 export const USDC_ADDRESS_SEPOLIA = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' as const
 
+/** Per-chain USDC addresses. Used by pool key construction and token config. */
+const USDC_ADDRESSES: Record<number, string> = {
+  11155111: USDC_ADDRESS_SEPOLIA,
+}
+
+/** Get the USDC address for a given chain */
+export function getUSDCAddress(chainId?: number): string {
+  const id = chainId ?? DEFAULT_CHAIN_ID
+  const addr = USDC_ADDRESSES[id]
+  if (!addr) throw new Error(`USDC not configured for chain ${id}`)
+  return addr
+}
+
 export interface SwapToken {
   address: string
   symbol: string
@@ -39,7 +52,7 @@ export const SUPPORTED_TOKENS: Record<string, SwapToken> = {
 
 // ─── Pool Config ─────────────────────────────────────────────────────────────
 
-/** Poseidon Merkle tree depth (matches contract) */
+/** Poseidon Merkle tree depth (matches contract MerkleTree.sol) */
 export const MERKLE_TREE_DEPTH = 20
 
 /** Maximum deposits per pool (2^20) */
@@ -53,6 +66,49 @@ export const POOL_FEE = 3000
 
 /** Pool tick spacing corresponding to 0.30% fee */
 export const POOL_TICK_SPACING = 60
+
+// ─── Transaction / Gas Constants ─────────────────────────────────────────────
+
+/** Gas limit for swap transactions (~200-300k Groth16 + V4 swap overhead) */
+export const SWAP_GAS_LIMIT = 500_000n
+
+/** Timeout (ms) for waitForTransactionReceipt calls on testnet */
+export const TX_RECEIPT_TIMEOUT = 120_000
+
+/** Default slippage tolerance (1 - 0.01 = 1%) */
+export const DEFAULT_SLIPPAGE_BPS = 100
+export const DEFAULT_SLIPPAGE_MULTIPLIER = 1 - DEFAULT_SLIPPAGE_BPS / 10_000 // 0.99
+
+/** RPC log query batch size (blocks per request) */
+export const RPC_LOG_BATCH_SIZE = 50_000n
+
+/** Proof generation worker timeout (ms) */
+export const PROOF_GENERATION_TIMEOUT = 60_000
+
+/** Merkle tree sync timeout (ms) */
+export const MERKLE_SYNC_TIMEOUT = 30_000
+
+/** Relayer health check timeout (ms) */
+export const RELAYER_HEALTH_TIMEOUT = 5_000
+
+// ─── Circuit Paths ───────────────────────────────────────────────────────────
+
+/** Circuit WASM path (served from /public) */
+export const SWAP_CIRCUIT_WASM_PATH = '/circuits/privateSwap.wasm'
+
+/** Circuit proving key path (served from /public) */
+export const SWAP_CIRCUIT_ZKEY_PATH = '/circuits/privateSwap_final.zkey'
+
+/** Circuit verification key path (served from /public) */
+export const SWAP_VERIFICATION_KEY_PATH = '/circuits/verification_key.json'
+
+// ─── Deposit Denominations ───────────────────────────────────────────────────
+
+/** Quick-select deposit amounts per token */
+export const DEPOSIT_DENOMINATIONS: Record<string, string[]> = {
+  ETH: ['0.01', '0.1', '0.5', '1'],
+  USDC: ['10', '100', '500', '1000'],
+}
 
 // ─── Contract Address Helpers ────────────────────────────────────────────────
 
