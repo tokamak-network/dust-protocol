@@ -32,7 +32,7 @@ import {IPoolManager} from "../src/DustSwapHook.sol";
 contract DeployHookCREATE2 is Script {
     // ─── Deployed addresses on Ethereum Sepolia ───────────────────────────────
     address constant POOL_MANAGER = 0x93805603e0167574dFe2F50ABdA8f42C85002FD8;
-    address constant VERIFIER     = 0x99D18d3dBC5cDFbE20539833D64426CdAd47F1Cd;
+    address constant VERIFIER     = 0x1677C9c4E575C910B9bCaF398D615B9F3775d0f1;
     address payable constant POOL_ETH  = payable(0xD342940442AC499656a514e5C355d2b82975155B);
     address payable constant POOL_USDC = payable(0xa4218b115219ba96e2c5CAAaC42D0d04D60e3269);
 
