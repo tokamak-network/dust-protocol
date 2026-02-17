@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, ChangeEvent } from "react";
-import { Box, Text, VStack, HStack, Input, Spinner } from "@chakra-ui/react";
-import { colors, radius, shadows, glass, buttonVariants, inputStates, transitions, getExplorerBase } from "@/lib/design/tokens";
+import { AnimatePresence, motion } from "framer-motion";
 import { useStealthSend, useStealthName } from "@/hooks/stealth";
 import { useAuth } from "@/contexts/AuthContext";
 import { isStealthName, NAME_SUFFIX, lookupStealthMetaAddress } from "@/lib/stealth";
 import { getChainConfig } from "@/config/chains";
 import { getChainProvider } from "@/lib/providers";
 import { ethers } from "ethers";
+import { getExplorerBase } from "@/lib/design/tokens";
 import {
   SendIcon, CheckCircleIcon, AlertCircleIcon, LockIcon,
   ArrowUpRightIcon, XIcon,
@@ -111,328 +111,295 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
 
   const handleClose = () => { reset(); onClose(); };
 
-  if (!isOpen) return null;
-
   return (
-    <Box
-      position="fixed"
-      inset={0}
-      bg={colors.bg.overlay}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      zIndex={200}
-      p="16px"
-      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
-    >
-      <Box
-        w="100%"
-        maxW="440px"
-        bg={glass.modal.bg}
-        border={glass.modal.border}
-        borderRadius={radius.xl}
-        boxShadow={shadows.modal}
-        backdropFilter={glass.modal.backdropFilter}
-        overflow="hidden"
-      >
-        {/* Header — hidden on success */}
-        {sendStep !== "success" && (
-          <HStack justify="space-between" p="20px 24px">
-            <HStack gap="12px">
-              <Box w="36px" h="36px" borderRadius={radius.md}
-                bg={`linear-gradient(135deg, ${colors.accent.indigo}, ${colors.accent.indigoBright})`}
-                display="flex" alignItems="center" justifyContent="center"
-                boxShadow="0 2px 8px rgba(43, 90, 226, 0.25)">
-                <SendIcon size={17} color="#fff" />
-              </Box>
-              <VStack align="flex-start" gap="0">
-                <Text fontSize="16px" fontWeight={700} color={colors.text.primary} letterSpacing="-0.01em">
-                  Send Payment
-                </Text>
-                <Text fontSize="11px" color={colors.text.muted} fontWeight={500}>Private &middot; Gas Free</Text>
-              </VStack>
-            </HStack>
-            <Box as="button" onClick={handleClose} cursor="pointer" p="8px" borderRadius={radius.full}
-              border={`1px solid ${colors.border.default}`}
-              _hover={{ bgColor: colors.bg.hover, borderColor: colors.border.light }}
-              transition={transitions.fast}>
-              <XIcon size={15} color={colors.text.muted} />
-            </Box>
-          </HStack>
-        )}
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          />
 
-        {/* Content */}
-        <Box p="24px" pt={sendStep === "success" ? "24px" : "0"}>
-          <VStack gap="20px" align="stretch">
+          {/* Modal container */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-full max-w-[440px] p-6 rounded-md border border-[rgba(255,255,255,0.1)] bg-[#06080F] shadow-2xl overflow-hidden"
+          >
+            {/* Header — hidden on success */}
+            {sendStep !== "success" && (
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                  <SendIcon size={16} color="#00FF41" />
+                  <span className="text-sm font-bold text-white font-mono tracking-wider">
+                    [ SEND ]
+                  </span>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="text-[rgba(255,255,255,0.4)] hover:text-white transition-colors"
+                >
+                  <XIcon size={20} />
+                </button>
+              </div>
+            )}
+
+            {/* Input step */}
             {sendStep === "input" && (
-              <>
+              <div className="flex flex-col gap-5">
                 {/* Recipient field */}
-                <Box>
-                  <Text fontSize="12px" color={colors.text.muted} mb="10px" fontWeight={600}
-                    textTransform="uppercase" letterSpacing="0.05em">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] text-[rgba(255,255,255,0.5)] uppercase tracking-wider font-mono">
                     Recipient
-                  </Text>
-                  <Box position="relative">
-                    <Input
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
                       placeholder={`alice${NAME_SUFFIX} or 0x...`}
                       value={recipient}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setRecipient(e.target.value)}
-                      h="52px" bg={inputStates.default.bg}
-                      border={`1.5px solid ${resolvedAddress ? colors.accent.indigo : resolveError ? colors.accent.red : colors.border.default}`}
-                      borderRadius={radius.md}
-                      color={inputStates.default.color} fontSize="15px" fontWeight={500} px="18px"
-                      _placeholder={{ color: inputStates.default.placeholder, fontWeight: 400 }}
-                      _focus={{ borderColor: inputStates.focus.borderColor, boxShadow: inputStates.focus.boxShadow }}
-                      transition={transitions.fast}
+                      className={[
+                        "w-full p-3 rounded-sm bg-[rgba(255,255,255,0.03)] border text-white font-mono text-sm",
+                        "focus:outline-none focus:bg-[rgba(0,255,65,0.02)] transition-all placeholder-[rgba(255,255,255,0.2)]",
+                        resolvedAddress
+                          ? "border-[#00FF41]"
+                          : resolveError
+                          ? "border-red-500"
+                          : "border-[rgba(255,255,255,0.1)] focus:border-[#00FF41]",
+                      ].join(" ")}
                     />
                     {/* Status indicator inside input */}
                     {!isResolving && resolvedAddress && !recipient.startsWith("st:") && (
-                      <Box position="absolute" right="14px" top="50%" transform="translateY(-50%)">
-                        <CheckCircleIcon size={18} color={colors.accent.indigo} />
-                      </Box>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <CheckCircleIcon size={18} color="#00FF41" />
+                      </span>
                     )}
                     {isResolving && (
-                      <Box position="absolute" right="14px" top="50%" transform="translateY(-50%)">
-                        <Spinner size="xs" color={colors.accent.indigo} />
-                      </Box>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <span className="inline-block w-4 h-4 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin" />
+                      </span>
                     )}
-                  </Box>
-                  <Box h="18px" mt="6px">
+                  </div>
+                  <div className="h-4 mt-0.5">
                     {isResolving && (
-                      <Text fontSize="11px" color={colors.text.muted} fontWeight={500}>
+                      <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">
                         {recipient.startsWith("0x") ? "Looking up address..." : "Looking up name..."}
-                      </Text>
+                      </p>
                     )}
                     {!isResolving && resolvedAddress && !recipient.startsWith("st:") && (
-                      <Text fontSize="11px" color={colors.accent.indigo} fontWeight={600}>
+                      <p className="text-[11px] text-[#00FF41] font-mono font-semibold">
                         {recipient.startsWith("0x") ? "Address resolved" : "Name resolved"}
-                      </Text>
+                      </p>
                     )}
                     {!isResolving && resolveError && (
-                      <HStack gap="4px"><AlertCircleIcon size={11} color={colors.accent.red} /><Text fontSize="11px" color={colors.accent.red} fontWeight={500}>{resolveError}</Text></HStack>
+                      <div className="flex items-center gap-1">
+                        <AlertCircleIcon size={11} color="#ef4444" />
+                        <p className="text-[11px] text-red-400 font-mono">{resolveError}</p>
+                      </div>
                     )}
-                  </Box>
-                </Box>
+                  </div>
+                </div>
 
                 {/* Amount field */}
-                <Box>
-                  <Text fontSize="12px" color={colors.text.muted} mb="10px" fontWeight={600}
-                    textTransform="uppercase" letterSpacing="0.05em">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] text-[rgba(255,255,255,0.5)] uppercase tracking-wider font-mono">
                     Amount
-                  </Text>
-                  <Input
-                    placeholder="0.00"
-                    inputMode="decimal"
-                    value={amount}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                      const v = e.target.value;
-                      if (v === "" || /^\d*\.?\d*$/.test(v)) setAmount(v);
-                    }}
-                    h="60px" px="18px"
-                    bg={inputStates.default.bg}
-                    border={`1.5px solid ${colors.border.default}`}
-                    borderRadius={radius.md}
-                    color={inputStates.default.color} fontSize="32px" fontWeight={700}
-                    letterSpacing="-0.03em"
-                    _placeholder={{ color: colors.text.muted }}
-                    _focus={{ borderColor: inputStates.focus.borderColor, boxShadow: inputStates.focus.boxShadow, outline: "none" }}
-                    transition={transitions.fast}
-                  />
-                  <Text fontSize="11px" color={colors.text.muted} mt="8px" fontWeight={500}>{chainConfig.name}</Text>
-                </Box>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                        const v = e.target.value;
+                        if (v === "" || /^\d*\.?\d*$/.test(v)) setAmount(v);
+                      }}
+                      className="w-full p-3 pr-16 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] text-white font-mono text-2xl font-bold focus:outline-none focus:border-[#00FF41] focus:bg-[rgba(0,255,65,0.02)] transition-all placeholder-[rgba(255,255,255,0.2)]"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[rgba(255,255,255,0.5)] font-mono">
+                      {chainConfig.nativeCurrency.symbol}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">{chainConfig.name}</p>
+                </div>
 
                 {/* Preview button */}
-                <Box
-                  as="button"
-                  p="16px"
-                  bg={buttonVariants.primary.bg}
-                  borderRadius={radius.full}
-                  boxShadow={buttonVariants.primary.boxShadow}
-                  cursor="pointer"
-                  _hover={{ boxShadow: buttonVariants.primary.hover.boxShadow, transform: buttonVariants.primary.hover.transform }}
-                  _active={{ transform: buttonVariants.primary.active.transform }}
+                <button
                   onClick={handlePreview}
-                  textAlign="center"
-                  transition={transitions.fast}
-                  opacity={(!resolvedAddress && !recipient.startsWith("st:")) || !amount || isLoading || isResolving ? 0.4 : 1}
-                  pointerEvents={(!resolvedAddress && !recipient.startsWith("st:")) || !amount || isLoading || isResolving ? "none" : "auto"}
+                  disabled={(!resolvedAddress && !recipient.startsWith("st:")) || !amount || isLoading || isResolving}
+                  className="w-full py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <Text fontSize="15px" fontWeight={700} color="#fff">Preview Payment</Text>
-                </Box>
-              </>
+                  [ PREVIEW_PAYMENT ]
+                </button>
+              </div>
             )}
 
+            {/* Confirm step */}
             {sendStep === "confirm" && lastGeneratedAddress && (
-              <>
+              <div className="flex flex-col gap-5">
                 {/* Big amount hero */}
-                <VStack gap="4px" py="8px">
-                  <Text fontSize="42px" fontWeight={800} color={colors.text.primary}
-                    letterSpacing="-0.04em" lineHeight="1" textAlign="center">
-                    {amount} <Text as="span" fontSize="20px" fontWeight={600} color={colors.text.muted}>{chainConfig.nativeCurrency.symbol}</Text>
-                  </Text>
-                  <Text fontSize="14px" color={colors.text.muted} textAlign="center" fontWeight={500}>
+                <div className="flex flex-col items-center gap-1 py-2">
+                  <p className="text-5xl font-extrabold text-white font-mono tracking-tight leading-none text-center">
+                    {amount}{" "}
+                    <span className="text-xl font-semibold text-[rgba(255,255,255,0.5)]">
+                      {chainConfig.nativeCurrency.symbol}
+                    </span>
+                  </p>
+                  <p className="text-sm text-[rgba(255,255,255,0.5)] font-mono text-center">
                     to{" "}
-                    <Text as="span" fontWeight={700} color={colors.text.primary}>
+                    <span className="font-bold text-white">
                       {recipient.includes(".tok") ? recipient : `${recipient.slice(0, 14)}...`}
-                    </Text>
-                  </Text>
-                </VStack>
+                    </span>
+                  </p>
+                </div>
 
                 {/* Details card */}
-                <Box p="16px 18px" bgColor={colors.bg.input} borderRadius={radius.md}>
-                  <VStack gap="12px" align="stretch">
-                    <HStack justify="space-between">
-                      <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>Network</Text>
-                      <Text fontSize="13px" fontWeight={600} color={colors.text.primary}>{chainConfig.name}</Text>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>Privacy</Text>
-                      <HStack gap="5px">
-                        <LockIcon size={12} color={colors.accent.indigo} />
-                        <Text fontSize="13px" fontWeight={600} color={colors.accent.indigo}>Stealth</Text>
-                      </HStack>
-                    </HStack>
-                    <HStack justify="space-between">
-                      <Text fontSize="13px" color={colors.text.muted} fontWeight={500}>Gas</Text>
-                      <Text fontSize="13px" fontWeight={600} color={colors.text.primary}>Sponsored</Text>
-                    </HStack>
-                  </VStack>
-                </Box>
+                <div className="p-4 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)] flex flex-col gap-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-[rgba(255,255,255,0.5)] font-mono">Network</span>
+                    <span className="text-xs font-semibold text-white font-mono">{chainConfig.name}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-[rgba(255,255,255,0.5)] font-mono">Privacy</span>
+                    <div className="flex items-center gap-1">
+                      <LockIcon size={12} color="#00FF41" />
+                      <span className="text-xs font-semibold text-[#00FF41] font-mono">Stealth</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-[rgba(255,255,255,0.5)] font-mono">Gas</span>
+                    <span className="text-xs font-semibold text-white font-mono">Sponsored</span>
+                  </div>
+                </div>
 
                 {/* Action buttons */}
-                <HStack gap="10px">
-                  <Box as="button" flex={1} p="14px"
-                    bg={buttonVariants.secondary.bg} border={buttonVariants.secondary.border}
-                    borderRadius={radius.full}
-                    cursor="pointer" _hover={{ bg: buttonVariants.secondary.hover.bg }}
-                    textAlign="center" transition={transitions.fast}
-                    onClick={() => setSendStep("input")}>
-                    <Text fontSize="14px" fontWeight={600} color={colors.text.primary}>Back</Text>
-                  </Box>
-                  <Box as="button" flex={2} p="14px"
-                    bg={buttonVariants.primary.bg} boxShadow={buttonVariants.primary.boxShadow}
-                    borderRadius={radius.full}
-                    cursor="pointer" _hover={{ boxShadow: buttonVariants.primary.hover.boxShadow, transform: buttonVariants.primary.hover.transform }}
-                    textAlign="center" transition={transitions.fast}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSendStep("input")}
+                    className="flex-1 py-3 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.06)] transition-all text-sm font-semibold text-white font-mono"
+                  >
+                    Back
+                  </button>
+                  <button
                     onClick={handleSend}
-                    opacity={isLoading ? 0.7 : 1} pointerEvents={isLoading ? "none" : "auto"}>
-                    {isLoading
-                      ? <Spinner size="sm" color="#fff" />
-                      : <HStack gap="8px" justify="center">
-                          <SendIcon size={15} color="#fff" />
-                          <Text fontSize="14px" fontWeight={700} color="#fff">Confirm Send</Text>
-                        </HStack>
-                    }
-                  </Box>
-                </HStack>
-              </>
+                    disabled={isLoading}
+                    className="flex-[2] py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="inline-block w-4 h-4 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin" />
+                        <span>Sending...</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <SendIcon size={15} color="#00FF41" />
+                        [ CONFIRM_SEND ]
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
             )}
 
+            {/* Success step */}
             {sendStep === "success" && (
-              <Box position="relative" overflow="hidden" mx="-24px" mb="-24px" mt="-20px">
+              <div className="relative overflow-hidden -mx-6 -mb-6 -mt-6">
                 {/* Confetti particles */}
-                <Box position="absolute" inset="0" pointerEvents="none" overflow="hidden">
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
                   {[...Array(18)].map((_, i) => (
-                    <Box
+                    <div
                       key={i}
-                      position="absolute"
-                      w={`${4 + Math.random() * 6}px`}
-                      h={`${4 + Math.random() * 6}px`}
-                      borderRadius={i % 3 === 0 ? "1px" : radius.full}
-                      bgColor={["#2B5AE2", "#4A75F0", "#7C3AED", "#F59E0B", "#10B981", "#EC4899", "#06B6D4"][i % 7]}
-                      left={`${5 + (i * 5.2) % 90}%`}
-                      top="-10px"
-                      opacity={0}
-                      transform="rotate(0deg)"
-                      animation={`confettiFall ${1.5 + Math.random() * 1.5}s ease-out ${0.1 + i * 0.06}s both`}
+                      className="absolute rounded-sm"
+                      style={{
+                        width: `${4 + Math.random() * 6}px`,
+                        height: `${4 + Math.random() * 6}px`,
+                        borderRadius: i % 3 === 0 ? "1px" : "9999px",
+                        backgroundColor: ["#00FF41", "#4A75F0", "#7C3AED", "#F59E0B", "#10B981", "#EC4899", "#06B6D4"][i % 7],
+                        left: `${5 + (i * 5.2) % 90}%`,
+                        top: "-10px",
+                        opacity: 0,
+                        animation: `confettiFall ${1.5 + Math.random() * 1.5}s ease-out ${0.1 + i * 0.06}s both`,
+                      }}
                     />
                   ))}
-                </Box>
+                </div>
 
-                <VStack gap="0" align="stretch" p="24px" pt="32px">
+                <div className="flex flex-col gap-0 p-6 pt-8">
                   {/* Emoji burst */}
-                  <Text
-                    fontSize="52px"
-                    textAlign="center"
-                    lineHeight="1"
-                    animation="successPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both"
+                  <p
+                    className="text-[52px] text-center leading-none"
+                    style={{ animation: "successPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both" }}
                   >
                     🎉
-                  </Text>
+                  </p>
 
-                  {/* Big amount — the hero */}
-                  <VStack gap="4px" pt="20px" pb="6px" animation="successSlideUp 0.5s ease-out 0.15s both">
-                    <Text
-                      fontSize="44px"
-                      fontWeight={800}
-                      color={colors.text.primary}
-                      textAlign="center"
-                      letterSpacing="-0.04em"
-                      lineHeight="1"
-                    >
-                      {amount} <Text as="span" fontSize="22px" fontWeight={600} color={colors.text.muted}>{chainConfig.nativeCurrency.symbol}</Text>
-                    </Text>
-                    <Text fontSize="15px" color={colors.text.muted} textAlign="center" fontWeight={500}>
+                  {/* Big amount hero */}
+                  <div
+                    className="flex flex-col items-center gap-1 pt-5 pb-2"
+                    style={{ animation: "successSlideUp 0.5s ease-out 0.15s both" }}
+                  >
+                    <p className="text-[44px] font-extrabold text-white font-mono tracking-tight leading-none text-center">
+                      {amount}{" "}
+                      <span className="text-[22px] font-semibold text-[rgba(255,255,255,0.5)]">
+                        {chainConfig.nativeCurrency.symbol}
+                      </span>
+                    </p>
+                    <p className="text-[15px] text-[rgba(255,255,255,0.5)] font-mono text-center">
                       sent to{" "}
-                      <Text as="span" fontWeight={700} color={colors.text.primary}>
+                      <span className="font-bold text-white">
                         {recipient.includes(".tok") ? recipient : `${recipient.slice(0, 10)}...${recipient.slice(-4)}`}
-                      </Text>
-                    </Text>
-                  </VStack>
+                      </span>
+                    </p>
+                  </div>
 
                   {/* Privacy badge */}
-                  <HStack
-                    justify="center" pt="16px" pb="24px"
-                    animation="successSlideUp 0.5s ease-out 0.25s both"
+                  <div
+                    className="flex justify-center pt-4 pb-6"
+                    style={{ animation: "successSlideUp 0.5s ease-out 0.25s both" }}
                   >
-                    <HStack
-                      gap="6px" px="14px" py="7px"
-                      bgColor="rgba(43, 90, 226, 0.06)"
-                      borderRadius={radius.full}
-                    >
-                      <LockIcon size={12} color={colors.accent.indigo} />
-                      <Text fontSize="12px" fontWeight={600} color={colors.accent.indigo}>
-                        Private &middot; Stealth &middot; Gas Free
-                      </Text>
-                    </HStack>
-                  </HStack>
+                    <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[rgba(0,255,65,0.06)] rounded-full border border-[rgba(0,255,65,0.15)]">
+                      <LockIcon size={12} color="#00FF41" />
+                      <span className="text-xs font-semibold text-[#00FF41] font-mono">
+                        Private · Stealth · Gas Free
+                      </span>
+                    </div>
+                  </div>
 
                   {/* Buttons */}
-                  <VStack gap="10px" animation="successSlideUp 0.5s ease-out 0.35s both">
+                  <div
+                    className="flex flex-col gap-2.5"
+                    style={{ animation: "successSlideUp 0.5s ease-out 0.35s both" }}
+                  >
                     {sendTxHash && (
-                      <a href={`${getExplorerBase(activeChainId)}/tx/${sendTxHash}`} target="_blank" rel="noopener noreferrer"
-                        style={{ width: "100%" }}>
-                        <HStack gap="8px" justify="center" w="100%" p="14px"
-                          bgColor={colors.bg.input}
-                          borderRadius={radius.full}
-                          cursor="pointer"
-                          _hover={{ bgColor: colors.bg.elevated }}
-                          transition="all 0.15s ease">
-                          <ArrowUpRightIcon size={14} color={colors.text.secondary} />
-                          <Text fontSize="14px" fontWeight={600} color={colors.text.secondary}>View on Explorer</Text>
-                        </HStack>
+                      <a
+                        href={`${getExplorerBase(activeChainId)}/tx/${sendTxHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.06)] transition-all text-sm font-semibold text-[rgba(255,255,255,0.6)] font-mono"
+                      >
+                        <ArrowUpRightIcon size={14} color="currentColor" />
+                        View on Explorer
                       </a>
                     )}
-                    <Box
-                      as="button" w="100%" p="15px"
-                      bg={buttonVariants.primary.bg}
-                      boxShadow={buttonVariants.primary.boxShadow}
-                      borderRadius={radius.full}
-                      cursor="pointer"
-                      _hover={{ boxShadow: buttonVariants.primary.hover.boxShadow, transform: buttonVariants.primary.hover.transform }}
+                    <button
                       onClick={handleClose}
-                      textAlign="center"
-                      transition={transitions.fast}
+                      className="w-full py-3.5 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider"
                     >
-                      <Text fontSize="15px" fontWeight={700} color="#fff">Done</Text>
-                    </Box>
-                  </VStack>
-                </VStack>
+                      [ DONE ]
+                    </button>
+                  </div>
+                </div>
 
                 <style>{`
                   @keyframes confettiFall {
                     0% { opacity: 1; transform: translateY(0) rotate(0deg); }
-                    100% { opacity: 0; transform: translateY(340px) rotate(${360 + Math.random() * 360}deg); }
+                    100% { opacity: 0; transform: translateY(340px) rotate(720deg); }
                   }
                   @keyframes successPop {
                     0% { opacity: 0; transform: scale(0.3); }
@@ -444,18 +411,25 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                     to { opacity: 1; transform: translateY(0); }
                   }
                 `}</style>
-              </Box>
+              </div>
             )}
 
+            {/* Send error */}
             {sendError && (
-              <HStack gap="6px" p="12px 14px" bgColor="rgba(229, 62, 62, 0.04)" borderRadius={radius.sm}>
-                <AlertCircleIcon size={14} color={colors.accent.red} />
-                <Text fontSize="12px" color={colors.accent.red}>{sendError}</Text>
-              </HStack>
+              <div className="flex items-center gap-1.5 mt-4 p-3 rounded-sm bg-[rgba(239,68,68,0.04)] border border-[rgba(239,68,68,0.15)]">
+                <AlertCircleIcon size={14} color="#ef4444" />
+                <p className="text-xs text-red-400 font-mono">{sendError}</p>
+              </div>
             )}
-          </VStack>
-        </Box>
-      </Box>
-    </Box>
+
+            {/* Corner accents */}
+            <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)]" />
+            <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)]" />
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 }
