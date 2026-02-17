@@ -2,7 +2,7 @@
 // Returns a Merkle inclusion proof for a specific .tok name.
 
 import { NextResponse } from 'next/server';
-import { nameMerkleTree } from '@/lib/naming/merkleTree';
+import { getNameMerkleTree } from '@/lib/naming/merkleTree';
 
 export const maxDuration = 30;
 
@@ -19,7 +19,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
   }
 
-  const result = nameMerkleTree.getProof(name);
+  const tree = getNameMerkleTree();
+  const result = tree.getProof(name);
   if (!result) {
     return NextResponse.json({ error: 'Name not found' }, { status: 404 });
   }

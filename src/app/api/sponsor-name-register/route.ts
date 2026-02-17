@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { getChainConfig, getCanonicalNamingChain, getSupportedChains } from '@/config/chains';
 import { getServerSponsor, parseChainId } from '@/lib/server-provider';
 import { onNameRegistered } from '@/lib/naming/rootSync';
-import { nameMerkleTree } from '@/lib/naming/merkleTree';
+import { getNameMerkleTree } from '@/lib/naming/merkleTree';
 
 export const maxDuration = 60;
 
@@ -141,7 +141,8 @@ export async function POST(req: Request) {
 
     // Insert into server Merkle tree immediately (optimistic — primary chain succeeded)
     try {
-      nameMerkleTree.insert(stripped, metaBytes);
+      const tree = getNameMerkleTree();
+      tree.insert(stripped, metaBytes);
       onNameRegistered();
     } catch (e) {
       console.warn('[SponsorNameRegister] Failed to insert into server Merkle tree:', e);
