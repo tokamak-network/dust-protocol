@@ -15,7 +15,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract InitializePool is Script {
     // Deployed contracts (updated to production addresses)
     address constant POOL_MANAGER = 0x93805603e0167574dFe2F50ABdA8f42C85002FD8;
-    address constant DUST_SWAP_HOOK = 0xbc86b898aCc1544a1233d8c59A984106c58980C0; // Redeployed via CREATE2 (Feb 16 2026)
+    address constant DUST_SWAP_HOOK = 0x696B3d0D038b4d5ab014c57386C0CD0163CF80c0; // Redeployed via CREATE2 (Feb 17 2026)
     address constant USDC = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
 
     // Pool parameters (aligned with frontend constants)
@@ -50,11 +50,14 @@ contract InitializePool is Script {
         });
 
         // Initialize pool at ETH = $2500 price
-        IPoolManager(POOL_MANAGER).initialize(poolKey, SQRT_PRICE_X96);
-        console.log("Pool initialized");
+        try IPoolManager(POOL_MANAGER).initialize(poolKey, SQRT_PRICE_X96) {
+            console.log("Pool initialized");
+        } catch {
+            console.log("Pool already initialized");
+        }
 
         // Approve USDC for liquidity helper
-        uint256 usdcAmount = 2500 * 1e6; // 2500 USDC (6 decimals)
+        uint256 usdcAmount = type(uint256).max;
         IERC20(USDC).approve(address(liquidityHelper), usdcAmount);
 
         // Add liquidity: 1 ETH + 2500 USDC

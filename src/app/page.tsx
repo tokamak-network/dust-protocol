@@ -256,128 +256,78 @@ export default function Home() {
           </Box>
         </Box>
 
-        {/* Mobile Layout (Cards) */}
+        {/* Mobile Layout (Minimalist Overlay) */}
+        {/* Mobile Layout (Unified Hero) */}
         <Box
           display={{ base: "flex", lg: "none" }}
           flexDirection="column"
           w="100%"
-          px="20px"
-          pt="40px"
+          px="24px"
+          pt="80px"
+          pb="48px"
           gap="24px"
           zIndex={10}
-          minH="calc(100vh - 100px)"
+          minH="calc(100vh - 80px)"
+          justifyContent="flex-end"
         >
-          {/* Title */}
-          <Text
-            fontFamily="var(--font-instrument-serif), serif"
-            fontSize="32px"
-            color="white"
-            textAlign="center"
-            mb="8px"
-          >
-            Privacy Hub
-          </Text>
-
-          {/* Transfer Card */}
-          <Box
-            w="100%"
-            borderRadius="24px"
-            border="1px solid rgba(255, 255, 255, 0.08)"
-            bg="rgba(10, 10, 15, 0.4)"
-            backdropFilter="blur(20px)"
-            p="24px"
-            display="flex"
-            flexDirection="column"
-            gap="20px"
-            boxShadow="0 8px 32px rgba(0, 0, 0, 0.2)"
-          >
-            <VStack align="flex-start" gap="8px">
+          <VStack align="flex-start" gap="16px" w="100%">
+            <Box>
               <Text
                 fontFamily="var(--font-instrument-serif), serif"
-                fontSize="28px"
+                fontSize="42px"
                 color="white"
                 lineHeight="1.1"
+                letterSpacing="-0.03em"
+                mb="8px"
+                textShadow="0 4px 24px rgba(0,0,0,0.6)"
               >
-                Private Transfers
+                Private Transfers<br />and Privacy Swap
               </Text>
-              <Text fontSize="14px" color="rgba(255,255,255,0.7)" lineHeight="1.5">
-                Untraceable payments that dissolve into the blockchain.
+              <Text fontSize="16px" color="rgba(255,255,255,0.85)" lineHeight="1.5" textShadow="0 2px 8px rgba(0,0,0,0.6)" maxW="300px">
+                Swap tokens anonymously without leaving a trace.
               </Text>
-            </VStack>
+            </Box>
 
-            {/* Mobile Input */}
-            <VStack gap="12px" w="100%">
-              <HStack gap="8px" w="100%">
-                <Input
-                  placeholder="username.tok"
-                  value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handlePaySearch(); }}
-                  h="48px"
-                  flex={1}
-                  bgColor="rgba(0, 0, 0, 0.3)"
-                  border="1px solid rgba(255, 255, 255, 0.1)"
-                  borderRadius={radius.md}
-                  color="white"
-                  fontSize="16px"
-                  px="16px"
-                  _placeholder={{ color: "rgba(255, 255, 255, 0.4)" }}
-                  _focus={{ borderColor: colors.border.focus, bgColor: "rgba(0, 0, 0, 0.5)" }}
-                />
-                <Box
-                  as="button"
-                  w="48px"
-                  h="48px"
-                  flexShrink={0}
-                  bg={colors.accent.indigo}
-                  borderRadius={radius.md}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  onClick={handlePaySearch}
-                >
-                  <ArrowUpRightIcon size={20} color="white" />
-                </Box>
-              </HStack>
-            </VStack>
-          </Box>
-
-          {/* Swap Card */}
-          <Box
-            w="100%"
-            borderRadius="24px"
-            border="1px solid rgba(255, 255, 255, 0.08)"
-            bg="rgba(10, 10, 15, 0.3)"
-            backdropFilter="blur(12px)"
-            p="24px"
-            display="flex"
-            flexDirection="column"
-            gap="16px"
-          >
-            <HStack justify="space-between" align="center" w="100%">
-              <Text
-                fontFamily="var(--font-instrument-serif), serif"
-                fontSize="28px"
-                color="rgba(255, 255, 255, 0.8)"
-              >
-                Privacy Swap
-              </Text>
+            {/* Input */}
+            <HStack gap="8px" w="100%">
+              <Input
+                placeholder="username.tok"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handlePaySearch(); }}
+                h="56px"
+                flex={1}
+                bgColor="rgba(20, 20, 25, 0.6)"
+                border="1px solid rgba(255, 255, 255, 0.15)"
+                borderRadius="16px"
+                color="white"
+                fontSize="16px"
+                px="20px"
+                backdropFilter="blur(16px)"
+                _placeholder={{ color: "rgba(255, 255, 255, 0.5)" }}
+                _focus={{
+                  borderColor: colors.border.focus,
+                  bgColor: "rgba(20, 20, 25, 0.8)",
+                  boxShadow: "0 0 0 1px rgba(74, 117, 240, 0.5)"
+                }}
+              />
               <Box
-                px="10px"
-                py="4px"
-                borderRadius="full"
-                bg="rgba(255, 255, 255, 0.1)"
-                border="1px solid rgba(255, 255, 255, 0.1)"
+                as="button"
+                w="56px"
+                h="56px"
+                flexShrink={0}
+                bg={colors.accent.indigo}
+                borderRadius="16px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                onClick={handlePaySearch}
+                boxShadow="0 4px 12px rgba(0,0,0,0.3)"
               >
-                <Text fontSize="10px" fontWeight="700" color="rgba(255, 255, 255, 0.6)" letterSpacing="0.05em">
-                  SOON
-                </Text>
+                <ArrowUpRightIcon size={24} color="white" />
               </Box>
             </HStack>
-            <Text fontSize="14px" color="rgba(255,255,255,0.6)" lineHeight="1.5">
-              Swap tokens anonymously without leaving a trace.
-            </Text>
-          </Box>
+          </VStack>
         </Box>
 
         {/* Desktop Layout (Split View) */}
