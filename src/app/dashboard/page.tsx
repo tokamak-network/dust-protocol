@@ -1,19 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Text, VStack, HStack } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStealthScanner, useUnifiedBalance, useDustPool } from "@/hooks/stealth";
-import { colors, radius, glass, buttonVariants, transitions } from "@/lib/design/tokens";
 import { getChainConfig } from "@/config/chains";
 import { UnifiedBalanceCard } from "@/components/dashboard/UnifiedBalanceCard";
 import { AddressBreakdownCard } from "@/components/dashboard/AddressBreakdownCard";
 import { PersonalLinkCard } from "@/components/dashboard/PersonalLinkCard";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
+import { PrivacyPoolCard } from "@/components/dashboard/PrivacyPoolCard";
 import { SendModal } from "@/components/send/SendModal";
 import { ReceiveModal } from "@/components/dashboard/ReceiveModal";
 import { ConsolidateModal } from "@/components/dashboard/ConsolidateModal";
-import { SendIcon, ArrowDownLeftIcon, ShieldIcon } from "@/components/stealth/icons";
+import { SendIcon, ArrowDownLeftIcon } from "@/components/stealth/icons";
 import { loadOutgoingPayments } from '@/hooks/stealth/useStealthSend';
 import type { OutgoingPayment } from '@/lib/design/types';
 
@@ -94,13 +93,52 @@ export default function DashboardPage() {
     return bal > 0.0001;
   }).length;
 
+  const handlePoolToggle = () => {
+    const next = !claimToPool;
+    setClaimToPool(next);
+    if (address) localStorage.setItem(claimToPoolKey(address, activeChainId), String(next));
+  };
+
+  const handleDepositAll = async () => {
+    if (depositingRef.current) return;
+    depositingRef.current = true;
+    setDepositingToPool(true);
+    setPoolDepositProgress({ done: 0, total: poolEligibleCount, message: 'Starting pool deposits...' });
+
+    try {
+      stopBackgroundScan();
+      const result = await depositToPool((done, total, message) => {
+        setPoolDepositProgress({ done, total, message });
+      });
+      dustPool.loadPoolDeposits();
+      if (result.deposited > 0) {
+        scan();
+      }
+      // Keep result message visible for a few seconds
+      await new Promise(r => setTimeout(r, 3000));
+    } catch (err) {
+      console.error('[PoolDeposit] Unexpected error:', err);
+      setPoolDepositProgress({ done: 0, total: 0, message: 'Deposit failed — check console' });
+      await new Promise(r => setTimeout(r, 5000));
+    } finally {
+      setDepositingToPool(false);
+      depositingRef.current = false;
+      scanInBackground();
+    }
+  };
+
   return (
-    <Box p={{ base: "16px 14px", md: "28px 24px" }} maxW="640px" mx="auto">
-      <VStack gap="18px" align="stretch">
-        {/* Page heading */}
-        <Text fontSize="22px" fontWeight={800} color={colors.text.primary} textAlign="center" letterSpacing="-0.02em">
-          Dashboard
-        </Text>
+    <div className="px-3.5 py-7 md:px-6 md:py-7 max-w-[640px] mx-auto">
+      <div className="flex flex-col gap-4">
+        {/* Terminal header */}
+        <div className="text-center mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-widest text-white font-mono mb-1">
+            STEALTH_WALLET
+          </h1>
+          <p className="text-xs text-[rgba(255,255,255,0.4)] font-mono tracking-wide">
+            Privacy-first asset management
+          </p>
+        </div>
 
         {/* Unified balance card */}
         <UnifiedBalanceCard
@@ -113,169 +151,37 @@ export default function DashboardPage() {
           onRefresh={handleRefresh}
         />
 
-        {/* Privacy Pool section */}
-        <Box
-          p="16px"
-          bg={glass.card.bg}
-          borderRadius={radius.lg}
-          border={`1.5px solid ${claimToPool || hasPoolBalance ? colors.accent.indigo : colors.border.default}`}
-          backdropFilter={glass.card.backdropFilter}
-        >
-          <VStack gap="12px" align="stretch">
-            {/* Toggle */}
-            <HStack justifyContent="space-between" alignItems="center">
-              <HStack gap="10px">
-                <Box color={colors.accent.indigo} opacity={0.7}>
-                  <ShieldIcon size={18} />
-                </Box>
-                <Box>
-                  <Text fontSize="13px" fontWeight={700} color={colors.text.primary}>
-                    Privacy Pool
-                  </Text>
-                  <Text fontSize="11px" color={colors.text.muted}>
-                    {claimToPool ? "New payments held for manual pool deposit" : "Off — payments claimed directly"}
-                  </Text>
-                </Box>
-              </HStack>
-              <Box
-                as="button"
-                w="44px"
-                h="24px"
-                borderRadius={radius.full}
-                bg={claimToPool ? colors.accent.indigo : colors.bg.elevated}
-                position="relative"
-                cursor="pointer"
-                transition="all 0.2s ease"
-                onClick={() => {
-                  const next = !claimToPool;
-                  setClaimToPool(next);
-                  if (address) localStorage.setItem(claimToPoolKey(address, activeChainId), String(next));
-                }}
-              >
-                <Box
-                  w="18px"
-                  h="18px"
-                  borderRadius="50%"
-                  bg="#fff"
-                  position="absolute"
-                  top="3px"
-                  left={claimToPool ? "23px" : "3px"}
-                  transition="all 0.2s ease"
-                  boxShadow="0 1px 3px rgba(0,0,0,0.2)"
-                />
-              </Box>
-            </HStack>
+        {/* Quick actions */}
+        <div className="flex gap-2.5">
+          <button
+            onClick={() => setShowSendModal(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-sm bg-[#00FF41] hover:bg-[rgba(0,255,65,0.85)] active:scale-[0.98] transition-all font-mono font-bold text-sm text-black"
+          >
+            <SendIcon size={17} color="#000" />
+            Send
+          </button>
+          <button
+            onClick={() => setShowReceiveModal(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-sm border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(255,255,255,0.05)] active:scale-[0.98] transition-all font-mono font-bold text-sm text-white"
+          >
+            <ArrowDownLeftIcon size={17} color="rgba(255,255,255,0.7)" />
+            Receive
+          </button>
+        </div>
 
-            {/* Pool balance (when deposits exist) */}
-            {hasPoolBalance && (
-              <>
-                <Box h="1px" bg={colors.border.default} />
-                <HStack justifyContent="space-between" alignItems="center">
-                  <Box>
-                    <Text fontSize="20px" fontWeight={800} color={colors.text.primary}>
-                      {parseFloat(dustPool.poolBalance).toFixed(4)} {chainConfig.nativeCurrency.symbol}
-                    </Text>
-                    <Text fontSize="11px" color={colors.text.muted}>
-                      {dustPool.deposits.filter(d => !d.withdrawn).length} deposits ready to withdraw
-                    </Text>
-                  </Box>
-                  <Box
-                    as="button"
-                    px="14px"
-                    py="8px"
-                    bg={buttonVariants.primary.bg}
-                    boxShadow={buttonVariants.primary.boxShadow}
-                    borderRadius={radius.sm}
-                    cursor="pointer"
-                    _hover={{ boxShadow: buttonVariants.primary.hover.boxShadow, transform: buttonVariants.primary.hover.transform }}
-                    transition={transitions.fast}
-                    onClick={() => setShowConsolidateModal(true)}
-                  >
-                    <Text fontSize="12px" fontWeight={700} color="#fff">Withdraw</Text>
-                  </Box>
-                </HStack>
-              </>
-            )}
-
-            {/* Deposit to Pool button (when toggle ON + unclaimed payments exist) */}
-            {/* Deposit / Recovery section */}
-            {(depositingToPool || (claimToPool && poolEligibleCount > 0)) && (
-              <>
-                <Box h="1px" bg={colors.border.default} />
-                {depositingToPool ? (
-                  <Box textAlign="center" py="8px">
-                    <Text fontSize="13px" fontWeight={600} color={colors.accent.indigo}>
-                      {poolDepositProgress.message || 'Depositing...'}
-                    </Text>
-                    {poolDepositProgress.total > 0 && poolDepositProgress.done < poolDepositProgress.total && (
-                      <Box mt="6px" h="4px" bg={colors.bg.elevated} borderRadius="2px" overflow="hidden">
-                        <Box
-                          h="100%"
-                          bg={colors.accent.indigo}
-                          borderRadius="2px"
-                          w={`${Math.max(5, ((poolDepositProgress.done) / poolDepositProgress.total) * 100)}%`}
-                          transition="width 0.5s ease"
-                        />
-                      </Box>
-                    )}
-                  </Box>
-                ) : (
-                  <Box
-                    as="button"
-                    w="100%"
-                    py="10px"
-                    bg="rgba(43,90,226,0.08)"
-                    border={`1.5px solid ${colors.accent.indigo}`}
-                    borderRadius={radius.sm}
-                    cursor="pointer"
-                    _hover={{ bg: "rgba(43,90,226,0.15)" }}
-                    transition={transitions.fast}
-                    onClick={async () => {
-                      if (depositingRef.current) return;
-                      depositingRef.current = true;
-                      setDepositingToPool(true);
-                      setPoolDepositProgress({ done: 0, total: poolEligibleCount, message: 'Starting pool deposits...' });
-
-                      try {
-                        stopBackgroundScan();
-                        const result = await depositToPool((done, total, message) => {
-                          setPoolDepositProgress({ done, total, message });
-                        });
-                        dustPool.loadPoolDeposits();
-                        if (result.deposited > 0) {
-                          scan();
-                        }
-                        // Keep result message visible for a few seconds
-                        await new Promise(r => setTimeout(r, 3000));
-                      } catch (err) {
-                        console.error('[PoolDeposit] Unexpected error:', err);
-                        setPoolDepositProgress({ done: 0, total: 0, message: 'Deposit failed — check console' });
-                        await new Promise(r => setTimeout(r, 5000));
-                      } finally {
-                        setDepositingToPool(false);
-                        depositingRef.current = false;
-                        scanInBackground();
-                      }
-                    }}
-                  >
-                    <Text fontSize="13px" fontWeight={700} color={colors.accent.indigo} textAlign="center">
-                      Deposit {poolEligibleCount} payment{poolEligibleCount !== 1 ? 's' : ''} to Pool
-                    </Text>
-                  </Box>
-                )}
-              </>
-            )}
-            {/* Info when toggle ON but no eligible payments */}
-            {claimToPool && poolEligibleCount === 0 && !hasPoolBalance && !depositingToPool && (
-              <>
-                <Box h="1px" bg={colors.border.default} />
-                <Text fontSize="11px" color={colors.text.muted} textAlign="center" py="4px">
-                  No eligible payments yet. New payments will appear here for deposit.
-                </Text>
-              </>
-            )}
-          </VStack>
-        </Box>
+        {/* Privacy Pool card */}
+        <PrivacyPoolCard
+          claimToPool={claimToPool}
+          onToggle={handlePoolToggle}
+          poolBalance={dustPool.poolBalance}
+          depositCount={dustPool.deposits.filter(d => !d.withdrawn).length}
+          poolEligibleCount={poolEligibleCount}
+          isDepositing={depositingToPool}
+          depositProgress={poolDepositProgress}
+          onWithdraw={() => setShowConsolidateModal(true)}
+          onDepositAll={handleDepositAll}
+          symbol={chainConfig.nativeCurrency.symbol}
+        />
 
         {/* Address breakdown */}
         <AddressBreakdownCard
@@ -283,47 +189,10 @@ export default function DashboardPage() {
           unclaimedPayments={unified.unclaimedPayments}
         />
 
-        {/* Quick actions */}
-        <HStack gap="10px">
-          <Box
-            as="button"
-            flex={1}
-            p="12px"
-            bg={buttonVariants.primary.bg}
-            boxShadow={buttonVariants.primary.boxShadow}
-            borderRadius={radius.lg}
-            cursor="pointer"
-            _hover={{ boxShadow: buttonVariants.primary.hover.boxShadow, transform: buttonVariants.primary.hover.transform }}
-            _active={{ transform: buttonVariants.primary.active.transform }}
-            transition={transitions.fast}
-            onClick={() => setShowSendModal(true)}
-            display="flex" alignItems="center" justifyContent="center" gap="8px"
-          >
-            <SendIcon size={17} color="#fff" />
-            <Text fontSize="14px" fontWeight={700} color="#fff">Send</Text>
-          </Box>
-          <Box
-            as="button"
-            flex={1}
-            p="12px"
-            bg={buttonVariants.secondary.bg}
-            borderRadius={radius.lg}
-            border={buttonVariants.secondary.border}
-            cursor="pointer"
-            _hover={{ bg: buttonVariants.secondary.hover.bg, borderColor: buttonVariants.secondary.hover.borderColor }}
-            transition={transitions.fast}
-            onClick={() => setShowReceiveModal(true)}
-            display="flex" alignItems="center" justifyContent="center" gap="8px"
-          >
-            <ArrowDownLeftIcon size={17} color={colors.accent.indigo} />
-            <Text fontSize="14px" fontWeight={700} color={colors.text.primary}>Receive</Text>
-          </Box>
-        </HStack>
-
         {/* Personal link */}
         <PersonalLinkCard ownedNames={ownedNames} metaAddress={metaAddress} />
 
-        {/* Activity section heading */}
+        {/* Recent activity */}
         <RecentActivityCard payments={payments} outgoingPayments={outgoingPayments} />
 
         {/* Modals */}
@@ -339,7 +208,7 @@ export default function DashboardPage() {
           onReset={dustPool.resetProgress}
           isConsolidating={dustPool.isConsolidating}
         />
-      </VStack>
-    </Box>
+      </div>
+    </div>
   );
 }
