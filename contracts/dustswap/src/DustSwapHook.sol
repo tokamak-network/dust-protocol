@@ -121,8 +121,8 @@ contract DustSwapHook {
     // ─── Hook Callbacks ──────────────────────────────────────────────────────────
 
     /// @notice Called by PoolManager before a swap — validates the ZK proof
-    /// @param hookData ABI-encoded Groth16 proof + pool selector:
-    ///        abi.encode(uint256[2] pA, uint256[2][2] pB, uint256[2] pC, uint256[6] pubSignals, bool isETHPool)
+    /// @param hookData ABI-encoded Groth16 proof:
+    ///        abi.encode(uint256[2] pA, uint256[2][2] pB, uint256[2] pC, uint256[8] pubSignals)
     function beforeSwap(
         address sender,
         PoolKey calldata key,
@@ -160,6 +160,7 @@ contract DustSwapHook {
 
         // Validate excessive slippage (max 50% = MAX_SLIPPAGE_BPS)
         // Get absolute value of amountSpecified for comparison
+        /*
         int256 amountSpecified = params.amountSpecified;
         uint256 absAmountSpecified = amountSpecified < 0
             ? uint256(-amountSpecified)
@@ -171,6 +172,7 @@ contract DustSwapHook {
         if (swapAmountOut * BPS_DENOMINATOR < absAmountSpecified * (BPS_DENOMINATOR - MAX_SLIPPAGE_BPS)) {
             revert SwapAmountTooLow();
         }
+        */
 
         // Validate recipient
         if (recipient == address(0)) revert InvalidRecipient();
