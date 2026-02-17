@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
-import { colors, radius, shadows, glass, buttonVariants, transitions, typography } from "@/lib/design/tokens";
+import React, { useState } from "react";
 import { DEPOSIT_DENOMINATIONS, MIN_WAIT_BLOCKS, MIN_WAIT_MINUTES, type SwapToken } from "@/lib/swap/constants";
 import { ShieldIcon, XIcon, CheckCircleIcon, AlertCircleIcon } from "@/components/stealth/icons";
 
@@ -24,6 +22,23 @@ interface DepositModalProps {
   onDeposit?: (amount: string) => Promise<{ note: DepositNote; txHash: string; leafIndex: number } | null>;
 }
 
+function Spinner() {
+  return (
+    <svg
+      className="animate-spin"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#4A75F0"
+      strokeWidth="3"
+      strokeLinecap="round"
+    >
+      <path d="M12 2a10 10 0 0 1 10 10" />
+    </svg>
+  );
+}
+
 function ProgressStep({
   step,
   label,
@@ -36,49 +51,40 @@ function ProgressStep({
   isComplete: boolean;
 }) {
   return (
-    <HStack gap="12px">
-      <Box
-        w="28px"
-        h="28px"
-        borderRadius="50%"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        bg={
+    <div className="flex items-center gap-3">
+      <div
+        className={[
+          "w-7 h-7 rounded-full flex items-center justify-center border transition-all",
           isComplete
-            ? `rgba(34,197,94,0.15)`
+            ? "bg-[rgba(34,197,94,0.15)] border-[rgba(34,197,94,0.3)]"
             : isActive
-            ? `rgba(74,117,240,0.15)`
-            : colors.bg.elevated
-        }
-        border={`1px solid ${
-          isComplete
-            ? "rgba(34,197,94,0.3)"
-            : isActive
-            ? "rgba(74,117,240,0.3)"
-            : colors.border.default
-        }`}
-        transition={transitions.base}
+            ? "bg-[rgba(74,117,240,0.15)] border-[rgba(74,117,240,0.3)]"
+            : "bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.08)]",
+        ].join(" ")}
       >
         {isComplete ? (
-          <CheckCircleIcon size={14} color={colors.accent.green} />
+          <CheckCircleIcon size={14} color="#22C55E" />
         ) : isActive ? (
-          <Spinner size="xs" color={colors.accent.indigo} />
+          <Spinner />
         ) : (
-          <Text fontSize="11px" fontWeight={600} color={colors.text.muted}>
+          <span className="text-[11px] font-semibold text-[rgba(255,255,255,0.30)] font-mono">
             {step}
-          </Text>
+          </span>
         )}
-      </Box>
-      <Text
-        fontSize="13px"
-        fontWeight={isActive ? 600 : 400}
-        color={isComplete ? colors.accent.green : isActive ? colors.text.primary : colors.text.muted}
-        transition={transitions.fast}
+      </div>
+      <span
+        className={[
+          "text-[13px] font-mono transition-all",
+          isComplete
+            ? "font-normal text-[#22C55E]"
+            : isActive
+            ? "font-semibold text-[rgba(255,255,255,0.92)]"
+            : "font-normal text-[rgba(255,255,255,0.30)]",
+        ].join(" ")}
       >
         {label}
-      </Text>
-    </HStack>
+      </span>
+    </div>
   );
 }
 
@@ -133,206 +139,132 @@ export function DepositModal({ isOpen, onClose, token, onDeposit }: DepositModal
   };
 
   const isProcessing = ["approving", "depositing", "confirming"].includes(step);
+  const canDeposit = !!(amount && parseFloat(amount) > 0);
 
   return (
-    <Box
-      position="fixed"
-      inset={0}
-      bg={colors.bg.overlay}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      zIndex={200}
+    <div
+      className="fixed inset-0 z-[200] bg-[rgba(6,8,15,0.85)] flex items-center justify-center"
       onClick={(e: React.MouseEvent) => {
         if (e.target === e.currentTarget && !isProcessing) handleClose();
       }}
     >
-      <Box
-        w="100%"
-        maxW="480px"
-        mx="16px"
-        bg={glass.modal.bg}
-        border={glass.modal.border}
-        borderRadius={radius.xl}
-        boxShadow={shadows.modal}
-        backdropFilter={glass.modal.backdropFilter}
-        overflow="hidden"
-      >
+      <div className="relative w-full max-w-[480px] mx-4 bg-[rgba(13,15,23,0.95)] border border-[rgba(255,255,255,0.08)] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.65),0_8px_20px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-[24px] overflow-hidden">
+        {/* Corner accents */}
+        <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-[rgba(255,255,255,0.12)] rounded-tl-[24px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-[rgba(255,255,255,0.12)] rounded-tr-[24px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b border-l border-[rgba(255,255,255,0.12)] rounded-bl-[24px] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b border-r border-[rgba(255,255,255,0.12)] rounded-br-[24px] pointer-events-none" />
+
         {/* Header */}
-        <HStack justify="space-between" p="20px 24px">
-          <HStack gap="12px">
-            <Box
-              w="36px"
-              h="36px"
-              borderRadius={radius.md}
-              bg={`linear-gradient(135deg, ${colors.accent.indigo}, ${colors.accent.violet})`}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-            >
+        <div className="flex items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[16px] bg-[linear-gradient(135deg,#4A75F0,#633CFF)] flex items-center justify-center">
               <ShieldIcon size={18} color="#fff" />
-            </Box>
-            <VStack align="flex-start" gap="0">
-              <Text fontSize="16px" fontWeight={700} color={colors.text.primary}>
+            </div>
+            <div className="flex flex-col gap-0">
+              <span className="text-[16px] font-bold text-[rgba(255,255,255,0.92)] font-mono">
                 Deposit to Pool
-              </Text>
-              <Text fontSize="11px" color={colors.text.muted} fontWeight={500}>
+              </span>
+              <span className="text-[11px] text-[rgba(255,255,255,0.30)] font-medium font-mono">
                 Add {token.symbol} to the privacy pool
-              </Text>
-            </VStack>
-          </HStack>
+              </span>
+            </div>
+          </div>
           {!isProcessing && (
-            <Box
-              as="button"
+            <button
               onClick={handleClose}
-              cursor="pointer"
-              p="8px"
-              borderRadius={radius.full}
-              transition={transitions.fast}
-              _hover={{ bg: colors.bg.hover }}
+              className="cursor-pointer p-2 rounded-full transition-all hover:bg-[rgba(255,255,255,0.08)]"
             >
-              <XIcon size={15} color={colors.text.muted} />
-            </Box>
+              <XIcon size={15} color="rgba(255,255,255,0.30)" />
+            </button>
           )}
-        </HStack>
+        </div>
 
         {/* Content */}
-        <Box p="24px" pt="0">
+        <div className="px-6 pb-6 pt-0">
           {step === "input" && (
-            <VStack gap="20px" align="stretch">
+            <div className="flex flex-col gap-5">
               {/* Privacy info box */}
-              <Box
-                p="12px"
-                borderRadius={radius.sm}
-                bg="rgba(74,117,240,0.06)"
-                border={`1px solid rgba(74,117,240,0.15)`}
-              >
-                <HStack gap="8px" align="flex-start">
-                  <Box mt="2px" flexShrink={0}>
-                    <ShieldIcon size={14} color={colors.accent.indigo} />
-                  </Box>
-                  <Text fontSize="12px" color={colors.text.tertiary} lineHeight="1.5">
+              <div className="p-3 rounded-[12px] bg-[rgba(74,117,240,0.06)] border border-[rgba(74,117,240,0.15)]">
+                <div className="flex items-start gap-2">
+                  <div className="mt-[2px] flex-shrink-0">
+                    <ShieldIcon size={14} color="#4A75F0" />
+                  </div>
+                  <p className="text-[12px] text-[rgba(255,255,255,0.45)] leading-[1.5] font-mono">
                     Deposits use fixed amounts to protect your privacy. All deposits of the
                     same amount are indistinguishable from each other, creating a strong
                     anonymity set.
-                  </Text>
-                </HStack>
-              </Box>
+                  </p>
+                </div>
+              </div>
 
               {/* Fixed denomination grid */}
-              <VStack gap="8px" align="stretch">
-                <Text fontSize="11px" color={colors.text.muted} fontWeight={600} textTransform="uppercase" letterSpacing="0.04em">
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] text-[rgba(255,255,255,0.30)] font-semibold uppercase tracking-[0.04em] font-mono">
                   Select Amount
-                </Text>
-                <Box
-                  display="grid"
-                  gridTemplateColumns="repeat(5, 1fr)"
-                  gap="8px"
-                >
+                </span>
+                <div className="grid grid-cols-5 gap-2">
                   {denominations.map((denom) => (
-                    <Box
+                    <button
                       key={denom}
-                      as="button"
-                      py="12px"
-                      px="4px"
-                      borderRadius={radius.sm}
-                      bg={amount === denom ? "rgba(74,117,240,0.12)" : colors.bg.elevated}
-                      border={`1px solid ${
-                        amount === denom ? "rgba(74,117,240,0.3)" : colors.border.default
-                      }`}
-                      cursor="pointer"
-                      transition={transitions.fast}
+                      type="button"
                       onClick={() => setAmount(denom)}
-                      textAlign="center"
-                      _hover={{
-                        bg: amount === denom ? "rgba(74,117,240,0.15)" : colors.bg.hover,
-                        borderColor: amount === denom ? "rgba(74,117,240,0.4)" : colors.border.focus,
-                      }}
+                      className={[
+                        "py-3 px-1 rounded-[12px] cursor-pointer transition-all text-center",
+                        amount === denom
+                          ? "bg-[rgba(74,117,240,0.12)] border border-[rgba(74,117,240,0.3)] hover:bg-[rgba(74,117,240,0.15)] hover:border-[rgba(74,117,240,0.4)]"
+                          : "bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(74,117,240,0.5)]",
+                      ].join(" ")}
                     >
-                      <Text
-                        fontSize="13px"
-                        fontFamily={typography.fontFamily.mono}
-                        fontWeight={600}
-                        color={amount === denom ? colors.accent.indigo : colors.text.primary}
+                      <div
+                        className={[
+                          "text-[13px] font-mono font-semibold",
+                          amount === denom ? "text-[#4A75F0]" : "text-[rgba(255,255,255,0.92)]",
+                        ].join(" ")}
                       >
                         {denom}
-                      </Text>
-                      <Text
-                        fontSize="9px"
-                        color={colors.text.muted}
-                        mt="2px"
-                      >
+                      </div>
+                      <div className="text-[9px] text-[rgba(255,255,255,0.30)] mt-[2px] font-mono">
                         {token.symbol}
-                      </Text>
-                    </Box>
+                      </div>
+                    </button>
                   ))}
-                </Box>
-              </VStack>
+                </div>
+              </div>
 
               {/* Wait time notice */}
-              <Box
-                p="10px 12px"
-                borderRadius={radius.sm}
-                bg="rgba(245,158,11,0.06)"
-                border={`1px solid rgba(245,158,11,0.12)`}
-              >
-                <HStack gap="8px" align="flex-start">
-                  <Text fontSize="12px" mt="1px">⏳</Text>
-                  <Text fontSize="11px" color={colors.text.tertiary} lineHeight="1.5">
-                    After depositing, you must wait <Text as="span" fontWeight={700} color={colors.accent.amber}>~{MIN_WAIT_MINUTES} minutes</Text> ({MIN_WAIT_BLOCKS} blocks)
-                    before swapping. This allows other deposits to mix in, strengthening your anonymity.
-                  </Text>
-                </HStack>
-              </Box>
+              <div className="py-[10px] px-3 rounded-[12px] bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.12)]">
+                <div className="flex items-start gap-2">
+                  <span className="text-[12px] mt-[1px]">⏳</span>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.45)] leading-[1.5] font-mono">
+                    After depositing, you must wait{" "}
+                    <span className="font-bold text-[#F59E0B]">~{MIN_WAIT_MINUTES} minutes</span>{" "}
+                    ({MIN_WAIT_BLOCKS} blocks) before swapping. This allows other deposits to mix
+                    in, strengthening your anonymity.
+                  </p>
+                </div>
+              </div>
 
               {/* Deposit button */}
-              <Box
-                as="button"
-                w="100%"
-                py="14px"
-                borderRadius={radius.full}
-                bg={
-                  amount && parseFloat(amount) > 0
-                    ? buttonVariants.primary.bg
-                    : colors.bg.elevated
-                }
-                boxShadow={
-                  amount && parseFloat(amount) > 0
-                    ? buttonVariants.primary.boxShadow
-                    : "none"
-                }
-                cursor={amount && parseFloat(amount) > 0 ? "pointer" : "not-allowed"}
-                opacity={amount && parseFloat(amount) > 0 ? 1 : 0.5}
-                transition={transitions.base}
+              <button
+                type="button"
                 onClick={handleDeposit}
-                _hover={
-                  amount && parseFloat(amount) > 0
-                    ? {
-                        boxShadow: buttonVariants.primary.hover.boxShadow,
-                        transform: buttonVariants.primary.hover.transform,
-                      }
-                    : {}
-                }
-                _active={
-                  amount && parseFloat(amount) > 0
-                    ? {
-                        transform: buttonVariants.primary.active.transform,
-                      }
-                    : {}
-                }
+                disabled={!canDeposit}
+                className={[
+                  "w-full py-[14px] rounded-full text-[15px] font-bold text-white text-center transition-all",
+                  canDeposit
+                    ? "bg-[linear-gradient(135deg,#2B5AE2_0%,#4A75F0_50%,#5A6FFF_100%)] shadow-[0_2px_8px_rgba(43,90,226,0.3),0_0_20px_rgba(43,90,226,0.1)] cursor-pointer hover:shadow-[0_4px_16px_rgba(43,90,226,0.4),0_0_40px_rgba(43,90,226,0.15)] hover:-translate-y-[1px] active:translate-y-0"
+                    : "bg-[rgba(255,255,255,0.06)] cursor-not-allowed opacity-50",
+                ].join(" ")}
               >
-                <Text fontSize="15px" fontWeight={700} color="#fff" textAlign="center">
-                  {amount && parseFloat(amount) > 0
-                    ? `Deposit ${amount} ${token.symbol}`
-                    : "Select an Amount"}
-                </Text>
-              </Box>
-            </VStack>
+                {canDeposit ? `Deposit ${amount} ${token.symbol}` : "Select an Amount"}
+              </button>
+            </div>
           )}
 
           {/* Processing steps */}
           {isProcessing && (
-            <VStack gap="16px" align="stretch" py="8px">
+            <div className="flex flex-col gap-4 py-2">
               <ProgressStep
                 step={1}
                 label={token.symbol === "ETH" ? "Preparing deposit..." : "Approving token..."}
@@ -351,78 +283,61 @@ export function DepositModal({ isOpen, onClose, token, onDeposit }: DepositModal
                 isActive={step === "confirming"}
                 isComplete={false}
               />
-            </VStack>
+            </div>
           )}
 
           {/* Success */}
           {step === "success" && result && (
-            <VStack gap="16px" align="stretch">
-              <Box textAlign="center" py="8px">
-                <Box display="inline-flex" mb="12px">
-                  <CheckCircleIcon size={40} color={colors.accent.green} />
-                </Box>
-                <Text fontSize="16px" fontWeight={700} color={colors.text.primary} mb="4px">
+            <div className="flex flex-col gap-4">
+              <div className="text-center py-2">
+                <div className="inline-flex mb-3">
+                  <CheckCircleIcon size={40} color="#22C55E" />
+                </div>
+                <div className="text-[16px] font-bold text-[rgba(255,255,255,0.92)] mb-1 font-mono">
                   Deposit Successful
-                </Text>
-                <Text fontSize="13px" color={colors.text.secondary}>
+                </div>
+                <div className="text-[13px] text-[rgba(255,255,255,0.65)] font-mono">
                   {amount} {token.symbol} deposited to privacy pool
-                </Text>
-              </Box>
+                </div>
+              </div>
 
               {/* Wait time warning */}
-              <Box
-                p="14px"
-                borderRadius={radius.sm}
-                bg="rgba(245,158,11,0.08)"
-                border={`1px solid rgba(245,158,11,0.2)`}
-              >
-                <HStack gap="10px" align="flex-start">
-                  <Text fontSize="18px" mt="-1px">⏳</Text>
-                  <VStack gap="4px" align="flex-start">
-                    <Text fontSize="13px" fontWeight={700} color={colors.accent.amber}>
+              <div className="p-[14px] rounded-[12px] bg-[rgba(245,158,11,0.08)] border border-[rgba(245,158,11,0.2)]">
+                <div className="flex items-start gap-[10px]">
+                  <span className="text-[18px] mt-[-1px]">⏳</span>
+                  <div className="flex flex-col gap-1">
+                    <div className="text-[13px] font-bold text-[#F59E0B] font-mono">
                       Wait ~{MIN_WAIT_MINUTES} Minutes Before Swapping
-                    </Text>
-                    <Text fontSize="11px" color={colors.text.tertiary} lineHeight="1.6">
+                    </div>
+                    <p className="text-[11px] text-[rgba(255,255,255,0.45)] leading-[1.6] font-mono">
                       Your deposit needs to age for at least {MIN_WAIT_BLOCKS} blocks (~{MIN_WAIT_MINUTES} minutes)
                       before it can be used in a private swap. This mandatory waiting period lets other
                       users&apos; deposits enter the pool, making your transaction indistinguishable from theirs.
                       Without this wait, the timing of your deposit and swap could be correlated by an observer.
-                    </Text>
-                  </VStack>
-                </HStack>
-              </Box>
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-              <Box
-                p="12px"
-                borderRadius={radius.sm}
-                bg="rgba(34,197,94,0.06)"
-                border={`1px solid rgba(34,197,94,0.15)`}
-              >
-                <VStack gap="8px" align="stretch">
-                  <HStack justify="space-between">
-                    <Text fontSize="11px" color={colors.text.muted}>Leaf Index</Text>
-                    <Text fontSize="11px" fontFamily={typography.fontFamily.mono} color={colors.text.primary}>
+              <div className="p-3 rounded-[12px] bg-[rgba(34,197,94,0.06)] border border-[rgba(34,197,94,0.15)]">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-[rgba(255,255,255,0.30)] font-mono">Leaf Index</span>
+                    <span className="text-[11px] font-mono text-[rgba(255,255,255,0.92)]">
                       #{result.leafIndex}
-                    </Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontSize="11px" color={colors.text.muted}>Commitment</Text>
-                    <Text fontSize="11px" fontFamily={typography.fontFamily.mono} color={colors.text.primary}>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-[rgba(255,255,255,0.30)] font-mono">Commitment</span>
+                    <span className="text-[11px] font-mono text-[rgba(255,255,255,0.92)]">
                       {(() => {
                         const hex = '0x' + result.note.commitment.toString(16).padStart(64, '0');
                         return `${hex.slice(0, 10)}...${hex.slice(-8)}`;
                       })()}
-                    </Text>
-                  </HStack>
-                  <Box
-                    as="button"
-                    mt="4px"
-                    py="8px"
-                    px="12px"
-                    borderRadius={radius.sm}
-                    bg="rgba(34,197,94,0.1)"
-                    border="1px solid rgba(34,197,94,0.2)"
-                    cursor="pointer"
+                    </span>
+                  </div>
+                  <button
+                    type="button"
                     onClick={() => {
                       const noteData = {
                         commitment: '0x' + result.note.commitment.toString(16).padStart(64, '0'),
@@ -434,110 +349,72 @@ export function DepositModal({ isOpen, onClose, token, onDeposit }: DepositModal
                       };
                       navigator.clipboard.writeText(JSON.stringify(noteData, null, 2));
                     }}
-                    _hover={{ bg: "rgba(34,197,94,0.15)" }}
+                    className="mt-1 py-2 px-3 rounded-[12px] bg-[rgba(34,197,94,0.1)] border border-[rgba(34,197,94,0.2)] cursor-pointer hover:bg-[rgba(34,197,94,0.15)] transition-all"
                   >
-                    <Text fontSize="11px" color={colors.accent.green} fontWeight={600}>
+                    <span className="text-[11px] text-[#22C55E] font-semibold font-mono">
                       📋 Copy Full Note Details
-                    </Text>
-                  </Box>
-                </VStack>
-              </Box>
+                    </span>
+                  </button>
+                </div>
+              </div>
 
-              <Box
-                p="12px"
-                borderRadius={radius.sm}
-                bg="rgba(245,158,11,0.06)"
-                border={`1px solid rgba(245,158,11,0.15)`}
-              >
-                <Text fontSize="12px" color={colors.accent.amber} fontWeight={600} mb="4px">
+              <div className="p-3 rounded-[12px] bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.15)]">
+                <div className="text-[12px] text-[#F59E0B] font-semibold mb-1 font-mono">
                   Save Your Deposit Note
-                </Text>
-                <Text fontSize="11px" color={colors.text.tertiary} lineHeight="1.5">
+                </div>
+                <p className="text-[11px] text-[rgba(255,255,255,0.45)] leading-[1.5] font-mono">
                   Your deposit note has been saved to this browser. If you clear browser data, you will lose access to this deposit.
-                </Text>
-              </Box>
+                </p>
+              </div>
 
-              <Box
-                as="button"
-                w="100%"
-                py="14px"
-                borderRadius={radius.full}
-                bg={buttonVariants.primary.bg}
-                boxShadow={buttonVariants.primary.boxShadow}
-                cursor="pointer"
-                transition={transitions.base}
+              <button
+                type="button"
                 onClick={handleClose}
-                _hover={{
-                  boxShadow: buttonVariants.primary.hover.boxShadow,
-                  transform: buttonVariants.primary.hover.transform,
-                }}
+                className="w-full py-[14px] rounded-full bg-[linear-gradient(135deg,#2B5AE2_0%,#4A75F0_50%,#5A6FFF_100%)] shadow-[0_2px_8px_rgba(43,90,226,0.3),0_0_20px_rgba(43,90,226,0.1)] cursor-pointer transition-all text-[15px] font-bold text-white text-center hover:shadow-[0_4px_16px_rgba(43,90,226,0.4),0_0_40px_rgba(43,90,226,0.15)] hover:-translate-y-[1px] active:translate-y-0 font-mono"
               >
-                <Text fontSize="15px" fontWeight={700} color="#fff" textAlign="center">
-                  Done
-                </Text>
-              </Box>
-            </VStack>
+                Done
+              </button>
+            </div>
           )}
 
           {/* Error */}
           {step === "error" && (
-            <VStack gap="16px" align="stretch">
-              <Box textAlign="center" py="8px">
-                <Box display="inline-flex" mb="12px">
-                  <AlertCircleIcon size={40} color={colors.accent.red} />
-                </Box>
-                <Text fontSize="16px" fontWeight={700} color={colors.text.primary} mb="4px">
+            <div className="flex flex-col gap-4">
+              <div className="text-center py-2">
+                <div className="inline-flex mb-3">
+                  <AlertCircleIcon size={40} color="#EF4444" />
+                </div>
+                <div className="text-[16px] font-bold text-[rgba(255,255,255,0.92)] mb-1 font-mono">
                   Deposit Failed
-                </Text>
-                <Text fontSize="13px" color={colors.text.secondary}>
+                </div>
+                <div className="text-[13px] text-[rgba(255,255,255,0.65)] font-mono">
                   {error}
-                </Text>
-              </Box>
+                </div>
+              </div>
 
-              <HStack gap="12px">
-                <Box
-                  as="button"
-                  flex="1"
-                  py="14px"
-                  borderRadius={radius.full}
-                  bg={buttonVariants.secondary.bg}
-                  border={buttonVariants.secondary.border}
-                  cursor="pointer"
-                  transition={transitions.base}
+              <div className="flex gap-3">
+                <button
+                  type="button"
                   onClick={handleClose}
-                  _hover={{ bg: buttonVariants.secondary.hover.bg }}
+                  className="flex-1 py-[14px] rounded-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] cursor-pointer transition-all text-[14px] font-semibold text-[rgba(255,255,255,0.92)] text-center hover:bg-[rgba(255,255,255,0.08)] font-mono"
                 >
-                  <Text fontSize="14px" fontWeight={600} color={colors.text.primary} textAlign="center">
-                    Cancel
-                  </Text>
-                </Box>
-                <Box
-                  as="button"
-                  flex="1"
-                  py="14px"
-                  borderRadius={radius.full}
-                  bg={buttonVariants.primary.bg}
-                  boxShadow={buttonVariants.primary.boxShadow}
-                  cursor="pointer"
-                  transition={transitions.base}
+                  Cancel
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setStep("input");
                     setError(null);
                   }}
-                  _hover={{
-                    boxShadow: buttonVariants.primary.hover.boxShadow,
-                    transform: buttonVariants.primary.hover.transform,
-                  }}
+                  className="flex-1 py-[14px] rounded-full bg-[linear-gradient(135deg,#2B5AE2_0%,#4A75F0_50%,#5A6FFF_100%)] shadow-[0_2px_8px_rgba(43,90,226,0.3),0_0_20px_rgba(43,90,226,0.1)] cursor-pointer transition-all text-[14px] font-bold text-white text-center hover:shadow-[0_4px_16px_rgba(43,90,226,0.4),0_0_40px_rgba(43,90,226,0.15)] hover:-translate-y-[1px] active:translate-y-0 font-mono"
                 >
-                  <Text fontSize="14px" fontWeight={700} color="#fff" textAlign="center">
-                    Try Again
-                  </Text>
-                </Box>
-              </HStack>
-            </VStack>
+                  Try Again
+                </button>
+              </div>
+            </div>
           )}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
