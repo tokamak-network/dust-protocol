@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { Box, Text, VStack, HStack, Input, Spinner, Textarea } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStealthScanner, useUnifiedBalance, useDustPool } from "@/hooks/stealth";
 import { useSwapNotes } from "@/hooks/swap";
 import { useDustSwapPool } from "@/hooks/swap";
-import { colors, radius, glass, shadows, buttonVariants, transitions, typography, getExplorerBase } from "@/lib/design/tokens";
+import { getExplorerBase } from "@/lib/design/tokens";
 import { getChainConfig } from "@/config/chains";
 import { SUPPORTED_TOKENS } from "@/lib/swap/constants";
 import { ConsolidateModal } from "@/components/dashboard/ConsolidateModal";
@@ -54,48 +53,18 @@ function StatCard({
   value: string | number;
   accentColor?: string;
 }) {
-  const borderColor = accentColor
-    ? `${accentColor}30`
-    : colors.border.default;
-
   return (
-    <Box
-      p="16px"
-      bg={glass.card.bg}
-      borderRadius={radius.lg}
-      border={`1.5px solid ${borderColor}`}
-      backdropFilter={glass.card.backdropFilter}
-    >
-      <HStack gap="12px">
-        <Box
-          w="40px"
-          h="40px"
-          borderRadius={radius.md}
-          bg={accentColor ? `${accentColor}15` : colors.bg.elevated}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          flexShrink={0}
-        >
+    <div className="w-full p-4 rounded-sm border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] backdrop-blur-sm">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-[rgba(255,255,255,0.04)] flex items-center justify-center shrink-0">
           {icon}
-        </Box>
-        <Box>
-          <Text fontSize="11px" color={colors.text.muted} fontWeight={500} mb="2px">
-            {label}
-          </Text>
-          <Text
-            fontSize="20px"
-            fontWeight={800}
-            color={colors.text.primary}
-            fontFamily={typography.fontFamily.mono}
-            letterSpacing="-0.02em"
-            lineHeight="1"
-          >
-            {value}
-          </Text>
-        </Box>
-      </HStack>
-    </Box>
+        </div>
+        <div>
+          <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-medium mb-0.5">{label}</p>
+          <p className="text-xl font-extrabold text-white font-mono tracking-tight leading-none">{value}</p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -116,50 +85,25 @@ function ModalShell({
 }) {
   if (!isOpen) return null;
   return (
-    <Box
-      position="fixed"
-      inset={0}
-      bg={colors.bg.overlay}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      zIndex={200}
-      onClick={(e: React.MouseEvent) => {
-        if (e.target === e.currentTarget && !preventClose) onClose();
-      }}
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200]"
+      onClick={(e) => { if (e.target === e.currentTarget && !preventClose) onClose(); }}
     >
-      <Box
-        w="100%"
-        maxW="440px"
-        mx="16px"
-        bg={glass.modal.bg}
-        border={glass.modal.border}
-        borderRadius={radius.xl}
-        boxShadow={shadows.modal}
-        backdropFilter={glass.modal.backdropFilter}
-        overflow="hidden"
-      >
-        <HStack justify="space-between" p="20px 24px">
-          <Text fontSize="16px" fontWeight={700} color={colors.text.primary}>
-            {title}
-          </Text>
+      <div className="w-full max-w-[440px] mx-4 bg-[rgba(10,10,15,0.95)] border border-[rgba(255,255,255,0.08)] rounded-xl shadow-2xl backdrop-blur-xl overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-5">
+          <p className="text-base font-bold text-white">{title}</p>
           {!preventClose && (
-            <Box
-              as="button"
+            <button
               onClick={onClose}
-              cursor="pointer"
-              p="8px"
-              borderRadius={radius.full}
-              transition={transitions.fast}
-              _hover={{ bg: colors.bg.hover }}
+              className="p-2 rounded-full hover:bg-[rgba(255,255,255,0.06)] transition-all cursor-pointer"
             >
-              <XIcon size={15} color={colors.text.muted} />
-            </Box>
+              <XIcon size={15} color="rgba(255,255,255,0.4)" />
+            </button>
           )}
-        </HStack>
-        <Box p="0 24px 24px">{children}</Box>
-      </Box>
-    </Box>
+        </div>
+        <div className="px-6 pb-6">{children}</div>
+      </div>
+    </div>
   );
 }
 
@@ -323,24 +267,15 @@ export default function WalletPage() {
 
   if (!isConnected) {
     return (
-      <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" p="16px">
-        <VStack gap="16px" textAlign="center">
-          <Box opacity={0.4}>
-            <WalletIcon size={48} color={colors.text.muted} />
-          </Box>
-          <Text
-            fontSize="24px"
-            fontWeight={700}
-            color={colors.text.primary}
-            fontFamily={typography.fontFamily.heading}
-          >
-            Connect Your Wallet
-          </Text>
-          <Text fontSize="14px" color={colors.text.secondary}>
-            Connect your wallet to manage deposits and stealth payments
-          </Text>
-        </VStack>
-      </Box>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="opacity-40">
+            <WalletIcon size={48} color="rgba(255,255,255,0.4)" />
+          </div>
+          <h1 className="text-2xl font-bold text-white">Connect Your Wallet</h1>
+          <p className="text-sm text-[rgba(255,255,255,0.5)]">Connect your wallet to manage deposits and stealth payments</p>
+        </div>
+      </div>
     );
   }
 
@@ -349,754 +284,425 @@ export default function WalletPage() {
   const isDepositing = ["generating", "approving", "depositing", "confirming"].includes(depositState);
 
   return (
-    <Box p={{ base: "16px 14px", md: "28px 24px" }} maxW="720px" mx="auto">
-      <VStack gap="20px" align="stretch">
-        {/* Page header */}
-        <HStack justify="space-between" align="center">
-          <Box>
-            <Text
-              fontSize="28px"
-              fontWeight={700}
-              color={colors.text.primary}
-              fontFamily={typography.fontFamily.heading}
-              letterSpacing="-0.02em"
-              mb="4px"
-            >
-              Wallet
-            </Text>
-            <Text fontSize="13px" color={colors.text.secondary}>
-              Manage your private deposits and stealth payments
-            </Text>
-          </Box>
-          <Box
-            as="button"
-            px="14px"
-            py="8px"
-            bg={buttonVariants.primary.bg}
-            boxShadow={buttonVariants.primary.boxShadow}
-            borderRadius={radius.sm}
-            cursor="pointer"
-            _hover={{
-              boxShadow: buttonVariants.primary.hover.boxShadow,
-              transform: buttonVariants.primary.hover.transform,
-            }}
-            _active={{ transform: buttonVariants.primary.active.transform }}
-            transition={transitions.fast}
-            onClick={() => setIsDepositModalOpen(true)}
-            display="flex"
-            alignItems="center"
-            gap="6px"
-          >
-            <PlusIcon size={14} color="#fff" />
-            <Text fontSize="13px" fontWeight={700} color="#fff">
-              New Deposit
-            </Text>
-          </Box>
-        </HStack>
-
-        {/* Stats grid */}
-        <Box
-          display="grid"
-          gridTemplateColumns={{ base: "1fr 1fr", md: "repeat(4, 1fr)" }}
-          gap="12px"
+    <div className="px-3.5 md:px-6 py-4 md:py-7 max-w-[720px] mx-auto flex flex-col gap-5">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-[28px] font-bold text-white tracking-tight mb-1">Wallet</h1>
+          <p className="text-[13px] text-[rgba(255,255,255,0.5)]">Manage your private deposits and stealth payments</p>
+        </div>
+        <button
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] transition-all text-sm font-bold text-[#00FF41] font-mono cursor-pointer"
+          onClick={() => setIsDepositModalOpen(true)}
         >
-          <StatCard
-            icon={<KeyIcon size={18} color={colors.accent.green} />}
-            label="Active Notes"
-            value={count.unspent}
-            accentColor={colors.accent.green}
-          />
-          <StatCard
-            icon={<LockIcon size={18} color={colors.accent.indigo} />}
-            label="ETH in Pool"
-            value={`${ethNoteValue.toFixed(4)}`}
-            accentColor={colors.accent.indigo}
-          />
-          <StatCard
-            icon={<ShieldIcon size={18} color={colors.accent.violet} />}
-            label="USDC in Pool"
-            value={`${usdcNoteValue.toFixed(2)}`}
-            accentColor={colors.accent.violet}
-          />
-          <StatCard
-            icon={<SendIcon size={18} color={colors.accent.cyan} />}
-            label="Unclaimed"
-            value={unified.unclaimedCount}
-            accentColor={colors.accent.cyan}
-          />
-        </Box>
+          <PlusIcon size={14} color="#00FF41" />
+          New Deposit
+        </button>
+      </div>
 
-        {/* Privacy Pool balance card */}
-        {hasPoolBalance && (
-          <Box
-            p="16px"
-            bg={glass.card.bg}
-            borderRadius={radius.lg}
-            border={`1.5px solid ${colors.border.accent}`}
-            backdropFilter={glass.card.backdropFilter}
-          >
-            <HStack justify="space-between" align="center">
-              <HStack gap="10px">
-                <Box color={colors.accent.indigo} opacity={0.7}>
-                  <ShieldIcon size={18} />
-                </Box>
-                <Box>
-                  <Text fontSize="13px" fontWeight={700} color={colors.text.primary}>
-                    Privacy Pool
-                  </Text>
-                  <Text fontSize="11px" color={colors.text.muted}>
-                    {dustPool.deposits.filter((d) => !d.withdrawn).length} deposits ready to withdraw
-                  </Text>
-                </Box>
-              </HStack>
-              <HStack gap="10px">
-                <Text
-                  fontSize="18px"
-                  fontWeight={800}
-                  color={colors.text.primary}
-                  fontFamily={typography.fontFamily.mono}
-                >
-                  {parseFloat(dustPool.poolBalance).toFixed(4)} {nativeSymbol}
-                </Text>
-                <Box
-                  as="button"
-                  px="12px"
-                  py="6px"
-                  bg={buttonVariants.primary.bg}
-                  boxShadow={buttonVariants.primary.boxShadow}
-                  borderRadius={radius.sm}
-                  cursor="pointer"
-                  _hover={{
-                    boxShadow: buttonVariants.primary.hover.boxShadow,
-                    transform: buttonVariants.primary.hover.transform,
-                  }}
-                  transition={transitions.fast}
-                  onClick={() => setShowConsolidateModal(true)}
-                >
-                  <Text fontSize="12px" fontWeight={700} color="#fff">
-                    Withdraw
-                  </Text>
-                </Box>
-              </HStack>
-            </HStack>
-          </Box>
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard
+          icon={<KeyIcon size={18} color="#22c55e" />}
+          label="Active Notes"
+          value={count.unspent}
+          accentColor="#22c55e"
+        />
+        <StatCard
+          icon={<LockIcon size={18} color="#818cf8" />}
+          label="ETH in Pool"
+          value={`${ethNoteValue.toFixed(4)}`}
+          accentColor="#818cf8"
+        />
+        <StatCard
+          icon={<ShieldIcon size={18} color="#a78bfa" />}
+          label="USDC in Pool"
+          value={`${usdcNoteValue.toFixed(2)}`}
+          accentColor="#a78bfa"
+        />
+        <StatCard
+          icon={<SendIcon size={18} color="#22d3ee" />}
+          label="Unclaimed"
+          value={unified.unclaimedCount}
+          accentColor="#22d3ee"
+        />
+      </div>
+
+      {/* Privacy Pool balance card */}
+      {hasPoolBalance && (
+        <div className="p-4 rounded-sm border border-[rgba(129,140,248,0.3)] bg-[rgba(255,255,255,0.02)] backdrop-blur-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="opacity-70 text-indigo-400">
+                <ShieldIcon size={18} />
+              </div>
+              <div>
+                <p className="text-[13px] font-bold text-white">Privacy Pool</p>
+                <p className="text-[11px] text-[rgba(255,255,255,0.4)]">
+                  {dustPool.deposits.filter((d) => !d.withdrawn).length} deposits ready to withdraw
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <p className="text-lg font-extrabold text-white font-mono">
+                {parseFloat(dustPool.poolBalance).toFixed(4)} {nativeSymbol}
+              </p>
+              <button
+                className="px-3 py-1.5 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] transition-all text-xs font-bold text-[#00FF41] font-mono cursor-pointer"
+                onClick={() => setShowConsolidateModal(true)}
+              >
+                Withdraw
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Deposit Notes Section ───────────────────────────────────────── */}
+      <div className="w-full p-5 rounded-sm border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] backdrop-blur-sm flex flex-col gap-4">
+        {/* Section header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <LockIcon size={16} color="#818cf8" />
+            <p className="text-[15px] font-bold text-white">Deposit Notes</p>
+            <span className="px-2 py-0.5 rounded-full bg-[rgba(255,255,255,0.05)] text-[11px] text-[rgba(255,255,255,0.4)] font-medium">
+              {count.total} total
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              className="p-1.5 rounded-full hover:bg-[rgba(255,255,255,0.06)] transition-all cursor-pointer"
+              onClick={() => setShowSecrets(!showSecrets)}
+            >
+              {showSecrets
+                ? <EyeIcon size={15} color="#22c55e" />
+                : <EyeOffIcon size={15} color="rgba(255,255,255,0.4)" />}
+            </button>
+            <button
+              className="p-1.5 rounded-full hover:bg-[rgba(255,255,255,0.06)] transition-all cursor-pointer"
+              onClick={refreshNotes}
+            >
+              {notesLoading
+                ? <span className="inline-block w-3.5 h-3.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                : <RefreshIcon size={15} color="rgba(255,255,255,0.4)" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Notes list */}
+        {notesLoading ? (
+          <div className="text-center py-10">
+            <span className="inline-block w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : notes.length === 0 ? (
+          <div className="text-center py-10 flex flex-col items-center gap-3">
+            <div className="opacity-30">
+              <KeyIcon size={36} color="rgba(255,255,255,0.4)" />
+            </div>
+            <p className="text-[13px] text-[rgba(255,255,255,0.4)]">No deposit notes yet</p>
+            <button
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-sm border border-[rgba(255,255,255,0.1)] hover:border-[rgba(255,255,255,0.3)] hover:bg-[rgba(255,255,255,0.03)] transition-all text-sm font-bold text-white font-mono cursor-pointer"
+              onClick={() => setIsDepositModalOpen(true)}
+            >
+              <PlusIcon size={13} color="white" />
+              Make Your First Deposit
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {notes.map((note) => (
+              <div
+                key={note.id}
+                className={`p-3.5 rounded-sm border transition-all
+                  ${note.spent
+                    ? "border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.01)] opacity-55"
+                    : "border-[rgba(129,140,248,0.25)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(129,140,248,0.4)]"}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  {/* Left: token + amount */}
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0
+                      ${note.spent ? "bg-[rgba(255,255,255,0.06)]" : "bg-[rgba(74,117,240,0.1)]"}`}>
+                      <span className={`text-xs font-bold ${note.spent ? "text-[rgba(255,255,255,0.4)]" : "text-indigo-400"}`}>
+                        {note.tokenSymbol?.slice(0, 3) || "??"}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-white font-mono">
+                          {formatNoteAmount(note)} {note.tokenSymbol}
+                        </span>
+                        <span className={`px-1.5 py-px rounded-full text-[10px] font-semibold
+                          ${note.spent ? "bg-[rgba(255,255,255,0.05)] text-[rgba(255,255,255,0.4)]" : "bg-[rgba(34,197,94,0.1)] text-green-400"}`}>
+                          {note.spent ? "Spent" : "Active"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[11px] text-[rgba(255,255,255,0.4)]">{formatDate(note.createdAt)}</span>
+                        {note.leafIndex !== undefined && (
+                          <>
+                            <span className="text-[11px] text-[rgba(255,255,255,0.4)]">&middot;</span>
+                            <span className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono">Leaf #{note.leafIndex}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: actions */}
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {note.depositTxHash && (
+                      <a
+                        href={`${explorerBase}/tx/${note.depositTxHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-full inline-flex cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-all"
+                      >
+                        <ExternalLinkIcon size={14} color="rgba(255,255,255,0.4)" />
+                      </a>
+                    )}
+                    <button
+                      className="p-1.5 rounded-full cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-all"
+                      onClick={() => copyNoteSecret(note)}
+                    >
+                      {copiedId === note.id
+                        ? <CheckIcon size={14} color="#22c55e" />
+                        : <CopyIcon size={14} color="rgba(255,255,255,0.4)" />}
+                    </button>
+                    <button
+                      className="p-1.5 rounded-full cursor-pointer hover:bg-[rgba(239,68,68,0.08)] transition-all"
+                      onClick={() => deleteNote(note.id!)}
+                    >
+                      <TrashIcon size={14} color="rgba(255,255,255,0.4)" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Secrets reveal */}
+                {showSecrets && !note.spent && (
+                  <div className="mt-3 pt-3 border-t border-[rgba(255,255,255,0.05)]">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-[10px] text-[rgba(255,255,255,0.4)] mb-0.5">Commitment</p>
+                        <p className="text-[11px] text-white font-mono truncate">
+                          {note.commitment.toString().slice(0, 20)}...
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[rgba(255,255,255,0.4)] mb-0.5">Nullifier Hash</p>
+                        <p className="text-[11px] text-white font-mono truncate">
+                          {note.nullifierHash.toString().slice(0, 20)}...
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
 
-        {/* ─── Deposit Notes Section ───────────────────────────────────────── */}
-        <Box
-          p="20px"
-          bg={glass.card.bg}
-          borderRadius={radius.lg}
-          border={glass.card.border}
-          backdropFilter={glass.card.backdropFilter}
-        >
-          <VStack gap="16px" align="stretch">
-            {/* Section header */}
-            <HStack justify="space-between" align="center">
-              <HStack gap="8px">
-                <LockIcon size={16} color={colors.accent.indigo} />
-                <Text fontSize="15px" fontWeight={700} color={colors.text.primary}>
-                  Deposit Notes
-                </Text>
-                <Box
-                  px="8px"
-                  py="2px"
-                  borderRadius={radius.full}
-                  bg={colors.bg.elevated}
-                >
-                  <Text fontSize="11px" color={colors.text.muted} fontWeight={500}>
-                    {count.total} total
-                  </Text>
-                </Box>
-              </HStack>
-              <HStack gap="4px">
-                <Box
-                  as="button"
-                  p="6px"
-                  borderRadius={radius.full}
-                  cursor="pointer"
-                  _hover={{ bg: colors.bg.hover }}
-                  transition={transitions.fast}
-                  onClick={() => setShowSecrets(!showSecrets)}
-                >
-                  {showSecrets ? (
-                    <EyeIcon size={15} color={colors.accent.green} />
-                  ) : (
-                    <EyeOffIcon size={15} color={colors.text.muted} />
-                  )}
-                </Box>
-                <Box
-                  as="button"
-                  p="6px"
-                  borderRadius={radius.full}
-                  cursor="pointer"
-                  _hover={{ bg: colors.bg.hover }}
-                  transition={transitions.fast}
-                  onClick={refreshNotes}
-                >
-                  {notesLoading ? (
-                    <Spinner size="xs" color={colors.accent.indigo} />
-                  ) : (
-                    <RefreshIcon size={15} color={colors.text.muted} />
-                  )}
-                </Box>
-              </HStack>
-            </HStack>
+        {/* Actions bar */}
+        {notes.length > 0 && (
+          <div className="flex items-center justify-between pt-3 border-t border-[rgba(255,255,255,0.05)]">
+            <div className="flex items-center gap-1">
+              <button
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-all"
+                onClick={handleExport}
+              >
+                <DownloadIcon size={13} color="rgba(255,255,255,0.5)" />
+                <span className="text-xs font-semibold text-[rgba(255,255,255,0.5)]">Export</span>
+              </button>
+              <button
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-all"
+                onClick={() => setIsImportModalOpen(true)}
+              >
+                <UploadIcon size={13} color="rgba(255,255,255,0.5)" />
+                <span className="text-xs font-semibold text-[rgba(255,255,255,0.5)]">Import</span>
+              </button>
+            </div>
+            <button
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm cursor-pointer hover:bg-[rgba(239,68,68,0.08)] transition-all"
+              onClick={() => setIsClearModalOpen(true)}
+            >
+              <TrashIcon size={13} color="#ef4444" />
+              <span className="text-xs font-semibold text-red-400">Clear All</span>
+            </button>
+          </div>
+        )}
+      </div>
 
-            {/* Notes list */}
-            {notesLoading ? (
-              <Box textAlign="center" py="40px">
-                <Spinner size="md" color={colors.accent.indigo} />
-              </Box>
-            ) : notes.length === 0 ? (
-              <Box textAlign="center" py="40px">
-                <Box display="inline-block" opacity={0.3} mb="12px">
-                  <KeyIcon size={36} color={colors.text.muted} />
-                </Box>
-                <Text fontSize="13px" color={colors.text.muted} mb="16px">
-                  No deposit notes yet
-                </Text>
-                <Box
-                  as="button"
-                  display="inline-flex"
-                  alignItems="center"
-                  gap="6px"
-                  px="16px"
-                  py="8px"
-                  bg={buttonVariants.secondary.bg}
-                  border={buttonVariants.secondary.border}
-                  borderRadius={radius.sm}
-                  cursor="pointer"
-                  _hover={{ bg: buttonVariants.secondary.hover.bg }}
-                  transition={transitions.fast}
-                  onClick={() => setIsDepositModalOpen(true)}
-                >
-                  <PlusIcon size={13} color={colors.text.primary} />
-                  <Text fontSize="12px" fontWeight={600} color={colors.text.primary}>
-                    Make Your First Deposit
-                  </Text>
-                </Box>
-              </Box>
-            ) : (
-              <VStack gap="8px" align="stretch">
-                {notes.map((note) => (
-                  <Box
-                    key={note.id}
-                    p="14px"
-                    borderRadius={radius.md}
-                    border={`1px solid ${note.spent ? colors.border.light : colors.border.accent
-                      }`}
-                    bg={note.spent ? "rgba(255,255,255,0.01)" : colors.bg.card}
-                    opacity={note.spent ? 0.55 : 1}
-                    transition={transitions.fast}
-                    _hover={note.spent ? {} : { borderColor: colors.border.focus }}
-                  >
-                    <HStack justify="space-between" align="flex-start" gap="12px">
-                      {/* Left: token + amount */}
-                      <HStack gap="10px" flex={1} minW={0}>
-                        <Box
-                          w="36px"
-                          h="36px"
-                          borderRadius={radius.full}
-                          bg={note.spent ? colors.bg.elevated : "rgba(74,117,240,0.1)"}
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="center"
-                          flexShrink={0}
-                        >
-                          <Text fontSize="12px" fontWeight={700} color={note.spent ? colors.text.muted : colors.accent.indigo}>
-                            {note.tokenSymbol?.slice(0, 3) || "??"}
-                          </Text>
-                        </Box>
-                        <Box minW={0}>
-                          <HStack gap="8px" align="center">
-                            <Text
-                              fontSize="14px"
-                              fontWeight={700}
-                              color={colors.text.primary}
-                              fontFamily={typography.fontFamily.mono}
-                            >
-                              {formatNoteAmount(note)} {note.tokenSymbol}
-                            </Text>
-                            <Box
-                              px="6px"
-                              py="1px"
-                              borderRadius={radius.full}
-                              bg={note.spent ? "rgba(255,255,255,0.05)" : "rgba(34,197,94,0.1)"}
-                            >
-                              <Text
-                                fontSize="10px"
-                                fontWeight={600}
-                                color={note.spent ? colors.text.muted : colors.accent.green}
-                              >
-                                {note.spent ? "Spent" : "Active"}
-                              </Text>
-                            </Box>
-                          </HStack>
-                          <HStack gap="6px" mt="4px">
-                            <Text fontSize="11px" color={colors.text.muted}>
-                              {formatDate(note.createdAt)}
-                            </Text>
-                            {note.leafIndex !== undefined && (
-                              <>
-                                <Text fontSize="11px" color={colors.text.muted}>
-                                  &middot;
-                                </Text>
-                                <Text
-                                  fontSize="11px"
-                                  color={colors.text.muted}
-                                  fontFamily={typography.fontFamily.mono}
-                                >
-                                  Leaf #{note.leafIndex}
-                                </Text>
-                              </>
-                            )}
-                          </HStack>
-                        </Box>
-                      </HStack>
+      {/* ─── Stealth Payments Section ────────────────────────────────────── */}
+      <div className="w-full p-5 rounded-sm border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] backdrop-blur-sm flex flex-col gap-4">
+        {/* Section header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ShieldIcon size={16} color="#22c55e" />
+            <p className="text-[15px] font-bold text-white">Stealth Payments</p>
+            <span className="px-2 py-0.5 rounded-full bg-[rgba(255,255,255,0.05)] text-[11px] text-[rgba(255,255,255,0.4)] font-medium">
+              {unified.unclaimedCount} unclaimed
+            </span>
+          </div>
+          <button
+            className="p-1.5 rounded-full cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-all"
+            onClick={() => scan()}
+          >
+            {isScanning
+              ? <span className="inline-block w-3.5 h-3.5 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+              : <RefreshIcon size={15} color="rgba(255,255,255,0.4)" />}
+          </button>
+        </div>
 
-                      {/* Right: actions */}
-                      <HStack gap="2px" flexShrink={0}>
-                        {note.depositTxHash && (
-                          <a
-                            href={`${explorerBase}/tx/${note.depositTxHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ padding: "6px", borderRadius: radius.full, cursor: "pointer", display: "inline-flex" }}
-                          >
-                            <ExternalLinkIcon size={14} color={colors.text.muted} />
-                          </a>
-                        )}
-                        <Box
-                          as="button"
-                          p="6px"
-                          borderRadius={radius.full}
-                          cursor="pointer"
-                          _hover={{ bg: colors.bg.hover }}
-                          transition={transitions.fast}
-                          onClick={() => copyNoteSecret(note)}
-                        >
-                          {copiedId === note.id ? (
-                            <CheckIcon size={14} color={colors.accent.green} />
-                          ) : (
-                            <CopyIcon size={14} color={colors.text.muted} />
+        {/* Payment list */}
+        {payments.length === 0 ? (
+          <div className="text-center py-10 flex flex-col items-center gap-3">
+            <div className="opacity-30">
+              <ShieldIcon size={36} color="rgba(255,255,255,0.4)" />
+            </div>
+            <p className="text-[13px] text-[rgba(255,255,255,0.4)]">No stealth payments yet</p>
+            <p className="text-[11px] text-[rgba(255,255,255,0.3)]">Payments received via stealth addresses will appear here</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {unified.unclaimedPayments.map((payment) => {
+              const bal = parseFloat(payment.balance || "0");
+              const addr = payment.announcement.stealthAddress;
+              const txHash = payment.announcement.txHash;
+
+              return (
+                <div
+                  key={addr}
+                  className={`p-3.5 rounded-sm border transition-all
+                    ${bal > 0
+                      ? "border-[rgba(34,197,94,0.2)] bg-[rgba(34,197,94,0.03)]"
+                      : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)]"}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0
+                        ${bal > 0 ? "bg-[rgba(34,197,94,0.12)]" : "bg-[rgba(255,255,255,0.06)]"}`}>
+                        <ShieldIcon size={16} color={bal > 0 ? "#22c55e" : "rgba(255,255,255,0.4)"} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] text-white font-mono">
+                            {addr.slice(0, 8)}...{addr.slice(-6)}
+                          </span>
+                          {bal > 0 && (
+                            <span className="px-1.5 py-px rounded-full bg-[rgba(34,197,94,0.1)] text-[10px] font-semibold text-green-400">
+                              Claimable
+                            </span>
                           )}
-                        </Box>
-                        <Box
-                          as="button"
-                          p="6px"
-                          borderRadius={radius.full}
-                          cursor="pointer"
-                          _hover={{ bg: "rgba(239,68,68,0.08)" }}
-                          transition={transitions.fast}
-                          onClick={() => deleteNote(note.id!)}
-                        >
-                          <TrashIcon size={14} color={colors.text.muted} />
-                        </Box>
-                      </HStack>
-                    </HStack>
-
-                    {/* Secrets reveal */}
-                    {showSecrets && !note.spent && (
-                      <Box
-                        mt="12px"
-                        pt="12px"
-                        borderTop={`1px solid ${colors.border.light}`}
+                        </div>
+                        <p className="text-sm font-bold text-white font-mono mt-0.5">
+                          {bal.toFixed(4)} {nativeSymbol}
+                        </p>
+                      </div>
+                    </div>
+                    {txHash && (
+                      <a
+                        href={`${explorerBase}/tx/${txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-full inline-flex cursor-pointer hover:bg-[rgba(255,255,255,0.06)] transition-all shrink-0"
                       >
-                        <Box
-                          display="grid"
-                          gridTemplateColumns="1fr 1fr"
-                          gap="8px"
-                        >
-                          <Box>
-                            <Text fontSize="10px" color={colors.text.muted} mb="2px">
-                              Commitment
-                            </Text>
-                            <Text
-                              fontSize="11px"
-                              color={colors.text.primary}
-                              fontFamily={typography.fontFamily.mono}
-                              overflow="hidden"
-                              textOverflow="ellipsis"
-                              whiteSpace="nowrap"
-                            >
-                              {note.commitment.toString().slice(0, 20)}...
-                            </Text>
-                          </Box>
-                          <Box>
-                            <Text fontSize="10px" color={colors.text.muted} mb="2px">
-                              Nullifier Hash
-                            </Text>
-                            <Text
-                              fontSize="11px"
-                              color={colors.text.primary}
-                              fontFamily={typography.fontFamily.mono}
-                              overflow="hidden"
-                              textOverflow="ellipsis"
-                              whiteSpace="nowrap"
-                            >
-                              {note.nullifierHash.toString().slice(0, 20)}...
-                            </Text>
-                          </Box>
-                        </Box>
-                      </Box>
+                        <ExternalLinkIcon size={14} color="rgba(255,255,255,0.4)" />
+                      </a>
                     )}
-                  </Box>
-                ))}
-              </VStack>
-            )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-            {/* Actions bar */}
-            {notes.length > 0 && (
-              <HStack
-                justify="space-between"
-                pt="12px"
-                borderTop={`1px solid ${colors.border.light}`}
-              >
-                <HStack gap="4px">
-                  <Box
-                    as="button"
-                    display="flex"
-                    alignItems="center"
-                    gap="5px"
-                    px="10px"
-                    py="6px"
-                    borderRadius={radius.sm}
-                    cursor="pointer"
-                    _hover={{ bg: colors.bg.hover }}
-                    transition={transitions.fast}
-                    onClick={handleExport}
-                  >
-                    <DownloadIcon size={13} color={colors.text.secondary} />
-                    <Text fontSize="12px" fontWeight={600} color={colors.text.secondary}>
-                      Export
-                    </Text>
-                  </Box>
-                  <Box
-                    as="button"
-                    display="flex"
-                    alignItems="center"
-                    gap="5px"
-                    px="10px"
-                    py="6px"
-                    borderRadius={radius.sm}
-                    cursor="pointer"
-                    _hover={{ bg: colors.bg.hover }}
-                    transition={transitions.fast}
-                    onClick={() => setIsImportModalOpen(true)}
-                  >
-                    <UploadIcon size={13} color={colors.text.secondary} />
-                    <Text fontSize="12px" fontWeight={600} color={colors.text.secondary}>
-                      Import
-                    </Text>
-                  </Box>
-                </HStack>
-                <Box
-                  as="button"
-                  display="flex"
-                  alignItems="center"
-                  gap="5px"
-                  px="10px"
-                  py="6px"
-                  borderRadius={radius.sm}
-                  cursor="pointer"
-                  _hover={{ bg: "rgba(239,68,68,0.08)" }}
-                  transition={transitions.fast}
-                  onClick={() => setIsClearModalOpen(true)}
+        {/* Info notice */}
+        {payments.length > 0 && (
+          <div className="p-2.5 px-3 rounded-sm bg-[rgba(34,197,94,0.04)] border border-[rgba(34,197,94,0.12)]">
+            <div className="flex items-start gap-2">
+              <div className="mt-px shrink-0"><KeyIcon size={13} color="#22c55e" /></div>
+              <p className="text-[11px] text-[rgba(255,255,255,0.4)] leading-relaxed">
+                Stealth addresses hold tokens from private payments. Private keys are stored
+                securely in your browser. Claim via the Dashboard to send funds to your wallet.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── Transaction History ─────────────────────────────────────────── */}
+      <div className="w-full p-5 rounded-sm border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] backdrop-blur-sm flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <ActivityIcon size={16} color="#818cf8" />
+          <p className="text-[15px] font-bold text-white">Transaction History</p>
+        </div>
+
+        {notes.length === 0 ? (
+          <div className="text-center py-8 flex flex-col items-center gap-2">
+            <div className="opacity-30">
+              <ActivityIcon size={28} color="rgba(255,255,255,0.4)" />
+            </div>
+            <p className="text-[13px] text-[rgba(255,255,255,0.4)]">No transactions yet</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {notes
+              .slice()
+              .sort((a, b) => b.createdAt - a.createdAt)
+              .slice(0, 10)
+              .map((note) => (
+                <div
+                  key={note.id}
+                  className="flex items-center justify-between p-2.5 px-3 rounded-sm bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(255,255,255,0.04)] transition-all"
                 >
-                  <TrashIcon size={13} color={colors.accent.red} />
-                  <Text fontSize="12px" fontWeight={600} color={colors.accent.red}>
-                    Clear All
-                  </Text>
-                </Box>
-              </HStack>
-            )}
-          </VStack>
-        </Box>
-
-        {/* ─── Stealth Payments Section ────────────────────────────────────── */}
-        <Box
-          p="20px"
-          bg={glass.card.bg}
-          borderRadius={radius.lg}
-          border={glass.card.border}
-          backdropFilter={glass.card.backdropFilter}
-        >
-          <VStack gap="16px" align="stretch">
-            {/* Section header */}
-            <HStack justify="space-between" align="center">
-              <HStack gap="8px">
-                <ShieldIcon size={16} color={colors.accent.green} />
-                <Text fontSize="15px" fontWeight={700} color={colors.text.primary}>
-                  Stealth Payments
-                </Text>
-                <Box
-                  px="8px"
-                  py="2px"
-                  borderRadius={radius.full}
-                  bg={colors.bg.elevated}
-                >
-                  <Text fontSize="11px" color={colors.text.muted} fontWeight={500}>
-                    {unified.unclaimedCount} unclaimed
-                  </Text>
-                </Box>
-              </HStack>
-              <Box
-                as="button"
-                p="6px"
-                borderRadius={radius.full}
-                cursor="pointer"
-                _hover={{ bg: colors.bg.hover }}
-                transition={transitions.fast}
-                onClick={() => scan()}
-              >
-                {isScanning ? (
-                  <Spinner size="xs" color={colors.accent.green} />
-                ) : (
-                  <RefreshIcon size={15} color={colors.text.muted} />
-                )}
-              </Box>
-            </HStack>
-
-            {/* Payment list */}
-            {payments.length === 0 ? (
-              <Box textAlign="center" py="40px">
-                <Box display="inline-block" opacity={0.3} mb="12px">
-                  <ShieldIcon size={36} color={colors.text.muted} />
-                </Box>
-                <Text fontSize="13px" color={colors.text.muted} mb="4px">
-                  No stealth payments yet
-                </Text>
-                <Text fontSize="11px" color={colors.text.muted}>
-                  Payments received via stealth addresses will appear here
-                </Text>
-              </Box>
-            ) : (
-              <VStack gap="8px" align="stretch">
-                {unified.unclaimedPayments.map((payment) => {
-                  const bal = parseFloat(payment.balance || "0");
-                  const addr = payment.announcement.stealthAddress;
-                  const txHash = payment.announcement.txHash;
-
-                  return (
-                    <Box
-                      key={addr}
-                      p="14px"
-                      borderRadius={radius.md}
-                      border={`1px solid ${bal > 0
-                        ? colors.border.accentGreen
-                        : colors.border.default
-                        }`}
-                      bg={bal > 0 ? "rgba(34,197,94,0.03)" : colors.bg.card}
-                      transition={transitions.fast}
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center
+                      ${note.spent ? "bg-[rgba(239,68,68,0.1)]" : "bg-[rgba(34,197,94,0.1)]"}`}>
+                      {note.spent
+                        ? <XIcon size={12} color="#ef4444" />
+                        : <CheckCircleIcon size={12} color="#22c55e" />}
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-semibold text-white">
+                        {note.spent ? "Withdrawn" : "Deposited"}{" "}
+                        {formatNoteAmount(note)} {note.tokenSymbol}
+                      </p>
+                      <p className="text-[11px] text-[rgba(255,255,255,0.4)]">
+                        {formatDate(note.spent ? note.spentAt! : note.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                  {note.depositTxHash && (
+                    <a
+                      href={`${explorerBase}/tx/${note.depositTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[11px] text-indigo-400 no-underline shrink-0"
                     >
-                      <HStack justify="space-between" align="center" gap="12px">
-                        <HStack gap="10px" flex={1} minW={0}>
-                          <Box
-                            w="36px"
-                            h="36px"
-                            borderRadius={radius.full}
-                            bg={bal > 0 ? "rgba(34,197,94,0.12)" : colors.bg.elevated}
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
-                            flexShrink={0}
-                          >
-                            <ShieldIcon
-                              size={16}
-                              color={bal > 0 ? colors.accent.green : colors.text.muted}
-                            />
-                          </Box>
-                          <Box minW={0}>
-                            <HStack gap="8px" align="center">
-                              <Text
-                                fontSize="13px"
-                                color={colors.text.primary}
-                                fontFamily={typography.fontFamily.mono}
-                              >
-                                {addr.slice(0, 8)}...
-                                {addr.slice(-6)}
-                              </Text>
-                              {bal > 0 && (
-                                <Box
-                                  px="6px"
-                                  py="1px"
-                                  borderRadius={radius.full}
-                                  bg="rgba(34,197,94,0.1)"
-                                >
-                                  <Text fontSize="10px" fontWeight={600} color={colors.accent.green}>
-                                    Claimable
-                                  </Text>
-                                </Box>
-                              )}
-                            </HStack>
-                            <Text
-                              fontSize="14px"
-                              fontWeight={700}
-                              color={colors.text.primary}
-                              fontFamily={typography.fontFamily.mono}
-                              mt="2px"
-                            >
-                              {bal.toFixed(4)} {nativeSymbol}
-                            </Text>
-                          </Box>
-                        </HStack>
-                        {txHash && (
-                          <a
-                            href={`${explorerBase}/tx/${txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ padding: "6px", borderRadius: radius.full, cursor: "pointer", display: "inline-flex", flexShrink: 0 }}
-                          >
-                            <ExternalLinkIcon size={14} color={colors.text.muted} />
-                          </a>
-                        )}
-                      </HStack>
-                    </Box>
-                  );
-                })}
-              </VStack>
-            )}
+                      View
+                      <ExternalLinkIcon size={10} color="#818cf8" />
+                    </a>
+                  )}
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
 
-            {/* Info notice */}
-            {payments.length > 0 && (
-              <Box
-                p="10px 12px"
-                borderRadius={radius.sm}
-                bg="rgba(34,197,94,0.04)"
-                border={`1px solid rgba(34,197,94,0.12)`}
-              >
-                <HStack gap="8px" align="flex-start">
-                  <Box mt="1px" flexShrink={0}>
-                    <KeyIcon size={13} color={colors.accent.green} />
-                  </Box>
-                  <Text fontSize="11px" color={colors.text.muted} lineHeight="1.5">
-                    Stealth addresses hold tokens from private payments. Private keys are stored
-                    securely in your browser. Claim via the Dashboard to send funds to your wallet.
-                  </Text>
-                </HStack>
-              </Box>
-            )}
-          </VStack>
-        </Box>
-
-        {/* ─── Transaction History ─────────────────────────────────────────── */}
-        <Box
-          p="20px"
-          bg={glass.card.bg}
-          borderRadius={radius.lg}
-          border={glass.card.border}
-          backdropFilter={glass.card.backdropFilter}
-        >
-          <VStack gap="16px" align="stretch">
-            <HStack gap="8px">
-              <ActivityIcon size={16} color={colors.accent.indigo} />
-              <Text fontSize="15px" fontWeight={700} color={colors.text.primary}>
-                Transaction History
-              </Text>
-            </HStack>
-
-            {notes.length === 0 ? (
-              <Box textAlign="center" py="32px">
-                <Box display="inline-block" opacity={0.3} mb="8px">
-                  <ActivityIcon size={28} color={colors.text.muted} />
-                </Box>
-                <Text fontSize="13px" color={colors.text.muted}>
-                  No transactions yet
-                </Text>
-              </Box>
-            ) : (
-              <VStack gap="6px" align="stretch">
-                {notes
-                  .slice()
-                  .sort((a, b) => b.createdAt - a.createdAt)
-                  .slice(0, 10)
-                  .map((note) => (
-                    <HStack
-                      key={note.id}
-                      justify="space-between"
-                      p="10px 12px"
-                      borderRadius={radius.sm}
-                      bg={colors.bg.card}
-                      _hover={{ bg: colors.bg.hover }}
-                      transition={transitions.fast}
-                    >
-                      <HStack gap="10px">
-                        <Box
-                          w="28px"
-                          h="28px"
-                          borderRadius={radius.full}
-                          bg={note.spent ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)"}
-                          display="flex"
-                          alignItems="center"
-                          justifyContent="center"
-                        >
-                          {note.spent ? (
-                            <XIcon size={12} color={colors.accent.red} />
-                          ) : (
-                            <CheckCircleIcon size={12} color={colors.accent.green} />
-                          )}
-                        </Box>
-                        <Box>
-                          <Text fontSize="13px" fontWeight={600} color={colors.text.primary}>
-                            {note.spent ? "Withdrawn" : "Deposited"}{" "}
-                            {formatNoteAmount(note)} {note.tokenSymbol}
-                          </Text>
-                          <Text fontSize="11px" color={colors.text.muted}>
-                            {formatDate(note.spent ? note.spentAt! : note.createdAt)}
-                          </Text>
-                        </Box>
-                      </HStack>
-                      {note.depositTxHash && (
-                        <a
-                          href={`${explorerBase}/tx/${note.depositTxHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            fontSize: "11px",
-                            color: colors.accent.indigo,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "3px",
-                            flexShrink: 0,
-                            textDecoration: "none",
-                          }}
-                        >
-                          View
-                          <ExternalLinkIcon size={10} color={colors.accent.indigo} />
-                        </a>
-                      )}
-                    </HStack>
-                  ))}
-              </VStack>
-            )}
-          </VStack>
-        </Box>
-
-        {/* ─── Backup Warning ──────────────────────────────────────────────── */}
-        <Box
-          p="14px 16px"
-          borderRadius={radius.md}
-          bg="rgba(239,68,68,0.04)"
-          border={`1px solid rgba(239,68,68,0.15)`}
-        >
-          <HStack gap="10px" align="flex-start">
-            <Box mt="1px" flexShrink={0}>
-              <AlertCircleIcon size={16} color={colors.accent.red} />
-            </Box>
-            <Box>
-              <Text fontSize="13px" fontWeight={700} color={colors.accent.red} mb="4px">
-                Backup Your Notes
-              </Text>
-              <Text fontSize="12px" color={colors.text.secondary} lineHeight="1.5">
-                Your deposit notes are stored locally in your browser. If you clear your
-                browser data or use a different device, you will lose access to your
-                deposits. Always export and securely backup your notes.
-              </Text>
-            </Box>
-          </HStack>
-        </Box>
-      </VStack>
+      {/* ─── Backup Warning ──────────────────────────────────────────────── */}
+      <div className="p-3.5 px-4 rounded-lg bg-[rgba(239,68,68,0.04)] border border-[rgba(239,68,68,0.15)]">
+        <div className="flex items-start gap-2.5">
+          <div className="mt-px shrink-0"><AlertCircleIcon size={16} color="#ef4444" /></div>
+          <div>
+            <p className="text-[13px] font-bold text-red-400 mb-1">Backup Your Notes</p>
+            <p className="text-xs text-[rgba(255,255,255,0.5)] leading-relaxed">
+              Your deposit notes are stored locally in your browser. If you clear your
+              browser data or use a different device, you will lose access to your
+              deposits. Always export and securely backup your notes.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* ─── Deposit Modal ───────────────────────────────────────────────── */}
       <ModalShell
@@ -1110,175 +716,95 @@ export default function WalletPage() {
         title="Deposit to Privacy Pool"
         preventClose={isDepositing}
       >
-        <VStack gap="16px" align="stretch">
+        <div className="flex flex-col gap-4">
           {/* Token selection */}
-          <VStack gap="6px" align="stretch">
-            <Text {...typography.label.sm} color={colors.text.muted}>
-              Select Token
-            </Text>
-            <HStack gap="8px">
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[9px] text-[rgba(255,255,255,0.5)] uppercase tracking-wider font-mono">Select Token</p>
+            <div className="flex gap-2">
               {(["ETH", "USDC"] as const).map((sym) => (
-                <Box
+                <button
                   key={sym}
-                  as="button"
-                  flex={1}
-                  p="12px"
-                  borderRadius={radius.md}
-                  bg={depositToken === sym ? "rgba(74,117,240,0.1)" : colors.bg.elevated}
-                  border={`1px solid ${depositToken === sym ? colors.border.accent : colors.border.default
-                    }`}
-                  cursor="pointer"
-                  transition={transitions.fast}
+                  className={`flex-1 p-3 rounded-lg border cursor-pointer transition-all text-left
+                    ${depositToken === sym
+                      ? "bg-[rgba(74,117,240,0.1)] border-[rgba(129,140,248,0.4)]"
+                      : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.06)]"}`}
                   onClick={() => {
                     setDepositToken(sym);
                     setDepositAmount("");
                   }}
-                  _hover={{
-                    bg:
-                      depositToken === sym
-                        ? "rgba(74,117,240,0.12)"
-                        : colors.bg.hover,
-                  }}
                 >
-                  <Text
-                    fontSize="14px"
-                    fontWeight={700}
-                    color={depositToken === sym ? colors.accent.indigo : colors.text.primary}
-                  >
-                    {sym}
-                  </Text>
-                  <Text fontSize="11px" color={colors.text.muted} mt="2px">
-                    {SUPPORTED_TOKENS[sym]?.name}
-                  </Text>
-                </Box>
+                  <p className={`text-sm font-bold ${depositToken === sym ? "text-indigo-400" : "text-white"}`}>{sym}</p>
+                  <p className="text-[11px] text-[rgba(255,255,255,0.4)] mt-0.5">{SUPPORTED_TOKENS[sym]?.name}</p>
+                </button>
               ))}
-            </HStack>
-          </VStack>
+            </div>
+          </div>
 
           {/* Amount input */}
-          <VStack gap="6px" align="stretch">
-            <Text {...typography.label.sm} color={colors.text.muted}>
-              Amount
-            </Text>
-            <Box position="relative">
-              <Input
-                type="text"
-                inputMode="decimal"
-                placeholder="0.0"
-                value={depositAmount}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^0-9.]/g, "");
-                  setDepositAmount(val);
-                }}
-                h="48px"
-                bg={glass.input.bg}
-                border={`1px solid ${colors.border.default}`}
-                borderRadius={radius.md}
-                color={colors.text.primary}
-                fontSize="16px"
-                fontFamily={typography.fontFamily.mono}
-                fontWeight={500}
-                px="16px"
-                pr="52px"
-                _placeholder={{ color: colors.text.muted }}
-                _focus={{
-                  borderColor: colors.border.focus,
-                  boxShadow: shadows.inputFocus,
-                }}
-              />
-            </Box>
-          </VStack>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-[9px] text-[rgba(255,255,255,0.5)] uppercase tracking-wider font-mono">Amount</p>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="0.0"
+              value={depositAmount}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9.]/g, "");
+                setDepositAmount(val);
+              }}
+              className="w-full p-3 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] text-white font-mono text-sm focus:outline-none focus:border-[#00FF41] focus:bg-[rgba(0,255,65,0.02)] transition-all placeholder-[rgba(255,255,255,0.2)]"
+            />
+          </div>
 
           {/* Info */}
-          <Box
-            p="12px"
-            borderRadius={radius.sm}
-            bg="rgba(74,117,240,0.06)"
-            border={`1px solid rgba(74,117,240,0.15)`}
-          >
-            <HStack gap="8px" align="flex-start">
-              <Box mt="2px" flexShrink={0}>
-                <ShieldIcon size={14} color={colors.accent.indigo} />
-              </Box>
-              <Text fontSize="12px" color={colors.text.tertiary} lineHeight="1.5">
+          <div className="p-3 rounded-sm bg-[rgba(74,117,240,0.06)] border border-[rgba(74,117,240,0.15)]">
+            <div className="flex items-start gap-2">
+              <div className="mt-0.5 shrink-0"><ShieldIcon size={14} color="#818cf8" /></div>
+              <p className="text-xs text-[rgba(255,255,255,0.4)] leading-relaxed">
                 Your deposit creates a cryptographic commitment stored on-chain. A secret
                 note is saved locally that proves your ownership. Keep this note safe!
-              </Text>
-            </HStack>
-          </Box>
+              </p>
+            </div>
+          </div>
 
           {/* Error */}
           {depositError && (
-            <Box
-              p="10px 12px"
-              borderRadius={radius.sm}
-              bg="rgba(239,68,68,0.06)"
-              border={`1px solid rgba(239,68,68,0.2)`}
-            >
-              <Text fontSize="12px" color={colors.accent.red}>
-                {depositError}
-              </Text>
-            </Box>
+            <div className="p-2.5 px-3 rounded-sm bg-[rgba(239,68,68,0.06)] border border-[rgba(239,68,68,0.2)]">
+              <p className="text-xs text-red-400">{depositError}</p>
+            </div>
           )}
 
           {/* Submit */}
-          <Box
-            as="button"
-            w="100%"
-            py="14px"
-            borderRadius={radius.full}
-            bg={
-              depositAmount && parseFloat(depositAmount) > 0 && !isDepositing
-                ? buttonVariants.primary.bg
-                : colors.bg.elevated
-            }
-            boxShadow={
-              depositAmount && parseFloat(depositAmount) > 0 && !isDepositing
-                ? buttonVariants.primary.boxShadow
-                : "none"
-            }
-            cursor={
-              depositAmount && parseFloat(depositAmount) > 0 && !isDepositing
-                ? "pointer"
-                : "not-allowed"
-            }
-            opacity={depositAmount && parseFloat(depositAmount) > 0 ? 1 : 0.5}
-            transition={transitions.base}
+          <button
+            className={`w-full py-3.5 rounded-full text-[15px] font-bold text-white text-center transition-all
+              ${depositAmount && parseFloat(depositAmount) > 0 && !isDepositing
+                ? "bg-gradient-to-r from-indigo-600 to-violet-600 cursor-pointer hover:-translate-y-0.5"
+                : "bg-[rgba(255,255,255,0.04)] cursor-not-allowed opacity-50"}`}
             onClick={handleDeposit}
-            _hover={
-              depositAmount && parseFloat(depositAmount) > 0 && !isDepositing
-                ? {
-                  boxShadow: buttonVariants.primary.hover.boxShadow,
-                  transform: buttonVariants.primary.hover.transform,
-                }
-                : {}
-            }
           >
-            <Text fontSize="15px" fontWeight={700} color="#fff" textAlign="center">
-              {isDepositing ? (
-                <HStack gap="8px" justifyContent="center">
-                  <Spinner size="xs" color="#fff" />
-                  <Text as="span">
-                    {depositState === "generating" && "Generating Note..."}
-                    {depositState === "approving" && "Approving..."}
-                    {depositState === "depositing" && "Depositing..."}
-                    {depositState === "confirming" && "Confirming..."}
-                  </Text>
-                </HStack>
-              ) : depositState === "success" ? (
-                <HStack gap="6px" justifyContent="center">
-                  <CheckCircleIcon size={15} color="#fff" />
-                  <Text as="span">Deposit Successful!</Text>
-                </HStack>
-              ) : (
-                <HStack gap="6px" justifyContent="center">
-                  <LockIcon size={14} color="#fff" />
-                  <Text as="span">Deposit to Privacy Pool</Text>
-                </HStack>
-              )}
-            </Text>
-          </Box>
-        </VStack>
+            {isDepositing ? (
+              <span className="flex items-center gap-2 justify-center">
+                <span className="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>
+                  {depositState === "generating" && "Generating Note..."}
+                  {depositState === "approving" && "Approving..."}
+                  {depositState === "depositing" && "Depositing..."}
+                  {depositState === "confirming" && "Confirming..."}
+                </span>
+              </span>
+            ) : depositState === "success" ? (
+              <span className="flex items-center gap-1.5 justify-center">
+                <CheckCircleIcon size={15} color="#fff" />
+                Deposit Successful!
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 justify-center">
+                <LockIcon size={14} color="#fff" />
+                Deposit to Privacy Pool
+              </span>
+            )}
+          </button>
+        </div>
       </ModalShell>
 
       {/* ─── Import Modal ────────────────────────────────────────────────── */}
@@ -1290,75 +816,35 @@ export default function WalletPage() {
         }}
         title="Import Deposit Notes"
       >
-        <VStack gap="16px" align="stretch">
-          <Text fontSize="13px" color={colors.text.secondary}>
-            Paste the JSON backup of your deposit notes below.
-          </Text>
-          <Textarea
+        <div className="flex flex-col gap-4">
+          <p className="text-[13px] text-[rgba(255,255,255,0.5)]">Paste the JSON backup of your deposit notes below.</p>
+          <textarea
             value={importJson}
             onChange={(e) => setImportJson(e.target.value)}
             placeholder='[{"secret": "...", "nullifier": "...", ...}]'
-            h="160px"
-            bg={glass.input.bg}
-            border={`1px solid ${colors.border.default}`}
-            borderRadius={radius.md}
-            color={colors.text.primary}
-            fontSize="12px"
-            fontFamily={typography.fontFamily.mono}
-            p="12px"
-            resize="none"
-            _placeholder={{ color: colors.text.muted }}
-            _focus={{
-              borderColor: colors.border.focus,
-              boxShadow: shadows.inputFocus,
-            }}
+            className="w-full h-40 p-3 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] text-white font-mono text-xs focus:outline-none focus:border-[#00FF41] focus:bg-[rgba(0,255,65,0.02)] transition-all placeholder-[rgba(255,255,255,0.2)] resize-none"
           />
-          <HStack gap="10px">
-            <Box
-              as="button"
-              flex={1}
-              py="12px"
-              borderRadius={radius.full}
-              bg={buttonVariants.secondary.bg}
-              border={buttonVariants.secondary.border}
-              cursor="pointer"
-              transition={transitions.fast}
+          <div className="flex gap-2.5">
+            <button
+              className="flex-1 py-3 rounded-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.07)] text-sm font-semibold text-white text-center cursor-pointer transition-all"
               onClick={() => setIsImportModalOpen(false)}
-              _hover={{ bg: buttonVariants.secondary.hover.bg }}
             >
-              <Text fontSize="14px" fontWeight={600} color={colors.text.primary} textAlign="center">
-                Cancel
-              </Text>
-            </Box>
-            <Box
-              as="button"
-              flex={1}
-              py="12px"
-              borderRadius={radius.full}
-              bg={importJson.trim() ? buttonVariants.primary.bg : colors.bg.elevated}
-              boxShadow={importJson.trim() ? buttonVariants.primary.boxShadow : "none"}
-              cursor={importJson.trim() ? "pointer" : "not-allowed"}
-              opacity={importJson.trim() ? 1 : 0.5}
-              transition={transitions.fast}
+              Cancel
+            </button>
+            <button
+              className={`flex-1 py-3 rounded-full text-sm font-bold text-white text-center transition-all
+                ${importJson.trim()
+                  ? "bg-gradient-to-r from-indigo-600 to-violet-600 cursor-pointer hover:-translate-y-0.5"
+                  : "bg-[rgba(255,255,255,0.04)] cursor-not-allowed opacity-50"}`}
               onClick={handleImport}
-              _hover={
-                importJson.trim()
-                  ? {
-                    boxShadow: buttonVariants.primary.hover.boxShadow,
-                    transform: buttonVariants.primary.hover.transform,
-                  }
-                  : {}
-              }
             >
-              <HStack gap="6px" justifyContent="center">
+              <span className="flex items-center gap-1.5 justify-center">
                 <UploadIcon size={14} color="#fff" />
-                <Text fontSize="14px" fontWeight={700} color="#fff">
-                  Import
-                </Text>
-              </HStack>
-            </Box>
-          </HStack>
-        </VStack>
+                Import
+              </span>
+            </button>
+          </div>
+        </div>
       </ModalShell>
 
       {/* ─── Clear Confirmation Modal ────────────────────────────────────── */}
@@ -1367,66 +853,37 @@ export default function WalletPage() {
         onClose={() => setIsClearModalOpen(false)}
         title="Clear All Notes?"
       >
-        <VStack gap="16px" align="stretch">
-          <Box
-            p="14px"
-            borderRadius={radius.sm}
-            bg="rgba(239,68,68,0.06)"
-            border={`1px solid rgba(239,68,68,0.2)`}
-          >
-            <HStack gap="10px" align="flex-start">
-              <Box mt="1px" flexShrink={0}>
-                <AlertCircleIcon size={16} color={colors.accent.red} />
-              </Box>
-              <Box>
-                <Text fontSize="13px" fontWeight={700} color={colors.accent.red} mb="4px">
-                  This action is irreversible
-                </Text>
-                <Text fontSize="12px" color={colors.text.secondary} lineHeight="1.5">
+        <div className="flex flex-col gap-4">
+          <div className="p-3.5 rounded-sm bg-[rgba(239,68,68,0.06)] border border-[rgba(239,68,68,0.2)]">
+            <div className="flex items-start gap-2.5">
+              <div className="mt-px shrink-0"><AlertCircleIcon size={16} color="#ef4444" /></div>
+              <div>
+                <p className="text-[13px] font-bold text-red-400 mb-1">This action is irreversible</p>
+                <p className="text-xs text-[rgba(255,255,255,0.5)] leading-relaxed">
                   Clearing all notes will permanently delete your deposit records. You will lose
                   access to any unspent deposits. Make sure you have exported a backup first.
-                </Text>
-              </Box>
-            </HStack>
-          </Box>
-          <HStack gap="10px">
-            <Box
-              as="button"
-              flex={1}
-              py="12px"
-              borderRadius={radius.full}
-              bg={buttonVariants.secondary.bg}
-              border={buttonVariants.secondary.border}
-              cursor="pointer"
-              transition={transitions.fast}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2.5">
+            <button
+              className="flex-1 py-3 rounded-full bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.07)] text-sm font-semibold text-white text-center cursor-pointer transition-all"
               onClick={() => setIsClearModalOpen(false)}
-              _hover={{ bg: buttonVariants.secondary.hover.bg }}
             >
-              <Text fontSize="14px" fontWeight={600} color={colors.text.primary} textAlign="center">
-                Cancel
-              </Text>
-            </Box>
-            <Box
-              as="button"
-              flex={1}
-              py="12px"
-              borderRadius={radius.full}
-              bg={buttonVariants.danger.bg}
-              border={buttonVariants.danger.border}
-              cursor="pointer"
-              transition={transitions.fast}
+              Cancel
+            </button>
+            <button
+              className="flex-1 py-3 rounded-full bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.3)] hover:bg-[rgba(239,68,68,0.15)] text-sm font-bold text-red-400 cursor-pointer transition-all"
               onClick={handleClear}
-              _hover={{ bg: buttonVariants.danger.hover.bg }}
             >
-              <HStack gap="6px" justifyContent="center">
-                <TrashIcon size={14} color={colors.accent.red} />
-                <Text fontSize="14px" fontWeight={700} color={colors.accent.red}>
-                  Clear All
-                </Text>
-              </HStack>
-            </Box>
-          </HStack>
-        </VStack>
+              <span className="flex items-center gap-1.5 justify-center">
+                <TrashIcon size={14} color="#ef4444" />
+                Clear All
+              </span>
+            </button>
+          </div>
+        </div>
       </ModalShell>
 
       {/* ─── Consolidate (Withdraw) Modal ────────────────────────────────── */}
@@ -1440,6 +897,6 @@ export default function WalletPage() {
         onReset={dustPool.resetProgress}
         isConsolidating={dustPool.isConsolidating}
       />
-    </Box>
+    </div>
   );
 }

@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Text, VStack, HStack, Grid } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePaymentLinks } from "@/hooks/stealth/usePaymentLinks";
 import { useStealthScanner } from "@/hooks/stealth";
-import { colors, radius, cardAccents } from "@/lib/design/tokens";
+import { cardAccents } from "@/lib/design/tokens";
 import { LinkCard } from "@/components/links/LinkCard";
 import { PlusIcon } from "@/components/stealth/icons";
 
@@ -39,42 +38,25 @@ export default function LinksPage() {
   }, [payments]);
 
   return (
-    <Box p={{ base: "20px 16px", md: "40px" }} maxW="780px" mx="auto">
-      <VStack gap="28px" align="stretch">
+    <div className="px-4 md:px-10 py-5 md:py-10 max-w-[780px] mx-auto">
+      <div className="flex flex-col gap-7">
         {/* Page heading */}
-        <Text fontSize="24px" fontWeight={700} color={colors.text.primary} textAlign="center">
-          Links
-        </Text>
+        <h1 className="text-2xl font-bold tracking-widest text-white font-mono text-center">Links</h1>
 
         {/* Grid: Create New Link + Existing Links */}
-        <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap="16px">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Create New Link card */}
-          <Box
-            p="24px"
-            bgColor={colors.bg.card}
-            borderRadius={radius.lg}
-            border={`2.5px dashed ${colors.border.default}`}
-            cursor="pointer"
-            _hover={{ borderColor: colors.border.light, bgColor: colors.bg.input }}
-            transition="all 0.2s ease"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            minH="200px"
+          <button
+            className="p-6 rounded-sm border-2 border-dashed border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.01)] hover:border-[rgba(255,255,255,0.15)] hover:bg-[rgba(255,255,255,0.03)] transition-all flex items-center justify-center min-h-[200px] cursor-pointer"
             onClick={() => router.push("/links/create")}
           >
-            <VStack gap="14px">
-              <Box
-                w="48px" h="48px"
-                borderRadius={radius.full}
-                bgColor={colors.bg.input}
-                display="flex" alignItems="center" justifyContent="center"
-              >
-                <PlusIcon size={24} color={colors.text.muted} />
-              </Box>
-              <Text fontSize="14px" fontWeight={500} color={colors.text.secondary}>Create New Link</Text>
-            </VStack>
-          </Box>
+            <div className="flex flex-col items-center gap-3.5">
+              <div className="w-12 h-12 rounded-full bg-[rgba(255,255,255,0.05)] flex items-center justify-center">
+                <PlusIcon size={24} color="rgba(255,255,255,0.4)" />
+              </div>
+              <p className="text-sm font-medium text-[rgba(255,255,255,0.5)]">Create New Link</p>
+            </div>
+          </button>
 
           {/* Personal link (from owned names) */}
           {ownedNames.map((name, i) => (
@@ -92,9 +74,8 @@ export default function LinksPage() {
                 accentColor={cardAccents[(ownedNames.length + i) % cardAccents.length]} />
             );
           })}
-        </Grid>
-
-      </VStack>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }
