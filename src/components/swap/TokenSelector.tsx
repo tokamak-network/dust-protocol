@@ -1,7 +1,6 @@
 "use client";
 
-import { Box, Text, VStack, HStack } from "@chakra-ui/react";
-import { colors, radius, shadows, glass, transitions, typography } from "@/lib/design/tokens";
+import React from "react";
 import { SUPPORTED_TOKENS, type SwapToken } from "@/lib/swap/constants";
 import { XIcon } from "@/components/stealth/icons";
 
@@ -30,157 +29,106 @@ export function TokenSelector({
   };
 
   return (
-    <Box
-      position="fixed"
-      inset={0}
-      bg={colors.bg.overlay}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      zIndex={200}
+    <div
+      className="fixed inset-0 z-[200] bg-[rgba(6,8,15,0.85)] flex items-center justify-center"
       onClick={(e: React.MouseEvent) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <Box
-        w="100%"
-        maxW="440px"
-        mx="16px"
-        bg={glass.modal.bg}
-        border={glass.modal.border}
-        borderRadius={radius.xl}
-        boxShadow={shadows.modal}
-        backdropFilter={glass.modal.backdropFilter}
-        overflow="hidden"
-      >
+      <div className="w-full max-w-[440px] mx-4 bg-[rgba(13,15,23,0.95)] border border-[rgba(255,255,255,0.08)] rounded-[24px] shadow-[0_24px_64px_rgba(0,0,0,0.65),0_8px_20px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-[24px] overflow-hidden">
+        {/* Corner accents */}
+        <div className="absolute top-0 left-0 w-8 h-8 border-t border-l border-[rgba(255,255,255,0.12)] rounded-tl-[24px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-8 h-8 border-t border-r border-[rgba(255,255,255,0.12)] rounded-tr-[24px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-8 h-8 border-b border-l border-[rgba(255,255,255,0.12)] rounded-bl-[24px] pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-8 h-8 border-b border-r border-[rgba(255,255,255,0.12)] rounded-br-[24px] pointer-events-none" />
+
         {/* Header */}
-        <HStack justify="space-between" p="20px 24px" borderBottom={`1px solid ${colors.border.light}`}>
-          <Text fontSize="16px" fontWeight={700} color={colors.text.primary}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[rgba(255,255,255,0.05)]">
+          <span className="text-[16px] font-bold text-[rgba(255,255,255,0.92)] font-mono">
             Select Token
-          </Text>
-          <Box
-            as="button"
+          </span>
+          <button
             onClick={onClose}
-            cursor="pointer"
-            p="8px"
-            borderRadius={radius.full}
-            transition={transitions.fast}
-            _hover={{ bg: colors.bg.hover }}
+            className="cursor-pointer p-2 rounded-full transition-all hover:bg-[rgba(255,255,255,0.08)]"
           >
-            <XIcon size={15} color={colors.text.muted} />
-          </Box>
-        </HStack>
+            <XIcon size={15} color="rgba(255,255,255,0.30)" />
+          </button>
+        </div>
 
         {/* Info banner */}
-        <Box px="20px" pt="16px" pb="8px">
-          <Box
-            p="12px"
-            borderRadius={radius.sm}
-            bg="rgba(74,117,240,0.06)"
-            border={`1px solid rgba(74,117,240,0.15)`}
-          >
-            <Text fontSize="12px" color={colors.text.tertiary}>
+        <div className="px-5 pt-4 pb-2">
+          <div className="p-3 rounded-[12px] bg-[rgba(74,117,240,0.06)] border border-[rgba(74,117,240,0.15)]">
+            <p className="text-[12px] text-[rgba(255,255,255,0.45)] font-mono">
               Trading pair:{" "}
-              <Box as="span" color={colors.text.primary} fontWeight={600}>
-                ETH/USDC
-              </Box>{" "}
+              <span className="text-[rgba(255,255,255,0.92)] font-semibold">ETH/USDC</span>{" "}
               on Ethereum Sepolia
-            </Text>
-          </Box>
-        </Box>
+            </p>
+          </div>
+        </div>
 
         {/* Token list */}
-        <VStack gap="0" p="8px" align="stretch">
+        <div className="flex flex-col gap-0 p-2">
           {AVAILABLE_TOKENS.map((token) => {
             const isSelected =
               selectedToken?.address.toLowerCase() === token.address.toLowerCase();
             const balance = balances[token.symbol] ?? "\u2014";
 
             return (
-              <Box
+              <button
                 key={token.address}
-                as="button"
                 onClick={() => handleSelect(token)}
-                w="100%"
-                display="flex"
-                alignItems="center"
-                gap="12px"
-                p="16px"
-                borderRadius={radius.md}
-                bg={isSelected ? "rgba(74,117,240,0.08)" : "transparent"}
-                border={isSelected ? `1px solid rgba(74,117,240,0.25)` : "1px solid transparent"}
-                cursor="pointer"
-                transition={transitions.fast}
-                textAlign="left"
-                _hover={{ bg: colors.bg.hover }}
+                className={[
+                  "w-full flex items-center gap-3 p-4 rounded-[16px] cursor-pointer transition-all text-left",
+                  isSelected
+                    ? "bg-[rgba(74,117,240,0.08)] border border-[rgba(74,117,240,0.25)]"
+                    : "bg-transparent border border-transparent hover:bg-[rgba(255,255,255,0.08)]",
+                ].join(" ")}
               >
                 {/* Token icon */}
-                <Box
-                  w="40px"
-                  h="40px"
-                  borderRadius="50%"
-                  bg={colors.bg.cardSolid}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  flexShrink={0}
-                >
-                  <Text fontSize="14px" fontWeight={700} color={colors.text.primary}>
+                <div className="w-10 h-10 rounded-full bg-[#0D0F17] flex items-center justify-center flex-shrink-0">
+                  <span className="text-[14px] font-bold text-[rgba(255,255,255,0.92)] font-mono">
                     {token.symbol.charAt(0)}
-                  </Text>
-                </Box>
+                  </span>
+                </div>
 
                 {/* Token info */}
-                <Box flex="1">
-                  <HStack gap="8px" mb="2px">
-                    <Text fontWeight={600} color={colors.text.primary} fontSize="14px">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-[2px]">
+                    <span className="font-semibold text-[rgba(255,255,255,0.92)] text-[14px] font-mono">
                       {token.symbol}
-                    </Text>
+                    </span>
                     {isSelected && (
-                      <Box
-                        px="8px"
-                        py="2px"
-                        borderRadius={radius.xs}
-                        bg="rgba(74,117,240,0.12)"
-                        fontSize="10px"
-                        fontWeight={600}
-                        color={colors.accent.indigo}
-                      >
+                      <span className="px-2 py-[2px] rounded-[8px] bg-[rgba(74,117,240,0.12)] text-[10px] font-semibold text-[#4A75F0] font-mono">
                         Selected
-                      </Box>
+                      </span>
                     )}
-                  </HStack>
-                  <Text fontSize="13px" color={colors.text.muted}>
+                  </div>
+                  <span className="text-[13px] text-[rgba(255,255,255,0.30)] font-mono">
                     {token.name}
-                  </Text>
-                </Box>
+                  </span>
+                </div>
 
                 {/* Balance */}
-                <VStack gap="0" align="flex-end">
-                  <Text
-                    fontSize="13px"
-                    fontFamily={typography.fontFamily.mono}
-                    color={colors.text.primary}
-                    fontWeight={500}
-                  >
+                <div className="flex flex-col items-end gap-0">
+                  <span className="text-[13px] font-mono text-[rgba(255,255,255,0.92)] font-medium">
                     {balance}
-                  </Text>
-                  <Text fontSize="11px" color={colors.text.muted}>
+                  </span>
+                  <span className="text-[11px] text-[rgba(255,255,255,0.30)] font-mono">
                     Balance
-                  </Text>
-                </VStack>
-              </Box>
+                  </span>
+                </div>
+              </button>
             );
           })}
-        </VStack>
+        </div>
 
         {/* Footer */}
-        <Box p="16px" borderTop={`1px solid ${colors.border.light}`}>
-          <Text fontSize="12px" color={colors.text.muted} textAlign="center">
+        <div className="px-4 py-4 border-t border-[rgba(255,255,255,0.05)]">
+          <p className="text-[12px] text-[rgba(255,255,255,0.30)] text-center font-mono">
             More trading pairs coming soon
-          </Text>
-        </Box>
-      </Box>
-    </Box>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

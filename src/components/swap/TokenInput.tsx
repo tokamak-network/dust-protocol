@@ -1,7 +1,6 @@
 "use client";
 
-import { Box, Text, HStack, Input, Button } from "@chakra-ui/react";
-import { colors, radius, glass, transitions, typography } from "@/lib/design/tokens";
+import React from "react";
 import type { SwapToken } from "@/lib/swap/constants";
 
 interface TokenInputProps {
@@ -31,34 +30,25 @@ export function TokenInput({
   };
 
   return (
-    <Box
-      borderRadius={radius.md}
-      p="16px"
-      bg={glass.input.bg}
-      border={`1px solid ${colors.border.default}`}
-      transition={transitions.base}
-      _focusWithin={{
-        borderColor: colors.border.focus,
-      }}
+    <div
+      className="rounded-sm p-4 bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] transition-all focus-within:border-[rgba(74,117,240,0.5)]"
     >
       {/* Header row */}
-      <HStack justify="space-between" mb="10px">
-        <Text fontSize="12px" color={colors.text.muted} fontWeight={600}>
+      <div className="flex items-center justify-between mb-[10px]">
+        <span className="text-[12px] text-[rgba(255,255,255,0.30)] font-semibold font-mono">
           {label}
-        </Text>
+        </span>
         {balance && (
-          <Text fontSize="12px" color={colors.text.muted}>
+          <span className="text-[12px] text-[rgba(255,255,255,0.30)] font-mono">
             Balance:{" "}
-            <Box as="span" fontFamily={typography.fontFamily.mono} color={colors.text.secondary}>
-              {balance}
-            </Box>
-          </Text>
+            <span className="font-mono text-[rgba(255,255,255,0.65)]">{balance}</span>
+          </span>
         )}
-      </HStack>
+      </div>
 
       {/* Input row */}
-      <HStack gap="12px">
-        <Input
+      <div className="flex items-center gap-3">
+        <input
           type="text"
           inputMode="decimal"
           value={amount}
@@ -68,102 +58,70 @@ export function TokenInput({
           }}
           placeholder="0.0"
           disabled={disabled}
-          flex="1"
-          minW="0"
-          bg="transparent"
-          border="none"
-          outline="none"
-          fontSize="24px"
-          fontFamily={typography.fontFamily.mono}
-          fontWeight={500}
-          color={colors.text.primary}
-          p="0"
-          h="auto"
-          _placeholder={{ color: colors.text.muted }}
-          _focus={{ outline: "none", boxShadow: "none" }}
-          _disabled={{ opacity: 0.6, cursor: "not-allowed" }}
+          className="flex-1 min-w-0 bg-transparent border-none outline-none text-[24px] font-mono font-medium text-[rgba(255,255,255,0.92)] p-0 placeholder-[rgba(255,255,255,0.30)] focus:outline-none focus:ring-0 disabled:opacity-60 disabled:cursor-not-allowed"
         />
 
-        <Button
+        <button
           type="button"
           onClick={onTokenSelect}
           disabled={!onTokenSelect}
-          flexShrink={0}
-          display="flex"
-          alignItems="center"
-          gap="8px"
-          px="12px"
-          py="8px"
-          borderRadius={radius.sm}
-          bg={colors.bg.elevated}
-          border={`1px solid ${colors.border.default}`}
-          cursor={onTokenSelect ? "pointer" : "default"}
-          transition={transitions.fast}
-          _hover={onTokenSelect ? { borderColor: colors.border.accent } : {}}
+          className={[
+            "flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-sm",
+            "bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.08)]",
+            "transition-all",
+            onTokenSelect
+              ? "cursor-pointer hover:border-[rgba(74,117,240,0.35)]"
+              : "cursor-default",
+          ].join(" ")}
         >
           {token ? (
             <>
-              <Box
-                w="24px"
-                h="24px"
-                borderRadius="50%"
-                bg={colors.bg.cardSolid}
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                overflow="hidden"
-              >
-                <Text fontSize="10px" fontWeight={700} color={colors.text.primary}>
+              <div className="w-6 h-6 rounded-full bg-[#0D0F17] flex items-center justify-center overflow-hidden">
+                <span className="text-[10px] font-bold text-[rgba(255,255,255,0.92)]">
                   {token.symbol.slice(0, 2)}
-                </Text>
-              </Box>
-              <Text fontWeight={600} color={colors.text.primary} whiteSpace="nowrap" fontSize="14px">
+                </span>
+              </div>
+              <span className="font-semibold text-[rgba(255,255,255,0.92)] whitespace-nowrap text-[14px] font-mono">
                 {token.symbol}
-              </Text>
+              </span>
             </>
           ) : (
-            <Text fontWeight={600} color={colors.text.primary} whiteSpace="nowrap" fontSize="14px">
+            <span className="font-semibold text-[rgba(255,255,255,0.92)] whitespace-nowrap text-[14px] font-mono">
               Select
-            </Text>
+            </span>
           )}
           {onTokenSelect && (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.text.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(255,255,255,0.30)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="6 9 12 15 18 9" />
             </svg>
           )}
-        </Button>
-      </HStack>
+        </button>
+      </div>
 
       {/* Percentage buttons */}
       {balance && !disabled && (
-        <HStack gap="8px" mt="12px">
+        <div className="flex gap-2 mt-3">
           {[25, 50, 75, 100].map((percent) => (
-            <Button
+            <button
               key={percent}
               type="button"
               onClick={() => handlePercentage(percent)}
-              flex="1"
-              px="8px"
-              py="6px"
-              borderRadius={radius.xs}
-              fontSize="11px"
-              fontWeight={600}
-              bg="rgba(74,117,240,0.08)"
-              color={colors.accent.indigo}
-              border={`1px solid rgba(74,117,240,0.15)`}
-              cursor="pointer"
-              transition={transitions.fast}
-              textAlign="center"
-              _hover={{
-                bg: "rgba(74,117,240,0.15)",
-                borderColor: "rgba(74,117,240,0.3)",
-              }}
+              className="flex-1 px-2 py-[6px] rounded-sm text-[11px] font-semibold font-mono bg-[rgba(74,117,240,0.08)] text-[#4A75F0] border border-[rgba(74,117,240,0.15)] cursor-pointer transition-all text-center hover:bg-[rgba(74,117,240,0.15)] hover:border-[rgba(74,117,240,0.3)]"
             >
               {percent === 100 ? "MAX" : `${percent}%`}
-            </Button>
+            </button>
           ))}
-        </HStack>
+        </div>
       )}
-    </Box>
+    </div>
   );
 }
