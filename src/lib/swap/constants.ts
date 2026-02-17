@@ -119,6 +119,7 @@ export function getSwapContracts(chainId?: number) {
     dustSwapPoolUSDC: config.contracts.dustSwapPoolUSDC,
     dustSwapHook: config.contracts.dustSwapHook,
     dustSwapVerifier: config.contracts.dustSwapVerifier,
+    dustSwapRouter: config.contracts.dustSwapRouter,
     uniswapV4PoolManager: config.contracts.uniswapV4PoolManager,
     uniswapV4StateView: config.contracts.uniswapV4StateView,
     uniswapV4Quoter: config.contracts.uniswapV4Quoter,

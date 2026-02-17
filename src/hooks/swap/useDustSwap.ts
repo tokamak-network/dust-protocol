@@ -8,8 +8,12 @@
  * 2. Sync Merkle tree
  * 3. Generate ZK proof
  * 4. Encode proof as Uniswap V4 hook data
- * 5. Execute swap through PoolHelper (single signature!)
+ * 5. Submit to relayer for anonymous on-chain execution
  * 6. Mark note as spent
+ *
+ * PRIVACY: The swap is submitted through a relayer service so the user's
+ *          wallet never appears as msg.sender. Output tokens are routed
+ *          to the stealth address by the hook's afterSwap callback.
  */
 
 import { useState, useCallback } from 'react'
@@ -29,6 +33,13 @@ import { type SwapParams as ZKSwapParams } from '@/lib/swap/zk'
 import { useSwapZKProof } from './useSwapZKProof'
 import { useSwapMerkleTree } from './useSwapMerkleTree'
 import { useSwapNotes } from './useSwapNotes'
+import {
+  submitToRelayer,
+  checkRelayerHealth,
+  getRelayerInfo,
+  formatProofForRelayer,
+  createSwapParams,
+} from '@/lib/swap/relayer'
 
 export type SwapState =
   | 'idle'
@@ -288,10 +299,14 @@ export function useDustSwap(options?: UseDustSwapOptions) {
         // Step 4: Generate ZK proof (skip addKnownRoot - hook validates during swap)
         setState('generating-proof')
 
+        // Get relayer info so we can set the correct relayer address in the ZK proof
+        const relayerInfo = await getRelayerInfo()
+        const relayerAddress = relayerInfo?.address ?? '0x0000000000000000000000000000000000000000'
+
         const zkSwapParams: ZKSwapParams = {
           recipient: params.recipient,
-          relayer: address,
-          relayerFee: 0,
+          relayer: relayerAddress as Address,  // Relayer address (NOT user's wallet)
+          relayerFee: relayerInfo?.feeBps ?? 0,
           swapAmountOut: params.minAmountOut,
         }
 
@@ -402,7 +417,8 @@ export function useDustSwap(options?: UseDustSwapOptions) {
           }
         }
 
-        // Step 6: Execute swap through PoolHelper (SINGLE SIGNATURE)
+        // Step 6: Submit swap through RELAYER for privacy
+        // The relayer pays gas so user's wallet never appears as msg.sender
         setState('submitting')
 
         const poolKey = params.poolKey || getDustSwapPoolKey(chainId)
@@ -413,65 +429,59 @@ export function useDustSwap(options?: UseDustSwapOptions) {
           poolKey
         )
 
-        // PoolSwapTest deployed on Sepolia - use address from config
-        const poolHelperAddress = contracts.uniswapV4SwapRouter as Address
-        if (!poolHelperAddress) throw new Error('Swap Router not configured for this chain')
-
-        const swapArgs = {
-          address: poolHelperAddress,
-          abi: [...POOL_HELPER_ABI, ...SWAP_ERROR_ABI],
-          functionName: 'swap' as const,
-          args: [
-            poolKey,
-            {
-              zeroForOne,
-              amountSpecified: -BigInt(depositNote.amount),
-              sqrtPriceLimitX96,
-            },
-            {
-              takeClaims: false,
-              settleUsingBurn: false,
-            },
-            hookData,
-          ] as const,
-          // For ETH→token swaps (zeroForOne, since currency0 = native ETH),
-          // we must send ETH value with the payable swap call
-          ...(zeroForOne ? { value: BigInt(depositNote.amount) } : {}),
-          // Cap gas to prevent MetaMask from using block gas limit on simulation failure
-          gas: SWAP_GAS_LIMIT,
+        // Check relayer health before submitting
+        const isRelayerUp = await checkRelayerHealth()
+        if (!isRelayerUp) {
+          throw new Error(
+            'Relayer is not available. Private swaps require a relayer to hide your identity. ' +
+            'Please try again later or check relayer configuration.'
+          )
         }
 
-        // Pre-flight simulation: use raw call to capture revert data
-        // simulateContract fails to decode 0x90bfb865 (WrappedError) properly
-        try {
-          const callData = encodeFunctionData({
-            abi: swapArgs.abi,
-            functionName: swapArgs.functionName,
-            args: swapArgs.args
-          })
+        // Format proof for relayer submission
+        const { proof: relayerProof, publicSignals: relayerSignals } = formatProofForRelayer(
+          proofResult.proof,
+          proofResult.publicSignals
+        )
 
-          await publicClient.call({
-            account: address,
-            to: swapArgs.address,
-            data: callData,
-            value: zeroForOne ? BigInt(depositNote.amount) : 0n,
-            gas: swapArgs.gas
-          })
-        } catch (simErr) {
-          throw decodeSwapError(simErr)
+        // Create swap params for relayer
+        const relayerSwapParams = createSwapParams(
+          poolKey,
+          zeroForOne,
+          -BigInt(depositNote.amount),  // negative = exact input
+          sqrtPriceLimitX96,
+          zeroForOne ? undefined : (params.fromToken as Address)  // inputToken for ERC20 swaps
+        )
+
+        console.log('[DustSwap] Submitting to relayer for anonymous execution...', {
+          poolKey: relayerSwapParams.poolKey,
+          zeroForOne: relayerSwapParams.zeroForOne,
+          amountSpecified: relayerSwapParams.amountSpecified,
+          recipient: params.recipient,
+        })
+
+        const relayerResult = await submitToRelayer({
+          proof: relayerProof,
+          publicSignals: relayerSignals,
+          swapParams: relayerSwapParams,
+        })
+
+        if (!relayerResult.success || !relayerResult.txHash) {
+          throw new Error(
+            relayerResult.error || 'Relayer failed to execute swap'
+          )
         }
 
-        const hash = await walletClient.writeContract(swapArgs)
+        const hash = relayerResult.txHash as Hash
 
         // Step 7: Wait for confirmation
-        // Use walletClient's transport (MetaMask's RPC) to poll for receipt.
-        // This avoids the RPC mismatch where publicClient polls different RPCs
-        // (dRPC/1RPC/Tenderly) that may not have seen the tx submitted via MetaMask (Infura).
         setState('confirming')
         setTxHash(hash)
 
-        const walletPublic = walletClient.extend(publicActions)
-        const receipt = await walletPublic.waitForTransactionReceipt({
+        console.log('[DustSwap] Relayer submitted tx:', hash)
+        console.log('[DustSwap] Waiting for confirmation...')
+
+        const receipt = await publicClient.waitForTransactionReceipt({
           hash,
           timeout: TX_RECEIPT_TIMEOUT,
         })

@@ -82,8 +82,77 @@ export const DUST_SWAP_POOL_ABI = [
   },
 ] as const
 
-// ─── PoolHelper ABI ──────────────────────────────────────────────────────────
+// ─── DustSwapRouter ABI (production router — replaces PoolSwapTest) ───────────
 
+export const DUST_SWAP_ROUTER_ABI = [
+  // executePrivateSwap(PoolKey, SwapParams, IDustSwapPool pool, uint256 inputAmount, bytes hookData)
+  {
+    inputs: [
+      {
+        name: 'key',
+        type: 'tuple',
+        components: [
+          { name: 'currency0', type: 'address' },
+          { name: 'currency1', type: 'address' },
+          { name: 'fee', type: 'uint24' },
+          { name: 'tickSpacing', type: 'int24' },
+          { name: 'hooks', type: 'address' },
+        ],
+      },
+      {
+        name: 'params',
+        type: 'tuple',
+        components: [
+          { name: 'zeroForOne', type: 'bool' },
+          { name: 'amountSpecified', type: 'int256' },
+          { name: 'sqrtPriceLimitX96', type: 'uint160' },
+        ],
+      },
+      { name: 'pool', type: 'address' },
+      { name: 'inputAmount', type: 'uint256' },
+      { name: 'hookData', type: 'bytes' },
+    ],
+    name: 'executePrivateSwap',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  // executePrivateSwapToken(PoolKey, SwapParams, IDustSwapPool pool, address inputToken, uint256 inputAmount, bytes hookData)
+  {
+    inputs: [
+      {
+        name: 'key',
+        type: 'tuple',
+        components: [
+          { name: 'currency0', type: 'address' },
+          { name: 'currency1', type: 'address' },
+          { name: 'fee', type: 'uint24' },
+          { name: 'tickSpacing', type: 'int24' },
+          { name: 'hooks', type: 'address' },
+        ],
+      },
+      {
+        name: 'params',
+        type: 'tuple',
+        components: [
+          { name: 'zeroForOne', type: 'bool' },
+          { name: 'amountSpecified', type: 'int256' },
+          { name: 'sqrtPriceLimitX96', type: 'uint160' },
+        ],
+      },
+      { name: 'pool', type: 'address' },
+      { name: 'inputToken', type: 'address' },
+      { name: 'inputAmount', type: 'uint256' },
+      { name: 'hookData', type: 'bytes' },
+    ],
+    name: 'executePrivateSwapToken',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+] as const
+
+// ─── PoolHelper ABI (legacy — PoolSwapTest, kept for reference) ──────────────
 
 export const POOL_HELPER_ABI = [
   {
@@ -159,6 +228,13 @@ export const SWAP_ERROR_ABI = [
   { inputs: [], name: 'CommitmentAlreadyExists', type: 'error' },
   { inputs: [], name: 'ZeroDeposit', type: 'error' },
   { inputs: [], name: 'ReentrancyGuardReentrantCall', type: 'error' },
+  // DustSwapRouter errors
+  { inputs: [], name: 'InsufficientInputAmount', type: 'error' },
+  { inputs: [], name: 'InvalidPoolKey', type: 'error' },
+  { inputs: [], name: 'SwapFailed', type: 'error' },
+  // DustSwapPool errors
+  { inputs: [], name: 'InsufficientPoolBalance', type: 'error' },
+  { inputs: [], name: 'TransferFailed', type: 'error' },
 ] as const
 
 // ─── ERC20 ABI ──────────────────────────────────────────────────────────────
@@ -328,7 +404,23 @@ export function getDustSwapPoolConfig(
 }
 
 /**
- * Get contract config for PoolHelper (Uniswap V4 PoolSwapTest router)
+ * Get contract config for DustSwapRouter (production privacy router)
+ */
+export function getDustSwapRouterConfig(chainId?: number) {
+  const config = getChainConfig(chainId ?? DEFAULT_CHAIN_ID)
+  const routerAddress = config.contracts.dustSwapRouter
+  if (!routerAddress) {
+    throw new Error('DustSwapRouter not deployed on this chain. Run DeployV2 first.')
+  }
+  return {
+    address: routerAddress as Address,
+    abi: DUST_SWAP_ROUTER_ABI,
+  }
+}
+
+/**
+ * Get contract config for PoolHelper (legacy — Uniswap V4 PoolSwapTest router)
+ * @deprecated Use getDustSwapRouterConfig() for production private swaps
  */
 export function getPoolHelperConfig(chainId?: number) {
   const config = getChainConfig(chainId ?? DEFAULT_CHAIN_ID)
