@@ -11,6 +11,7 @@ import { useLogin } from "@privy-io/react-auth";
 import { isPrivyEnabled } from "@/config/privy";
 import { useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
+import Image from "next/image";
 
 import { SpiritPortal } from "@/components/SpiritPortal";
 
@@ -141,7 +142,7 @@ export default function Home() {
         position="relative"
         overflowX="hidden"
       >
-        {/* Mobile Background Image */}
+        {/* Mobile Background Image (Next.js Image for optimization) */}
         <Box
           position="absolute"
           top="0"
@@ -150,11 +151,17 @@ export default function Home() {
           h="100%"
           zIndex={0}
           display={{ base: "block", lg: "none" }}
-          backgroundImage="url('/mobile.png')"
-          backgroundSize="cover"
-          backgroundPosition="center"
           opacity={0.6}
-        />
+        >
+          <Image
+            src="/mobile.png"
+            alt="Background"
+            fill
+            priority
+            style={{ objectFit: "cover", objectPosition: "center" }}
+            quality={90}
+          />
+        </Box>
 
         {/* Dust Spirit Portal (Desktop Only) */}
         <Box display={{ base: "none", lg: "block" }}>
@@ -259,13 +266,14 @@ export default function Home() {
           px={{ base: "20px", md: "60px" }}
           alignItems="center"
           justifyContent="center"
-          gap={{ base: "60px", lg: "0" }}
+          gap={{ base: "40px", lg: "0" }}
           minH={{ base: "auto", lg: "calc(100vh - 100px)" }}
           pb={{ base: "80px", lg: "0" }}
+          pt={{ base: "20px", lg: "0" }}
         >
 
           {/* Left Side: Privacy Transfers */}
-          <Box flex="1" display="flex" flexDirection="column" gap="32px" alignItems={{ base: "center", lg: "flex-start" }} justifyContent="center" textAlign={{ base: "center", lg: "left" }} w="100%">
+          <Box flex="1" display="flex" flexDirection="column" gap="24px" alignItems={{ base: "center", lg: "flex-start" }} justifyContent="center" textAlign={{ base: "center", lg: "left" }} w="100%">
             <Box className="fade-up d1">
               <Text
                 fontFamily="var(--font-instrument-serif), serif"
@@ -273,11 +281,11 @@ export default function Home() {
                 color="white"
                 lineHeight="1.1"
                 letterSpacing="-0.03em"
-                mb="16px"
+                mb="12px"
               >
                 Private<br />Transfers
               </Text>
-              <Text fontSize={{ base: "15px", md: "16px" }} color="rgba(255,255,255,0.7)" maxW="320px" lineHeight="1.6" mx={{ base: "auto", lg: "0" }}>
+              <Text fontSize={{ base: "16px", md: "16px" }} color="rgba(255,255,255,0.8)" maxW="320px" lineHeight="1.5" mx={{ base: "auto", lg: "0" }}>
                 Untraceable payments that dissolve into the blockchain.
               </Text>
             </Box>
@@ -339,7 +347,7 @@ export default function Home() {
               </HStack>
               <Text
                 fontSize="11px"
-                color="rgba(255, 255, 255, 0.5)"
+                color="rgba(255, 255, 255, 0.6)"
                 letterSpacing="0.05em"
                 fontFamily={typography.fontFamily.mono}
                 textAlign={{ base: "center", lg: "left" }}
@@ -351,7 +359,7 @@ export default function Home() {
           </Box>
 
           {/* Right Side: Privacy Swap */}
-          <Box flex="1" display="flex" flexDirection="column" gap="24px" alignItems={{ base: "center", lg: "flex-end" }} justifyContent="center" textAlign={{ base: "center", lg: "right" }}>
+          <Box flex="1" display="flex" flexDirection="column" gap="20px" alignItems={{ base: "center", lg: "flex-end" }} justifyContent="center" textAlign={{ base: "center", lg: "right" }}>
             <Box className="fade-up d3">
               <Text
                 fontFamily="var(--font-instrument-serif), serif"
@@ -359,11 +367,11 @@ export default function Home() {
                 color="white"
                 lineHeight="1.1"
                 letterSpacing="-0.03em"
-                mb="16px"
+                mb="12px"
               >
                 Privacy<br />Swap
               </Text>
-              <Text fontSize={{ base: "15px", md: "16px" }} color="rgba(255,255,255,0.7)" maxW="320px" lineHeight="1.6" ml={{ base: "0", lg: "auto" }}>
+              <Text fontSize={{ base: "16px", md: "16px" }} color="rgba(255,255,255,0.8)" maxW="320px" lineHeight="1.5" ml={{ base: "0", lg: "auto" }} mr={{ base: "auto", lg: "0" }}>
                 Swap tokens anonymously without leaving a trace.
               </Text>
             </Box>
@@ -378,7 +386,7 @@ export default function Home() {
               bg="rgba(255,255,255,0.05)"
               backdropFilter="blur(8px)"
             >
-              <Text fontSize="13px" color="rgba(255,255,255,0.6)" fontFamily={typography.fontFamily.mono}>
+              <Text fontSize="13px" color="rgba(255,255,255,0.8)" fontFamily={typography.fontFamily.mono} fontWeight="600">
                 COMING SOON
               </Text>
             </Box>
@@ -396,7 +404,7 @@ export default function Home() {
           zIndex={10}
           pointerEvents="none"
         >
-          <Text color="rgba(255,255,255,0.4)" fontSize="11px">
+          <Text color="rgba(255,255,255,0.5)" fontSize="11px">
             © 2026 Dust Protocol. All rights reserved.
           </Text>
         </Box>
@@ -405,4 +413,3 @@ export default function Home() {
     </>
   );
 }
-
