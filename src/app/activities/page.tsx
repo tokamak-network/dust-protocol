@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Box } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useStealthScanner } from "@/hooks/stealth";
 import { ActivityList } from "@/components/activities/ActivityList";
@@ -53,7 +52,7 @@ export default function ActivitiesPage() {
   };
 
   return (
-    <Box p={{ base: "20px 16px", md: "40px" }} maxW="780px" mx="auto">
+    <div className="px-4 md:px-10 py-5 md:py-10 max-w-[780px] mx-auto">
       <ActivityList
         payments={payments}
         isScanning={isScanning}
@@ -67,6 +66,6 @@ export default function ActivitiesPage() {
         claimedTx={claimedTx}
         scanError={scanError}
       />
-    </Box>
+    </div>
   );
 }

@@ -1,8 +1,6 @@
 "use client";
 
-import { Box, Text, VStack } from "@chakra-ui/react";
 import { useAuth } from "@/contexts/AuthContext";
-import { colors } from "@/lib/design/tokens";
 import { AccountSection } from "@/components/settings/AccountSection";
 import { SecuritySection } from "@/components/settings/SecuritySection";
 import { ClaimAddressSection } from "@/components/settings/ClaimAddressSection";
@@ -20,17 +18,15 @@ export default function SettingsPage() {
     : undefined;
 
   return (
-    <Box p={{ base: "20px 16px", md: "40px" }} maxW="780px" mx="auto">
-      <VStack gap="28px" align="stretch">
-        <Text fontSize="24px" fontWeight={700} color={colors.text.primary} textAlign="center">
-          Settings
-        </Text>
+    <div className="px-4 md:px-10 py-5 md:py-10 max-w-[780px] mx-auto">
+      <div className="flex flex-col gap-7">
+        <h1 className="text-2xl font-bold tracking-widest text-white font-mono mb-1 text-center">Settings</h1>
 
         <AccountSection address={address} ownedNames={ownedNames} isRegistered={isRegistered} />
         <SecuritySection metaAddress={metaAddress} viewingPublicKey={viewingPublicKey} />
         <ClaimAddressSection claimAddresses={claimAddresses} claimAddressesInitialized={claimAddressesInitialized} />
         <DangerZoneSection clearKeys={clearKeys} clearPin={clearPin} />
-      </VStack>
-    </Box>
+      </div>
+    </div>
   );
 }
