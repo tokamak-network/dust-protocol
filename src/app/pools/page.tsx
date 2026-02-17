@@ -20,6 +20,7 @@ import {
   getSwapContracts,
   isSwapSupported,
   getPoolForToken,
+  DEPOSIT_DENOMINATIONS,
   type SwapToken,
 } from "@/lib/swap/constants";
 import { useDustSwapPool } from "@/hooks/swap";
@@ -455,10 +456,7 @@ function PoolDepositModal({
   const isSuccess = depositState === "success";
   const isError = depositState === "error";
 
-  const denominations =
-    pool.token.symbol === "ETH"
-      ? ["0.01", "0.1", "0.5", "1"]
-      : ["10", "100", "500", "1000"];
+  const denominations = DEPOSIT_DENOMINATIONS[pool.token.symbol] || DEPOSIT_DENOMINATIONS.ETH;
 
   const handleClose = () => {
     if (!isProcessing) {

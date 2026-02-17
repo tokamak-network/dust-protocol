@@ -12,7 +12,9 @@ import {
 
 export type { MerkleProof }
 
-export const MERKLE_TREE_HEIGHT = 20
+// Re-export from canonical source to avoid duplication
+import { MERKLE_TREE_DEPTH } from '@/lib/swap/constants'
+export const MERKLE_TREE_HEIGHT = MERKLE_TREE_DEPTH
 export const ZERO_VALUE = BigInt(0)
 
 /**

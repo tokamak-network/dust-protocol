@@ -5,7 +5,8 @@ import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
 import { type Address } from "viem";
 import { useSwitchChain } from "wagmi";
 import { colors, radius, shadows, glass, buttonVariants, transitions, typography } from "@/lib/design/tokens";
-import { SUPPORTED_TOKENS, RELAYER_FEE_BPS, type SwapToken, isSwapSupported } from "@/lib/swap/constants";
+import { SUPPORTED_TOKENS, RELAYER_FEE_BPS, DEFAULT_SLIPPAGE_MULTIPLIER, type SwapToken, isSwapSupported } from "@/lib/swap/constants";
+import { DEFAULT_CHAIN_ID } from "@/config/chains";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSwapNotes, useDustSwap, useSwapMerkleTree, useDustSwapPool, useSwapQuote } from "@/hooks/swap";
 import { checkRelayerHealth, getRelayerInfo, type RelayerInfo } from "@/lib/swap/relayer";
@@ -118,9 +119,9 @@ export function SwapCard() {
   // Auto-switch to Ethereum Sepolia if on wrong chain
   useEffect(() => {
     if (isConnected && !swapSupported && switchChain) {
-      // Auto-prompt to switch to Ethereum Sepolia (11155111)
+      // Auto-prompt to switch to the default swap chain
       const timer = setTimeout(() => {
-        switchChain({ chainId: 11155111 });
+        switchChain({ chainId: DEFAULT_CHAIN_ID });
       }, 1000); // 1 second delay to avoid immediate popup
       return () => clearTimeout(timer);
     }
@@ -148,7 +149,7 @@ export function SwapCard() {
       : 0;
   const priceImpact = 0;
   const minReceived = toAmount
-    ? (parseFloat(toAmount) * 0.99).toFixed(toToken.decimals > 6 ? 6 : 2)
+    ? (parseFloat(toAmount) * DEFAULT_SLIPPAGE_MULTIPLIER).toFixed(toToken.decimals > 6 ? 6 : 2)
     : "0";
 
   // Map dustSwap hook state to component state
@@ -294,7 +295,7 @@ export function SwapCard() {
     setCompletedStealthAddress(null);
 
     const minAmountOut = BigInt(
-      Math.floor(parseFloat(toAmount) * Math.pow(10, toToken.decimals) * 0.99)
+      Math.floor(parseFloat(toAmount) * Math.pow(10, toToken.decimals) * DEFAULT_SLIPPAGE_MULTIPLIER)
     );
 
     const result = await executeSwap({
@@ -424,7 +425,7 @@ export function SwapCard() {
                     border="1px solid rgba(245,158,11,0.3)"
                     cursor="pointer"
                     transition={transitions.fast}
-                    onClick={() => switchChain?.({ chainId: 11155111 })}
+                    onClick={() => switchChain?.({ chainId: DEFAULT_CHAIN_ID })}
                     _hover={{
                       bg: "rgba(245,158,11,0.18)",
                       borderColor: "rgba(245,158,11,0.4)",

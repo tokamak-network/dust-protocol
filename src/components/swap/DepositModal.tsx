@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Box, Text, VStack, HStack, Input, Spinner } from "@chakra-ui/react";
 import { colors, radius, shadows, glass, buttonVariants, transitions, typography } from "@/lib/design/tokens";
-import { SUPPORTED_TOKENS, type SwapToken } from "@/lib/swap/constants";
+import { SUPPORTED_TOKENS, DEPOSIT_DENOMINATIONS, type SwapToken } from "@/lib/swap/constants";
 import { ShieldIcon, XIcon, CheckCircleIcon, AlertCircleIcon } from "@/components/stealth/icons";
 
 type DepositStep = "input" | "approving" | "depositing" | "confirming" | "success" | "error";
@@ -24,10 +24,7 @@ interface DepositModalProps {
   onDeposit?: (amount: string) => Promise<{ note: DepositNote; txHash: string; leafIndex: number } | null>;
 }
 
-const FIXED_DENOMINATIONS: Record<string, string[]> = {
-  ETH: ["0.01", "0.1", "0.5", "1"],
-  USDC: ["10", "100", "500", "1000"],
-};
+const FIXED_DENOMINATIONS = DEPOSIT_DENOMINATIONS;
 
 function ProgressStep({
   step,

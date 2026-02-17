@@ -5,6 +5,8 @@
 
 import { groth16 } from 'snarkjs'
 
+// Note: Web Workers can't use @/ path aliases. These paths must match
+// the constants in src/lib/swap/constants.ts (SWAP_CIRCUIT_WASM_PATH, SWAP_CIRCUIT_ZKEY_PATH)
 const WASM_PATH = '/circuits/privateSwap.wasm'
 const ZKEY_PATH = '/circuits/privateSwap_final.zkey'
 
