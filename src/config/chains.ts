@@ -157,8 +157,8 @@ const ETHEREUM_SEPOLIA_CONFIG: ChainConfig = {
     // DustSwap contracts — deployed 2026-02-16 on Ethereum Sepolia
     dustSwapPoolETH: '0xD342940442AC499656a514e5C355d2b82975155B',
     dustSwapPoolUSDC: '0xa4218b115219ba96e2c5CAAaC42D0d04D60e3269',
-    dustSwapHook: '0x06829AAC5bF68172158DE18972fb1107363500C0', // Redeployed via CREATE2 with correct permission bits
-    dustSwapVerifier: '0x99D18d3dBC5cDFbE20539833D64426CdAd47F1Cd', // Production Groth16 verifier
+    dustSwapHook: '0x605F8a92D488960174108035c41d376Ed25A00C0', // Redeployed via CREATE2 with correct permission bits
+    dustSwapVerifier: '0x1677C9c4E575C910B9bCaF398D615B9F3775d0f1', // Production Groth16 verifier
     uniswapV4PoolManager: '0x93805603e0167574dFe2F50ABdA8f42C85002FD8',
     uniswapV4StateView: '0x9C1CF9F4C496b7Df66d4EaBbff127Db6Af3c1C14',
     uniswapV4Quoter: '0xc3b43472250ab15dD91DB8900ce10f77fbDd22DB',
