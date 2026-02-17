@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Text, VStack, HStack } from "@chakra-ui/react";
-import { colors, radius, shadows, glass, transitions } from "@/lib/design/tokens";
-import type { OwnedName } from "@/lib/design/types";
+import { motion } from "framer-motion";
 import { LinkIcon, CopyIcon, CheckIcon, QRIcon, ExternalLinkIcon } from "@/components/stealth/icons";
 import { QRModal } from "@/components/links/QRModal";
+import type { OwnedName } from "@/lib/design/types";
 
 interface PersonalLinkCardProps {
   ownedNames: OwnedName[];
@@ -32,90 +31,76 @@ export function PersonalLinkCard({ ownedNames, metaAddress }: PersonalLinkCardPr
 
   return (
     <>
-      <Box
-        p="28px"
-        bg={glass.card.bg}
-        borderRadius={radius.lg}
-        border={glass.card.border}
-        boxShadow={shadows.card}
-        backdropFilter={glass.card.backdropFilter}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.4 }}
+        className="w-full p-6 rounded-sm border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] backdrop-blur-sm relative overflow-hidden"
       >
-        <VStack gap="20px" align="stretch">
-          {/* Header */}
-          <VStack align="flex-start" gap="2px">
-            <Text fontSize="17px" fontWeight={700} color={colors.text.primary}>Your Personal Link</Text>
-            <Text fontSize="14px" color={colors.text.muted}>Share to get paid</Text>
-          </VStack>
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-3">
+          <LinkIcon size={14} color="rgba(255,255,255,0.4)" />
+          <span className="text-[9px] text-[rgba(255,255,255,0.5)] uppercase tracking-wider font-mono">
+            IDENTITY
+          </span>
+        </div>
 
-          {/* Link URL row */}
-          {tokName ? (
-            <HStack
-              p="14px 16px"
-              bgColor={colors.bg.input}
-              borderRadius={radius.sm}
-              justify="space-between"
-            >
-              <HStack gap="10px">
-                <Box
-                  w="32px" h="32px"
-                  borderRadius={radius.full}
-                  bgColor="rgba(43, 90, 226, 0.08)"
-                  display="flex" alignItems="center" justifyContent="center"
-                >
-                  <LinkIcon size={16} color={colors.accent.indigo} />
-                </Box>
-                <Text fontSize="16px" fontWeight={700} color={colors.text.primary}>{tokName}</Text>
-              </HStack>
-              <HStack gap="4px">
-                <Box
-                  as="button"
-                  p="8px"
-                  borderRadius={radius.full}
-                  cursor="pointer"
-                  _hover={{ bgColor: colors.bg.hover }}
-                  transition={transitions.fast}
-                  onClick={handleCopy}
-                >
-                  {copied
-                    ? <CheckIcon size={16} color={colors.accent.indigo} />
-                    : <CopyIcon size={16} color={colors.text.muted} />
-                  }
-                </Box>
-                <Box
-                  as="button"
-                  p="8px"
-                  borderRadius={radius.full}
-                  cursor="pointer"
-                  _hover={{ bgColor: colors.bg.hover }}
-                  transition={transitions.fast}
-                  onClick={() => setShowQR(true)}
-                >
-                  <QRIcon size={16} color={colors.text.muted} />
-                </Box>
-                <Box
-                  as="button"
-                  p="8px"
-                  borderRadius={radius.full}
-                  cursor="pointer"
-                  _hover={{ bgColor: colors.bg.hover }}
-                  transition={transitions.fast}
-                  onClick={() => window.open(payPath, "_blank")}
-                >
-                  <ExternalLinkIcon size={16} color={colors.text.muted} />
-                </Box>
-              </HStack>
-            </HStack>
-          ) : metaAddress ? (
-            <Box p="14px 16px" bgColor={colors.bg.input} borderRadius={radius.sm}>
-              <Text fontSize="12px" color={colors.text.tertiary} fontFamily="'JetBrains Mono', monospace" wordBreak="break-all" lineHeight="1.5">
-                {metaAddress.slice(0, 30)}...{metaAddress.slice(-20)}
-              </Text>
-            </Box>
-          ) : (
-            <Text fontSize="13px" color={colors.text.muted}>Complete onboarding to get your link</Text>
-          )}
-        </VStack>
-      </Box>
+        {/* Content */}
+        {tokName ? (
+          <div className="flex justify-between items-end">
+            <div>
+              <h3 className="text-xl font-bold text-[#00FF41] font-mono mb-1">
+                {tokName}
+              </h3>
+              <span className="text-xs text-[rgba(255,255,255,0.4)] font-mono">
+                {payPath}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-[rgba(255,255,255,0.1)] hover:border-[#00FF41] hover:bg-[rgba(0,255,65,0.05)] transition-all group"
+              >
+                {copied
+                  ? <CheckIcon size={12} color="#00FF41" />
+                  : <CopyIcon size={12} color="rgba(255,255,255,0.5)" />
+                }
+                <span className="text-[10px] font-mono text-[rgba(255,255,255,0.6)] group-hover:text-white">
+                  {copied ? "Copied!" : "Copy Link"}
+                </span>
+              </button>
+              <button
+                onClick={() => setShowQR(true)}
+                className="p-2 rounded-sm border border-[rgba(255,255,255,0.1)] hover:border-[#00FF41] hover:bg-[rgba(0,255,65,0.05)] transition-all"
+              >
+                <QRIcon size={12} color="rgba(255,255,255,0.5)" />
+              </button>
+              <button
+                onClick={() => window.open(payPath, "_blank")}
+                className="p-2 rounded-sm border border-[rgba(255,255,255,0.1)] hover:border-[#00FF41] hover:bg-[rgba(0,255,65,0.05)] transition-all"
+              >
+                <ExternalLinkIcon size={12} color="rgba(255,255,255,0.5)" />
+              </button>
+            </div>
+          </div>
+        ) : metaAddress ? (
+          <div className="p-3 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.05)]">
+            <p className="text-xs font-mono text-[rgba(255,255,255,0.5)] break-all leading-relaxed">
+              {metaAddress.slice(0, 30)}...{metaAddress.slice(-20)}
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs text-[rgba(255,255,255,0.3)] font-mono">
+            Complete onboarding to get your link
+          </p>
+        )}
+
+        {/* Corner accents */}
+        <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-[rgba(255,255,255,0.1)] rounded-tl-sm" />
+        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[rgba(255,255,255,0.1)] rounded-tr-sm" />
+        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[rgba(255,255,255,0.1)] rounded-bl-sm" />
+        <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)] rounded-br-sm" />
+      </motion.div>
 
       {tokName && (
         <QRModal
