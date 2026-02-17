@@ -1,9 +1,8 @@
 "use client";
 
-import { Box, Text, HStack } from "@chakra-ui/react";
+import React from "react";
 import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { colors, radius, buttonVariants, transitions } from "@/lib/design/tokens";
 
 export function ConnectButton() {
   const { address, isConnected } = useAccount();
@@ -12,55 +11,28 @@ export function ConnectButton() {
 
   if (isConnected && address) {
     return (
-      <HStack gap="12px">
-        <Box
-          px="14px"
-          py="8px"
-          bgColor={colors.bg.input}
-          borderRadius={radius.xs}
-          border={`1px solid ${colors.border.default}`}
-        >
-          <Text fontSize="13px" color={colors.text.tertiary} fontFamily="'JetBrains Mono', monospace">
+      <div className="flex items-center gap-3">
+        <div className="px-3.5 py-2 bg-[rgba(255,255,255,0.04)] rounded-sm border border-[rgba(255,255,255,0.06)]">
+          <span className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">
             {address.slice(0, 6)}...{address.slice(-4)}
-          </Text>
-        </Box>
-        <Box
-          as="button"
-          px="16px"
-          py="8px"
-          bgColor={colors.bg.elevated}
-          borderRadius={radius.xs}
-          border={`1px solid ${colors.border.default}`}
-          cursor="pointer"
-          _hover={{ bgColor: colors.bg.hover, borderColor: colors.accent.red }}
-          transition={transitions.fast}
+          </span>
+        </div>
+        <button
+          className="px-4 py-2 bg-[rgba(255,255,255,0.06)] rounded-sm border border-[rgba(255,255,255,0.06)] cursor-pointer hover:bg-[rgba(255,80,80,0.1)] hover:border-[rgba(255,80,80,0.4)] transition-all duration-150 text-[13px] text-[#ff6b6b] font-medium"
           onClick={() => disconnect()}
         >
-          <Text fontSize="13px" color={colors.accent.red} fontWeight="500">
-            Disconnect
-          </Text>
-        </Box>
-      </HStack>
+          Disconnect
+        </button>
+      </div>
     );
   }
 
   return (
-    <Box
-      as="button"
-      px="20px"
-      py="10px"
-      bg={buttonVariants.primary.bg}
-      boxShadow={buttonVariants.primary.boxShadow}
-      borderRadius={radius.sm}
-      cursor="pointer"
-      _hover={{ boxShadow: buttonVariants.primary.hover.boxShadow, transform: buttonVariants.primary.hover.transform }}
-      _active={{ transform: buttonVariants.primary.active.transform }}
-      transition={transitions.fast}
+    <button
+      className="px-5 py-2.5 bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] rounded-sm cursor-pointer hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:-translate-y-px active:translate-y-0 transition-all duration-150 text-sm font-bold text-[#00FF41] font-mono"
       onClick={() => connect({ connector: injected() })}
     >
-      <Text fontSize="14px" color="white" fontWeight="600">
-        Connect Wallet
-      </Text>
-    </Box>
+      Connect Wallet
+    </button>
   );
 }

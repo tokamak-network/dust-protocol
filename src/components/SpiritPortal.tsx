@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Box } from "@chakra-ui/react";
+import React, { useEffect, useRef } from "react";
 
 interface SpiritPortalProps {
     variant?: "default" | "onboarding";
@@ -206,36 +205,20 @@ export const SpiritPortal = ({ variant = "default" }: SpiritPortalProps) => {
     }, []);
 
     return (
-        <Box
-            position="absolute"
-            top="0"
-            left="0"
-            w="100%"
-            h="100%"
-            zIndex={0}
-            overflow="hidden"
-            bg="#06080F"
-        >
+        <div className="absolute top-0 left-0 w-full h-full z-0 overflow-hidden bg-[#06080F]">
             {/* Base Image */}
-            <Box
-                position="absolute"
-                inset="0"
-                backgroundImage="url('/nature_privacy_portal_bg.png')"
-                backgroundSize="cover"
-                backgroundPosition="center center" // Keeps portal centered on cropped mobile view
-                backgroundAttachment="fixed" // Parallax-like fix
-                // Darker to let subtle particles show
-                filter={variant === 'onboarding' ? "brightness(0.5) blur(6px)" : "brightness(0.65)"}
-                transition="filter 0.5s ease"
+            <div
+                className="absolute inset-0 bg-cover bg-center bg-fixed transition-[filter] duration-500 ease-in-out"
+                style={{
+                    backgroundImage: "url('/nature_privacy_portal_bg.png')",
+                    filter: variant === 'onboarding' ? "brightness(0.5) blur(6px)" : "brightness(0.65)",
+                }}
             />
 
             {/* Optional: Subtle Vignette to reinforce circular portal feel */}
-            <Box
-                position="absolute"
-                inset="0"
-                bg="radial-gradient(circle at center, transparent 30%, #06080F 90%)"
-                opacity={0.6}
-                pointerEvents="none"
+            <div
+                className="absolute inset-0 pointer-events-none opacity-60"
+                style={{ background: "radial-gradient(circle at center, transparent 30%, #06080F 90%)" }}
             />
 
             {/* Canvas Layer */}
@@ -250,6 +233,6 @@ export const SpiritPortal = ({ variant = "default" }: SpiritPortalProps) => {
                     pointerEvents: "none" // Allow clicks to pass through
                 }}
             />
-        </Box>
+        </div>
     );
 };
