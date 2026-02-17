@@ -50,11 +50,13 @@ contract Deploy is Script {
 
         // 4. Deploy DustSwapHook
         require(POOL_MANAGER != address(0), "Set PoolManager address before deploying");
+        address deployer_ = vm.addr(deployerPrivateKey);
         DustSwapHook hook = new DustSwapHook(
             IPoolManager(POOL_MANAGER),
             IDustSwapVerifier(address(verifier)),
             IDustSwapPool(address(poolETH)),
-            IDustSwapPool(address(poolUSDC))
+            IDustSwapPool(address(poolUSDC)),
+            deployer_
         );
         console.log("DustSwapHook deployed at:", address(hook));
 

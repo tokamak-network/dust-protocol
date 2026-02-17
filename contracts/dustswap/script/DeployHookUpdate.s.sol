@@ -55,7 +55,8 @@ contract DeployHookUpdate is Script {
                 IPoolManager(POOL_MANAGER),
                 IDustSwapVerifier(VERIFIER),
                 IDustSwapPool(POOL_ETH),
-                IDustSwapPool(POOL_USDC)
+                IDustSwapPool(POOL_USDC),
+                deployer
             )
         );
         bytes32 bytecodeHash = keccak256(creationCode);
