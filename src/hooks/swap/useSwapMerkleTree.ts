@@ -15,6 +15,7 @@ import { getSwapContracts, getSwapDeploymentBlock } from '@/lib/swap/constants'
 import {
   saveMerkleTreeState,
   loadMerkleTreeState,
+  deleteMerkleTreeState,
   type StoredMerkleTree,
 } from '@/lib/swap/storage/merkle-tree'
 
@@ -111,7 +112,7 @@ export function useSwapMerkleTree(chainIdParam?: number) {
    * Returns array of {commitment, leafIndex} objects for proper deduplication
    */
   const fetchDeposits = useCallback(
-    async (fromBlock: bigint, toBlock: bigint): Promise<Array<{commitment: bigint, leafIndex: number}>> => {
+    async (fromBlock: bigint, toBlock: bigint): Promise<Array<{ commitment: bigint, leafIndex: number }>> => {
       if (!publicClient || !poolAddress) return []
 
       const BATCH_SIZE = 50000n
@@ -207,66 +208,75 @@ export function useSwapMerkleTree(chainIdParam?: number) {
     try {
       await Promise.race([
         (async () => {
-      // Use explicit params to avoid stale closure (fixes double-insertion bug)
-      let merkleTree = existingTree || tree || (await loadTree())
+          // Use explicit params to avoid stale closure (fixes double-insertion bug)
+          let merkleTree = existingTree || tree || (await loadTree())
 
-      if (!merkleTree) {
-        merkleTree = new MerkleTree()
-        await merkleTree.initialize()
-      }
-
-      const currentBlock = await publicClient.getBlockNumber()
-      const deploymentBlock = getSwapDeploymentBlock(chainId)
-
-      // Use explicit fromBlockOverride to avoid stale closure
-      const effectiveLastBlock = fromBlockOverride ?? lastSyncedBlock
-      const fromBlock =
-        effectiveLastBlock > 0
-          ? BigInt(effectiveLastBlock + 1)
-          : BigInt(deploymentBlock ?? 0)
-
-      const newDeposits = await fetchDeposits(fromBlock, currentBlock)
-
-      console.log(`[DustSwap] Fetched ${newDeposits.length} new deposits (blocks ${fromBlock} to ${currentBlock})`)
-
-      // Deduplication guard: skip deposits already in tree by comparing leafIndex
-      const expectedNextIndex = merkleTree.getLeafCount()
-      const depositsToInsert = newDeposits.filter(d => d.leafIndex >= expectedNextIndex)
-
-      if (depositsToInsert.length !== newDeposits.length) {
-        console.log(`[DustSwap] Skipping ${newDeposits.length - depositsToInsert.length} duplicate deposits (tree has ${expectedNextIndex} leaves, fetched deposits ${newDeposits[0]?.leafIndex ?? 0} to ${newDeposits[newDeposits.length - 1]?.leafIndex ?? 0})`)
-      }
-
-      for (const deposit of depositsToInsert) {
-        await merkleTree.insert(deposit.commitment)
-      }
-
-      console.log(`[DustSwap] Tree now has ${merkleTree.getLeafCount()} leaves`)
-
-      // Verify root matches on-chain (read at same block height to avoid race condition)
-      if (poolAddress) {
-        try {
-          const onChainRoot = (await publicClient.readContract({
-            address: poolAddress as `0x${string}`,
-            abi: DUST_SWAP_POOL_ABI,
-            functionName: 'getLastRoot',
-            args: [],
-            blockNumber: currentBlock, // Read at same block as deposits to avoid race condition
-          })) as `0x${string}`
-
-          const computedRoot = merkleTree.getRoot()
-          const onChainRootBigInt = BigInt(onChainRoot)
-
-          if (computedRoot !== onChainRootBigInt) {
-            console.warn('[DustSwap] Merkle root mismatch!', {
-              computed: `0x${computedRoot.toString(16).padStart(64, '0')}`,
-              onChain: onChainRoot,
-            })
+          if (!merkleTree) {
+            merkleTree = new MerkleTree()
+            await merkleTree.initialize()
           }
-        } catch (verifyErr) {
-          console.warn('[DustSwap] Could not verify root against on-chain:', verifyErr)
-        }
-      }
+
+          const currentBlock = await publicClient.getBlockNumber()
+          const deploymentBlock = getSwapDeploymentBlock(chainId)
+
+          // Use explicit fromBlockOverride to avoid stale closure
+          const effectiveLastBlock = fromBlockOverride ?? lastSyncedBlock
+          const fromBlock =
+            effectiveLastBlock > 0
+              ? BigInt(effectiveLastBlock + 1)
+              : BigInt(deploymentBlock ?? 0)
+
+          const newDeposits = await fetchDeposits(fromBlock, currentBlock)
+
+          console.log(`[DustSwap] Fetched ${newDeposits.length} new deposits (blocks ${fromBlock} to ${currentBlock})`)
+
+          // Deduplication guard: skip deposits already in tree by comparing leafIndex
+          const expectedNextIndex = merkleTree.getLeafCount()
+          const depositsToInsert = newDeposits.filter(d => d.leafIndex >= expectedNextIndex)
+
+          if (depositsToInsert.length !== newDeposits.length) {
+            console.log(`[DustSwap] Skipping ${newDeposits.length - depositsToInsert.length} duplicate deposits (tree has ${expectedNextIndex} leaves, fetched deposits ${newDeposits[0]?.leafIndex ?? 0} to ${newDeposits[newDeposits.length - 1]?.leafIndex ?? 0})`)
+          }
+
+          for (const deposit of depositsToInsert) {
+            await merkleTree.insert(deposit.commitment)
+          }
+
+          console.log(`[DustSwap] Tree now has ${merkleTree.getLeafCount()} leaves`)
+
+          // Verify root matches on-chain (read at same block height to avoid race condition)
+          if (poolAddress) {
+            try {
+              const onChainRoot = (await publicClient.readContract({
+                address: poolAddress as `0x${string}`,
+                abi: DUST_SWAP_POOL_ABI,
+                functionName: 'getLastRoot',
+                args: [],
+                blockNumber: currentBlock, // Read at same block as deposits to avoid race condition
+              })) as `0x${string}`
+
+              const computedRoot = merkleTree.getRoot()
+              const onChainRootBigInt = BigInt(onChainRoot)
+
+              if (computedRoot !== onChainRootBigInt) {
+                console.error('[DustSwap] Merkle root mismatch! Clearing local state to resync.', {
+                  computed: `0x${computedRoot.toString(16).padStart(64, '0')}`,
+                  onChain: onChainRoot,
+                })
+
+                // Critical error state - nuke local storage to force full resync
+                await deleteMerkleTreeState(treeId)
+                setTree(null)
+                setLastSyncedBlock(0)
+                setLeafCount(0)
+                setState('idle') // Will trigger restart next tick
+                syncingLockRef.current = false
+                return
+              }
+            } catch (verifyErr) {
+              console.warn('[DustSwap] Could not verify root against on-chain:', verifyErr)
+            }
+          }
 
           await saveTree(merkleTree, Number(currentBlock))
 
