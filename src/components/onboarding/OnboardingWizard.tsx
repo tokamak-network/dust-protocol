@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Box, HStack, VStack, Text, Spinner } from "@chakra-ui/react";
-import { colors, radius, shadows, transitions } from "@/lib/design/tokens";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { UsernameStep } from "./steps/UsernameStep";
@@ -55,37 +53,28 @@ export function OnboardingWizard() {
   };
 
   return (
-    <Box w="100%" maxW="420px" mx="auto">
-      <Box
-        borderRadius={radius.lg}
-        bg={colors.bg.cardSolid}
-        border={`1px solid ${colors.border.default}`}
-        borderTop={`1px solid ${colors.border.light}`}
-        boxShadow={shadows.modal}
-        overflow="hidden"
-      >
-        {/* Dots */}
-        <HStack gap="6px" justify="center" pt="20px">
+    <div className="w-full max-w-[420px] mx-auto">
+      <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-sm overflow-hidden">
+        {/* Progress dots */}
+        <div className="flex gap-[6px] justify-center pt-5">
           {STEPS.map((_, i) => (
-            <Box
+            <div
               key={i}
-              w="6px"
-              h="6px"
-              borderRadius="full"
-              bg={
-                i < currentIndex
-                  ? "rgba(74,117,240,0.5)"
-                  : i === currentIndex
-                  ? "rgba(255,255,255,0.8)"
-                  : "rgba(255,255,255,0.1)"
-              }
-              transition={transitions.spring}
+              className="w-[6px] h-[6px] rounded-full transition-all"
+              style={{
+                backgroundColor:
+                  i < currentIndex
+                    ? "rgba(74,117,240,0.5)"
+                    : i === currentIndex
+                    ? "rgba(255,255,255,0.8)"
+                    : "rgba(255,255,255,0.1)",
+              }}
             />
           ))}
-        </HStack>
+        </div>
 
         {/* Content */}
-        <Box px={{ base: "28px", md: "36px" }} pt="24px" pb="32px">
+        <div className="px-7 md:px-9 pt-6 pb-8">
           {step === "username" && (
             <UsernameStep
               onNext={(name) => { setUsername(name); setStep("pin"); }}
@@ -96,35 +85,55 @@ export function OnboardingWizard() {
             <PinStep onNext={handlePinComplete} />
           )}
           {step === "activating" && (
-            <VStack gap="20px" align="stretch">
-              <VStack gap="4px" align="flex-start">
-                <Text fontSize="20px" fontWeight={600} color={colors.text.primary} letterSpacing="-0.01em">
+            <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-1">
+                <p className="text-[20px] font-semibold text-white tracking-tight">
                   Setting up your wallet
-                </Text>
-                <Text fontSize="13px" color={colors.text.muted}>
+                </p>
+                <p className="text-[13px] text-[rgba(255,255,255,0.4)]">
                   {error ? "Activation failed" : "Creating your private identity..."}
-                </Text>
-              </VStack>
+                </p>
+              </div>
 
               {!error && (
-                <HStack gap="8px" justify="center" py="32px">
-                  <Spinner size="sm" color={colors.accent.indigo} />
-                  <Text fontSize="13px" color={colors.text.secondary}>
+                <div className="flex items-center gap-2 justify-center py-8">
+                  {/* Spinner */}
+                  <svg
+                    className="animate-spin w-4 h-4 text-[rgba(74,117,240,0.8)]"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  <span className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">
                     Please wait...
-                  </Text>
-                </HStack>
+                  </span>
+                </div>
               )}
 
               {error && (
-                <HStack gap="6px" pl="2px">
-                  <AlertCircleIcon size={12} color={colors.accent.red} />
-                  <Text fontSize="12px" color={colors.accent.red}>{error}</Text>
-                </HStack>
+                <div className="flex items-center gap-[6px] pl-[2px]">
+                  <AlertCircleIcon size={12} color="#ef4444" />
+                  <span className="text-[12px] text-[#ef4444] font-mono">{error}</span>
+                </div>
               )}
-            </VStack>
+            </div>
           )}
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
   );
 }

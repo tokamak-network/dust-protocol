@@ -1,9 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, ClipboardEvent } from "react";
-import { Box, Text, VStack, HStack, Input } from "@chakra-ui/react";
-import { Button } from "@/components/ui/button";
-import { colors, radius, inputStates, buttonVariants, transitions } from "@/lib/design/tokens";
+import React, { useState, useRef, useEffect, KeyboardEvent, ChangeEvent, ClipboardEvent } from "react";
 import { AlertCircleIcon } from "@/components/stealth/icons";
 
 interface PinStepProps {
@@ -43,9 +40,9 @@ function PinInput({ value, onChange }: { value: string; onChange: (v: string) =>
   };
 
   return (
-    <HStack gap="8px" justify="center">
+    <div className="flex gap-2 justify-center">
       {Array.from({ length: 6 }).map((_, i) => (
-        <Input
+        <input
           key={i}
           ref={(el) => { refs.current[i] = el; }}
           type="text"
@@ -57,24 +54,18 @@ function PinInput({ value, onChange }: { value: string; onChange: (v: string) =>
           onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(i, e.target.value)}
           onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => handleKeyDown(i, e)}
           onPaste={handlePaste}
-          w="44px"
-          h="52px"
-          textAlign="center"
-          fontSize="20px"
-          fontWeight={600}
-          bgColor={inputStates.default.bg}
-          border={`1px solid ${value[i] ? "rgba(255,255,255,0.15)" : colors.border.default}`}
-          borderRadius={radius.sm}
-          color={inputStates.default.color}
-          css={{ WebkitTextSecurity: "disc" }}
-          _focus={{
-            borderColor: inputStates.focus.borderColor,
-            boxShadow: inputStates.focus.boxShadow,
-          }}
-          transition={transitions.fast}
+          style={{ WebkitTextSecurity: "disc" } as React.CSSProperties}
+          className={[
+            "w-11 h-[52px] text-center text-[20px] font-semibold rounded-sm font-mono",
+            "bg-[rgba(255,255,255,0.03)] text-white",
+            "border transition-all focus:outline-none focus:border-[#00FF41]",
+            value[i]
+              ? "border-[rgba(255,255,255,0.15)]"
+              : "border-[rgba(255,255,255,0.1)]",
+          ].join(" ")}
         />
       ))}
-    </HStack>
+    </div>
   );
 }
 
@@ -126,17 +117,18 @@ export function PinStep({ onNext }: PinStepProps) {
   const isReady = step === "create" ? pin.length === 6 : confirmPin.length === 6;
 
   return (
-    <VStack gap="20px" align="stretch">
-      <VStack gap="4px" align="flex-start">
-        <Text fontSize="20px" fontWeight={600} color={colors.text.primary} letterSpacing="-0.01em">
-          {step === "create" ? "Create a PIN" : "Confirm your PIN"}
-        </Text>
-        <Text fontSize="13px" color={colors.text.muted}>
+    <div className="flex flex-col gap-5">
+      {/* Header */}
+      <div className="flex flex-col gap-1">
+        <p className="text-[20px] font-semibold text-white tracking-tight">
+          {step === "create" ? "[ CREATE PIN ]" : "[ CONFIRM PIN ]"}
+        </p>
+        <p className="text-[13px] text-[rgba(255,255,255,0.4)] font-mono">
           {step === "create"
             ? "Your PIN + wallet signature creates your stealth keys"
             : "Enter the same PIN to confirm"}
-        </Text>
-      </VStack>
+        </p>
+      </div>
 
       {step === "create" ? (
         <PinInput value={pin} onChange={setPin} />
@@ -145,62 +137,39 @@ export function PinStep({ onNext }: PinStepProps) {
       )}
 
       {error && (
-        <HStack gap="6px" pl="2px">
-          <AlertCircleIcon size={12} color={colors.accent.red} />
-          <Text fontSize="12px" color={colors.accent.red}>{error}</Text>
-        </HStack>
+        <div className="flex items-center gap-[6px] pl-[2px]">
+          <AlertCircleIcon size={12} color="#ef4444" />
+          <span className="text-[12px] text-[#ef4444] font-mono">{error}</span>
+        </div>
       )}
 
-      <HStack gap="10px">
+      <div className="flex gap-[10px]">
         {step === "confirm" && (
-          <Button
-            flex={1}
-            h="44px"
-            bg={buttonVariants.secondary.bg}
-            borderRadius={radius.sm}
-            border={buttonVariants.secondary.border}
-            fontWeight={500}
-            fontSize="14px"
-            color={colors.text.secondary}
-            _hover={{
-              bg: buttonVariants.secondary.hover.bg,
-              borderColor: buttonVariants.secondary.hover.borderColor,
-            }}
-            transition={transitions.fast}
+          <button
             onClick={() => { setStep("create"); setPin(""); setConfirmPin(""); setError(null); }}
+            className="flex-1 h-11 rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.2)] font-medium text-[14px] text-[rgba(255,255,255,0.5)] font-mono tracking-wider transition-all"
           >
             Back
-          </Button>
+          </button>
         )}
-        <Button
-          flex={2}
-          h="44px"
-          bg={isReady ? buttonVariants.primary.bg : colors.bg.elevated}
-          borderRadius={radius.sm}
-          border={isReady ? "none" : `1px solid ${colors.border.default}`}
-          boxShadow={isReady ? buttonVariants.primary.boxShadow : "none"}
-          fontWeight={600}
-          fontSize="14px"
-          color={isReady ? "#fff" : colors.text.muted}
-          _hover={
-            isReady
-              ? {
-                  boxShadow: buttonVariants.primary.hover.boxShadow,
-                  transform: buttonVariants.primary.hover.transform,
-                }
-              : {}
-          }
-          transition={transitions.fast}
+        <button
           onClick={step === "create" ? handleCreateNext : handleConfirm}
           disabled={!isReady}
+          className={[
+            "h-11 rounded-sm text-[14px] font-bold font-mono tracking-wider transition-all",
+            step === "confirm" ? "flex-[2]" : "w-full",
+            isReady
+              ? "py-3 px-4 bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] text-[#00FF41]"
+              : "bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.3)] cursor-not-allowed",
+          ].join(" ")}
         >
           {step === "create" ? "Continue" : "Confirm"}
-        </Button>
-      </HStack>
+        </button>
+      </div>
 
-      <Text fontSize="11px" color={colors.text.muted} lineHeight="1.4">
+      <p className="text-[11px] text-[rgba(255,255,255,0.3)] leading-relaxed font-mono">
         This PIN cannot be recovered. You would need to create a new identity.
-      </Text>
-    </VStack>
+      </p>
+    </div>
   );
 }

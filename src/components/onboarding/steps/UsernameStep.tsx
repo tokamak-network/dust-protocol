@@ -1,9 +1,6 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
-import { Box, Text, VStack, HStack, Input, Spinner } from "@chakra-ui/react";
-import { Button } from "@/components/ui/button";
-import { colors, radius, inputStates, buttonVariants, transitions } from "@/lib/design/tokens";
+import React, { useState, useEffect, ChangeEvent } from "react";
 import { NAME_SUFFIX } from "@/lib/stealth";
 import { useStealthName } from "@/hooks/stealth";
 import { CheckCircleIcon, AlertCircleIcon } from "@/components/stealth/icons";
@@ -36,109 +33,99 @@ export function UsernameStep({ onNext, initialName = "" }: UsernameStepProps) {
   const canContinue = isAvailable === true && validation?.valid;
 
   return (
-    <VStack gap="20px" align="stretch">
-      <VStack gap="4px" align="flex-start">
-        <Text fontSize="20px" fontWeight={600} color={colors.text.primary} letterSpacing="-0.01em">
-          Choose a username
-        </Text>
-        <Text fontSize="13px" color={colors.text.muted}>
+    <div className="flex flex-col gap-5">
+      {/* Header */}
+      <div className="flex flex-col gap-1">
+        <p className="text-[20px] font-semibold text-white tracking-tight">
+          [ USERNAME ]
+        </p>
+        <p className="text-[13px] text-[rgba(255,255,255,0.4)] font-mono">
           How others will find and pay you
-        </Text>
-      </VStack>
+        </p>
+      </div>
 
-      <VStack gap="6px" align="stretch">
-        <Box position="relative">
-          <Input
+      <div className="flex flex-col gap-[6px]">
+        {/* Input row */}
+        <div className="relative">
+          <input
+            type="text"
             placeholder="yourname"
             value={nameInput}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
               setNameInput(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))
             }
-            h="46px"
-            bgColor={inputStates.default.bg}
-            border={inputStates.default.border}
-            borderRadius={radius.sm}
-            color={inputStates.default.color}
-            fontSize="15px"
-            px="14px"
-            pr="65px"
-            fontWeight={500}
-            _placeholder={{ color: inputStates.default.placeholder }}
-            _focus={{
-              borderColor: inputStates.focus.borderColor,
-              boxShadow: inputStates.focus.boxShadow,
-            }}
-            transition={transitions.fast}
+            className="w-full p-3 pr-[65px] rounded-sm bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] text-white font-mono text-sm focus:outline-none focus:border-[#00FF41] transition-all placeholder-[rgba(255,255,255,0.2)]"
           />
-          <Text
-            position="absolute"
-            right="14px"
-            top="50%"
-            transform="translateY(-50%)"
-            fontSize="14px"
-            fontWeight={500}
-            color={colors.text.muted}
-          >
+          <span className="absolute right-[14px] top-1/2 -translate-y-1/2 text-[14px] font-medium text-[rgba(255,255,255,0.3)] font-mono pointer-events-none">
             {NAME_SUFFIX}
-          </Text>
-        </Box>
+          </span>
+        </div>
 
-        <Box h="18px" pl="2px">
+        {/* Status row — fixed height to avoid layout shift */}
+        <div className="h-[18px] pl-[2px]">
           {isChecking && (
-            <HStack gap="5px">
-              <Spinner size="xs" color="rgba(74,117,240,0.6)" />
-              <Text fontSize="12px" color="rgba(255,255,255,0.3)">Checking...</Text>
-            </HStack>
+            <div className="flex items-center gap-[5px]">
+              <svg
+                className="animate-spin w-3 h-3 text-[rgba(74,117,240,0.6)]"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              <span className="text-[12px] text-[rgba(255,255,255,0.3)] font-mono">Checking...</span>
+            </div>
           )}
           {!isChecking && isAvailable === true && nameInput && (
-            <HStack gap="5px">
+            <div className="flex items-center gap-[5px]">
               <CheckCircleIcon size={12} color="#22C55E" />
-              <Text fontSize="12px" color="rgba(34,197,94,0.8)" fontWeight={500}>
+              <span className="text-[12px] text-[rgba(34,197,94,0.8)] font-medium font-mono">
                 {formatName(nameInput)} is available
-              </Text>
-            </HStack>
+              </span>
+            </div>
           )}
           {!isChecking && isAvailable === false && nameInput && (
-            <HStack gap="5px">
-              <AlertCircleIcon size={12} color={colors.accent.red} />
-              <Text fontSize="12px" color={colors.accent.red} fontWeight={500}>
+            <div className="flex items-center gap-[5px]">
+              <AlertCircleIcon size={12} color="#ef4444" />
+              <span className="text-[12px] text-[#ef4444] font-medium font-mono">
                 {formatName(nameInput)} is taken
-              </Text>
-            </HStack>
+              </span>
+            </div>
           )}
           {!isChecking && validation && !validation.valid && nameInput && (
-            <HStack gap="5px">
-              <AlertCircleIcon size={12} color={colors.accent.amber} />
-              <Text fontSize="12px" color={colors.accent.amber}>{validation.error}</Text>
-            </HStack>
+            <div className="flex items-center gap-[5px]">
+              <AlertCircleIcon size={12} color="#FFB000" />
+              <span className="text-[12px] text-[#FFB000] font-mono">{validation.error}</span>
+            </div>
           )}
-        </Box>
-      </VStack>
+        </div>
+      </div>
 
-      <Button
-        w="100%"
-        h="44px"
-        bg={canContinue ? buttonVariants.primary.bg : colors.bg.elevated}
-        borderRadius={radius.sm}
-        border={canContinue ? "none" : `1px solid ${colors.border.default}`}
-        boxShadow={canContinue ? buttonVariants.primary.boxShadow : "none"}
-        fontWeight={600}
-        fontSize="14px"
-        color={canContinue ? "#fff" : colors.text.muted}
-        _hover={
-          canContinue
-            ? {
-                boxShadow: buttonVariants.primary.hover.boxShadow,
-                transform: buttonVariants.primary.hover.transform,
-              }
-            : {}
-        }
-        transition={transitions.fast}
+      {/* CTA */}
+      <button
         onClick={() => canContinue && onNext(nameInput)}
         disabled={!canContinue}
+        className={[
+          "w-full h-11 rounded-sm text-[14px] font-bold font-mono tracking-wider transition-all",
+          canContinue
+            ? "py-3 px-4 bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] text-[#00FF41]"
+            : "bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.3)] cursor-not-allowed",
+        ].join(" ")}
       >
         Continue
-      </Button>
-    </VStack>
+      </button>
+    </div>
   );
 }

@@ -1,9 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
-import { Button } from "@/components/ui/button";
-import { colors, radius, inputStates, buttonVariants, transitions } from "@/lib/design/tokens";
+import React, { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircleIcon, AlertCircleIcon } from "@/components/stealth/icons";
 
@@ -58,86 +55,91 @@ export function ActivateStep({ username, pin, onComplete }: ActivateStepProps) {
   };
 
   return (
-    <VStack gap="20px" align="stretch">
-      <VStack gap="4px" align="flex-start">
-        <Text fontSize="20px" fontWeight={600} color={colors.text.primary} letterSpacing="-0.01em">
-          Activate your wallet
-        </Text>
-        <Text fontSize="13px" color={colors.text.muted}>
+    <div className="flex flex-col gap-5">
+      {/* Header */}
+      <div className="flex flex-col gap-1">
+        <p className="text-[20px] font-semibold text-white tracking-tight">
+          [ ACTIVATE ]
+        </p>
+        <p className="text-[13px] text-[rgba(255,255,255,0.4)] font-mono">
           Review and activate your private identity
-        </Text>
-      </VStack>
+        </p>
+      </div>
 
-      {/* Summary */}
-      <VStack
-        gap="0"
-        align="stretch"
-        bgColor={inputStates.default.bg}
-        borderRadius={radius.sm}
-        border={inputStates.default.border}
-        overflow="hidden"
-      >
-        <HStack justify="space-between" px="16px" py="12px">
-          <Text fontSize="13px" color={colors.text.muted}>Username</Text>
-          <Text fontSize="13px" fontWeight={500} color={colors.accent.indigoBright}>
+      {/* Summary card */}
+      <div className="bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.1)] rounded-sm overflow-hidden">
+        <div className="flex justify-between items-center px-4 py-3">
+          <span className="text-[9px] uppercase tracking-wider font-mono text-[rgba(255,255,255,0.5)]">
+            Username
+          </span>
+          <span className="text-[13px] font-medium text-[rgba(74,117,240,0.9)] font-mono">
             {formatName(username)}
-          </Text>
-        </HStack>
-        <Box h="1px" bgColor={colors.border.default} />
-        <HStack justify="space-between" px="16px" py="12px">
-          <Text fontSize="13px" color={colors.text.muted}>PIN</Text>
-          <Text fontSize="13px" fontWeight={500} color={colors.text.secondary} letterSpacing="2px">
+          </span>
+        </div>
+        <div className="h-px bg-[rgba(255,255,255,0.06)]" />
+        <div className="flex justify-between items-center px-4 py-3">
+          <span className="text-[9px] uppercase tracking-wider font-mono text-[rgba(255,255,255,0.5)]">
+            PIN
+          </span>
+          <span className="text-[13px] font-medium text-[rgba(255,255,255,0.6)] font-mono tracking-[2px]">
             ••••••
-          </Text>
-        </HStack>
-      </VStack>
+          </span>
+        </div>
+      </div>
 
       {/* Status */}
       {(status === "signing" || status === "activating") && (
-        <HStack gap="8px" justify="center" py="8px">
-          <Spinner size="sm" color={colors.accent.indigo} />
-          <Text fontSize="13px" color={colors.text.secondary}>
+        <div className="flex items-center gap-2 justify-center py-2">
+          <svg
+            className="animate-spin w-4 h-4 text-[rgba(74,117,240,0.8)]"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+            />
+          </svg>
+          <span className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">
             {status === "signing" ? "Approve in wallet..." : "Setting up identity..."}
-          </Text>
-        </HStack>
+          </span>
+        </div>
       )}
+
       {status === "done" && (
-        <HStack gap="6px" justify="center" py="8px">
+        <div className="flex items-center gap-[6px] justify-center py-2">
           <CheckCircleIcon size={14} color="#22C55E" />
-          <Text fontSize="13px" color={colors.accent.green} fontWeight={500}>Activated</Text>
-        </HStack>
+          <span className="text-[13px] text-[#22C55E] font-medium font-mono">Activated</span>
+        </div>
       )}
 
       {/* Error */}
       {error && (
-        <HStack gap="6px" pl="2px">
-          <AlertCircleIcon size={12} color={colors.accent.red} />
-          <Text fontSize="12px" color={colors.accent.red}>{error}</Text>
-        </HStack>
+        <div className="flex items-center gap-[6px] pl-[2px]">
+          <AlertCircleIcon size={12} color="#ef4444" />
+          <span className="text-[12px] text-[#ef4444] font-mono">{error}</span>
+        </div>
       )}
 
       {/* CTA */}
       {(status === "idle" || status === "error") && (
-        <Button
-          w="100%"
-          h="44px"
-          bg={buttonVariants.primary.bg}
-          borderRadius={radius.sm}
-          border="none"
-          boxShadow={buttonVariants.primary.boxShadow}
-          fontWeight={600}
-          fontSize="14px"
-          color="#fff"
-          _hover={{
-            boxShadow: buttonVariants.primary.hover.boxShadow,
-            transform: buttonVariants.primary.hover.transform,
-          }}
-          transition={transitions.fast}
+        <button
           onClick={handleActivate}
+          className="w-full h-11 py-3 px-4 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] text-sm font-bold text-[#00FF41] font-mono tracking-wider transition-all"
         >
           Activate
-        </Button>
+        </button>
       )}
-    </VStack>
+    </div>
   );
 }
