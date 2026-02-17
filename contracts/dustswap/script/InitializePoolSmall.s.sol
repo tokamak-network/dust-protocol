@@ -26,7 +26,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract InitializePoolSmall is Script {
     // ─── Deployed contract addresses (Ethereum Sepolia) ─────────────────────────
     address constant POOL_MANAGER = 0x93805603e0167574dFe2F50ABdA8f42C85002FD8;
-    address constant DUST_SWAP_HOOK = 0x06829AAC5bF68172158DE18972fb1107363500C0; // Redeployed via CREATE2 (Feb 16 2026)
+    address constant DUST_SWAP_HOOK = 0x605F8a92D488960174108035c41d376Ed25A00C0; // Redeployed via CREATE2 (Feb 17 2026)
     address constant USDC = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // Circle USDC on Sepolia
 
     // ─── Pool parameters (must match frontend: src/lib/swap/constants.ts) ───────
