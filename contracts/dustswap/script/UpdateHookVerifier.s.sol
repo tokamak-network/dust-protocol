@@ -19,6 +19,7 @@ contract UpdateHookVerifier is Script {
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address deployer = vm.addr(deployerPrivateKey);
 
         console.log("Deploying new DustSwapHook with production verifier...");
         console.log("Production Verifier:", PRODUCTION_VERIFIER);
@@ -30,7 +31,8 @@ contract UpdateHookVerifier is Script {
             IPoolManager(POOL_MANAGER),
             IDustSwapVerifier(PRODUCTION_VERIFIER),
             IDustSwapPool(POOL_ETH),
-            IDustSwapPool(POOL_USDC)
+            IDustSwapPool(POOL_USDC),
+            deployer
         );
         console.log("New DustSwapHook deployed at:", address(hook));
 

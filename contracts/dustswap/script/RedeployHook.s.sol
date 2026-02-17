@@ -47,7 +47,8 @@ contract RedeployHook is Script {
                 IPoolManager(POOL_MANAGER),
                 IDustSwapVerifier(VERIFIER),
                 IDustSwapPool(POOL_ETH),
-                IDustSwapPool(POOL_USDC)
+                IDustSwapPool(POOL_USDC),
+                deployer
             )
         );
         bytes32 initCodeHash = keccak256(initCode);
@@ -146,14 +147,12 @@ contract MineSalt is Script {
     function run() external view {
         // We need the HookDeployer address. If already deployed, read from env.
         // Otherwise, predict what address it would get when deployed by the deployer.
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address deployer = vm.addr(deployerPrivateKey);
         address hookDeployerAddr;
         try vm.envAddress("HOOK_DEPLOYER") returns (address addr) {
             hookDeployerAddr = addr;
         } catch {
-            // Deploy a temporary HookDeployer to get its address for mining
-            // (the actual deployment will use the same deployer nonce, so address matches)
-            uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-            address deployer = vm.addr(deployerPrivateKey);
             uint64 nonce = vm.getNonce(deployer);
             hookDeployerAddr = vm.computeCreateAddress(deployer, nonce);
             console.log("Predicted HookDeployer address (nonce %d):", nonce);
@@ -166,7 +165,8 @@ contract MineSalt is Script {
                 IPoolManager(POOL_MANAGER),
                 IDustSwapVerifier(VERIFIER),
                 IDustSwapPool(POOL_ETH),
-                IDustSwapPool(POOL_USDC)
+                IDustSwapPool(POOL_USDC),
+                deployer
             )
         );
         bytes32 initCodeHash = keccak256(initCode);

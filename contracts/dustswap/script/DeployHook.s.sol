@@ -30,11 +30,13 @@ contract DeployHook is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // Deploy DustSwapHook
+        address deployer_ = vm.addr(deployerPrivateKey);
         DustSwapHook hook = new DustSwapHook(
             IPoolManager(POOL_MANAGER),
             IDustSwapVerifier(VERIFIER),
             IDustSwapPool(POOL_ETH),
-            IDustSwapPool(POOL_USDC)
+            IDustSwapPool(POOL_USDC),
+            deployer_
         );
         console.log("DustSwapHook deployed at:", address(hook));
 
