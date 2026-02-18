@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { injected } from "wagmi/connectors";
 import { useAuth } from "@/contexts/AuthContext";
 import { DustLogo } from "@/components/DustLogo";
 import { getSupportedChains } from "@/config/chains";
 import { ChainIcon as ChainTokenIcon } from "@/components/stealth/icons";
 import { MenuIcon, XIcon, ChevronDownIcon, CopyIcon, LogOutIcon, CheckIcon } from "lucide-react";
+import { isPrivyEnabled } from "@/config/privy";
+import { useLogin } from "@privy-io/react-auth";
 
 const chains = getSupportedChains();
 
@@ -30,9 +33,11 @@ function isNavActive(itemHref: string, pathname: string) {
 
 export function Navbar() {
   const pathname = usePathname();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  const { ownedNames, activeChainId, setActiveChain } = useAuth();
+  const { connect } = useConnect();
+  const { login: privyLogin } = useLogin();
+  const { activeChainId, setActiveChain } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -41,6 +46,14 @@ export function Navbar() {
   const activeChain = chains.find(c => c.id === activeChainId) || chains[0];
 
   const displayName = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : null;
+
+  const handleConnect = () => {
+    if (isPrivyEnabled) {
+      privyLogin();
+    } else {
+      connect({ connector: injected() });
+    }
+  };
 
   // Close wallet dropdown on outside click
   useEffect(() => {
@@ -75,9 +88,9 @@ export function Navbar() {
           </Link>
         </div>
 
-        {/* Center — nav links, truly centered, collapses on small screens */}
+        {/* Center — nav links, only show when connected */}
         <div className="hidden md:flex items-center gap-0.5 shrink-0">
-          {navItems.map(item => (
+          {isConnected && navItems.map(item => (
             <Link
               key={item.href}
               href={item.href}
@@ -151,7 +164,14 @@ export function Navbar() {
                   </div>
                 )}
               </>
-            ) : null}
+            ) : (
+              <button
+                onClick={handleConnect}
+                className="px-4 py-2 text-[11px] font-mono font-bold tracking-wider text-[#00FF41] border border-[rgba(0,255,65,0.3)] bg-[rgba(0,255,65,0.06)] rounded-sm hover:border-[#00FF41] hover:bg-[rgba(0,255,65,0.12)] transition-all"
+              >
+                CONNECT WALLET
+              </button>
+            )}
           </div>
 
           {/* Hamburger — only nav links on small screens */}
@@ -167,7 +187,7 @@ export function Navbar() {
       {/* Mobile nav drawer — wallet stays in the bar, not here */}
       {mobileOpen && (
         <div className="fixed top-16 left-0 right-0 z-40 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex flex-col py-2">
-          {navItems.map(item => (
+          {isConnected ? navItems.map(item => (
             <Link
               key={item.href}
               href={item.href}
@@ -180,7 +200,14 @@ export function Navbar() {
             >
               {item.label.toUpperCase()}
             </Link>
-          ))}
+          )) : (
+            <button
+              onClick={() => { handleConnect(); setMobileOpen(false); }}
+              className="mx-4 my-2 px-4 py-3 text-[11px] font-mono font-bold tracking-wider text-[#00FF41] border border-[rgba(0,255,65,0.3)] bg-[rgba(0,255,65,0.06)] rounded-sm hover:border-[#00FF41] hover:bg-[rgba(0,255,65,0.12)] transition-all text-center"
+            >
+              CONNECT WALLET
+            </button>
+          )}
         </div>
       )}
     </>

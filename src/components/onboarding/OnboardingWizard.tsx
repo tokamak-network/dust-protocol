@@ -50,7 +50,12 @@ export function OnboardingWizard() {
       const pinStored = await storePinEncrypted(pin, result.sig);
       if (!pinStored) throw new Error("Failed to store PIN");
 
-      if (isReactivation) {
+      // Re-check ownedNames at activation time — names may have loaded asynchronously
+      // after the wizard first rendered (cleared cache / new browser). In that case
+      // isReactivation (captured at render) could be stale.
+      const alreadyHasName = ownedNames.length > 0;
+
+      if (alreadyHasName) {
         // Wallet already has a name — just re-derive keys and re-register ERC-6538 meta-address.
         // Skip registerName to avoid an unnecessary API call.
         await registerMetaAddress().catch(() => null);
