@@ -8,7 +8,7 @@ import {
   discoverNameByWalletHistory, CANONICAL_ADDRESSES,
 } from '@/lib/stealth';
 import { DEFAULT_CHAIN_ID } from '@/config/chains';
-import { useNamesByMetaAddress } from '@/hooks/graph/useNameQuery';
+import { useNamesByMetaAddress, useNamesByWallet } from '@/hooks/graph/useNameQuery';
 import { isGraphAvailable } from '@/lib/graph/client';
 import type { OwnedName } from '@/lib/design/types';
 
@@ -45,17 +45,33 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
     activeChainId,
   );
 
+  // Wallet-based Graph lookup: when userMetaAddress is null (cleared cache / new browser),
+  // chain wallet → ERC-6538 metaAddress → names. This lets us detect existing names
+  // even before the user derives keys.
+  const needsWalletLookup = graphEnabled && isConnected && !userMetaAddress;
+  const {
+    data: graphWalletNames,
+    isLoading: graphWalletLoading,
+    isError: graphWalletFailed,
+  } = useNamesByWallet(
+    needsWalletLookup ? address : undefined,
+    activeChainId,
+  );
+
   // Derive ownedNames from Graph data when enabled
   const graphOwnedNames = useMemo<OwnedName[]>(() => {
-    if (!graphEnabled || !graphNames?.length) return [];
-    return graphNames.map((n) => ({
+    if (!graphEnabled) return [];
+    // Prefer metaAddress-based results (more specific), fall back to wallet-based
+    const names = graphNames?.length ? graphNames : graphWalletNames;
+    if (!names?.length) return [];
+    return names.map((n) => ({
       name: n.name,
       fullName: formatNameWithSuffix(n.name),
     }));
-  }, [graphEnabled, graphNames]);
+  }, [graphEnabled, graphNames, graphWalletNames]);
 
   // Graph→RPC fallback: if Graph is enabled but errored, fall back to legacy RPC path
-  const useGraphData = graphEnabled && !graphFailed;
+  const useGraphData = graphEnabled && !graphFailed && !(needsWalletLookup && graphWalletFailed);
 
   // Unified ownedNames: prefer Graph when it has data, fall back to legacy/discovery
   const ownedNames = graphOwnedNames.length > 0 ? graphOwnedNames : legacyOwnedNames;
@@ -183,17 +199,21 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
   // Initial load trigger
   // Run legacy discovery when:
   //  a) Graph is disabled (always use RPC), OR
-  //  b) Graph is enabled but no metaAddress (cleared cache — graph query is disabled, need RPC scan)
-  const needsLegacyDiscovery = !useGraphData || (graphEnabled && !userMetaAddress);
+  //  b) Graph is enabled but BOTH metaAddress-based AND wallet-based queries failed
+  //     (wallet-based query is the primary fallback for cleared-cache users now)
+  const needsLegacyDiscovery = !useGraphData || (graphEnabled && !userMetaAddress && graphWalletFailed);
   useEffect(() => {
     if (needsLegacyDiscovery && isConnected && isConfigured) loadOwnedNames();
     else if (needsLegacyDiscovery && (!isConnected || !isConfigured)) setLegacyNamesSettled(true);
   }, [needsLegacyDiscovery, isConnected, isConfigured, loadOwnedNames]);
 
   // For graph mode, settled = not loading (disabled query also returns loading=false immediately)
-  // EXCEPTION: if graph is enabled but we had no metaAddress (cleared-cache user), we ran the
-  // legacy discovery pipeline — so defer to legacyNamesSettled in that case too.
-  const isNamesSettled = (useGraphData && !!userMetaAddress) ? !graphLoading : legacyNamesSettled;
+  // When userMetaAddress is available: use metaAddress-based graph query loading state.
+  // When userMetaAddress is null (cleared cache): use wallet-based graph query loading state,
+  // falling back to legacyNamesSettled if the wallet query also failed.
+  const isNamesSettled = useGraphData
+    ? (userMetaAddress ? !graphLoading : (!graphWalletLoading || legacyNamesSettled))
+    : legacyNamesSettled;
   const registerName = useCallback(async (name: string, metaAddress: string): Promise<string | null> => {
     if (!isConnected || !isConfigured) {
       setError('Not connected or registry not configured');

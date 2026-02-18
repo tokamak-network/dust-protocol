@@ -79,6 +79,21 @@ export const SEARCH_NAMES = gql`
   }
 `;
 
+// Get a user's on-chain stealth meta-address by wallet address
+// (from ERC-6538 StealthMetaAddressSet events indexed by the subgraph)
+export const GET_STEALTH_META_BY_REGISTRANT = gql`
+  query GetStealthMetaByRegistrant($address: ID!) {
+    user(id: $address) {
+      id
+      metaAddress {
+        stealthMetaAddress
+        schemeId
+        registeredAt
+      }
+    }
+  }
+`;
+
 /** Sanitize search input for Graph's name_contains filter (uses SQL LIKE under the hood) */
 export function sanitizeSearchTerm(term: string): string {
   // Escape SQL LIKE wildcards that Graph passes through
