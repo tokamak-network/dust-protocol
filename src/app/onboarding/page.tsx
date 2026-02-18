@@ -25,7 +25,9 @@ export default function OnboardingPage() {
     if (isOnboarded) router.replace("/dashboard");
   }, [isConnected, isOnboarded, isHydrated, isNamesSettled, address, router]);
 
-  if (!isConnected || !isHydrated || !isNamesSettled) return null;
+  // Also gate on isOnboarded so the wizard never renders for users who are already onboarded
+  // (e.g. cleared cache / new browser — names settled and found → isOnboarded is true, redirect pending)
+  if (!isConnected || !isHydrated || !isNamesSettled || isOnboarded) return null;
 
   return (
     <>

@@ -107,21 +107,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     migrateKey('dust_onboarded_' + address.toLowerCase(), onboardedKey(address));
   }, [address]);
 
-  // Explicit onboarded flag — synchronous localStorage check, survives cleanup and race conditions
+  // Explicit onboarded flag — localStorage optimization, not required for correctness
   const hasOnboardedFlag = address
     ? typeof window !== 'undefined' && !!localStorage.getItem(onboardedKey(address))
     : false;
 
   // User is onboarded if:
-  //  1. The explicit localStorage flag is set (normal case, same browser)
-  //  2. A PIN is stored in localStorage (same browser, key already setup)
-  //  3. Stealth keys + claim addresses present (legacy fallback)
-  //  4. They have an on-chain name registered to their wallet (cleared cache / new browser)
+  //  1. They have an on-chain name registered to their wallet (universal, works across browsers/devices)
   //     — only counted once isNamesSettled=true so we don't flash false negatives
+  //  2. A PIN is stored in localStorage (same browser, key already setup — optimization for returning users)
+  //  3. Stealth keys + claim addresses present (legacy fallback for active sessions)
+  //  4. The explicit localStorage flag is set (optimization, but not required)
   const isOnboarded =
-    hasOnboardedFlag || pinHook.hasPin ||
+    (nameHook.isNamesSettled && nameHook.ownedNames.length > 0) ||
+    pinHook.hasPin ||
     (stealthAddr.isHydrated && !!stealthAddr.stealthKeys && stealthAddr.claimAddressesInitialized) ||
-    (nameHook.isNamesSettled && nameHook.ownedNames.length > 0);
+    hasOnboardedFlag;
 
   const value: AuthState = {
     isConnected,
