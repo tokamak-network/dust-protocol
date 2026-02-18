@@ -197,7 +197,14 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Connect Wallet */}
+            {/* Right: Docs + Connect Wallet */}
+            <div className="flex items-center gap-3">
+              <a
+                href="/docs"
+                className="hidden sm:flex items-center gap-1.5 px-4 py-2.5 border border-white/15 text-white/70 rounded-sm font-mono font-bold text-sm tracking-wider uppercase transition-all hover:border-[rgba(0,255,65,0.4)] hover:text-[#00FF41] hover:-translate-y-px backdrop-blur-sm"
+              >
+                Docs
+              </a>
             <div className="flex flex-col items-end gap-1">
               <button
                 className="flex items-center gap-2 px-4 md:px-5 py-2.5 bg-[#00FF41] text-[#06080F] rounded-sm font-mono font-bold text-sm tracking-wider uppercase cursor-pointer transition-all hover:-translate-y-px hover:shadow-[0_0_20px_rgba(0,255,65,0.4)] active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
@@ -214,6 +221,7 @@ export default function Home() {
                   {connectError.message.includes("rejected") ? "Rejected — try again" : "Connection failed — try again"}
                 </p>
               )}
+            </div>
             </div>
           </div>
         </header>
@@ -322,10 +330,27 @@ export default function Home() {
         </div>
 
         {/* Footer */}
-        <div className="absolute bottom-5 left-0 w-full text-center z-10 pointer-events-none">
+        <div className="absolute bottom-5 left-0 w-full flex items-center justify-center gap-4 z-10 pointer-events-none">
           <p className="text-white/50 text-[11px] font-mono">
             &copy; 2026 Dust Protocol. All rights reserved.
           </p>
+          <a
+            href="https://x.com/DustProtocolApp"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="pointer-events-auto text-white/40 hover:text-[#00FF41] transition-colors"
+            title="@DustProtocolApp on X"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+          </a>
+          <a
+            href="/docs"
+            className="pointer-events-auto text-white/40 hover:text-[#00FF41] text-[11px] font-mono uppercase tracking-wider transition-colors"
+          >
+            Docs
+          </a>
         </div>
 
       </div>
