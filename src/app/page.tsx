@@ -3,11 +3,11 @@
 import { useState, useEffect, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { WalletIcon, ArrowUpRightIcon, MailIcon } from "@/components/stealth/icons";
+import { WalletIcon, ArrowUpRightIcon } from "@/components/stealth/icons";
 import { DustLogo } from "@/components/DustLogo";
 import { useLogin } from "@privy-io/react-auth";
 import { isPrivyEnabled } from "@/config/privy";
-import { useConnect } from "wagmi";
+import { useConnect, useConnectors } from "wagmi";
 import { injected } from "wagmi/connectors";
 import DecryptedText from "@/components/DecryptedText";
 
@@ -66,30 +66,33 @@ function cleanupCorruptedStorage() {
   localStorage.setItem(flag, String(CURRENT_VERSION));
 }
 
-// Inline SVG icons for social providers (not in icon library)
-const GoogleIcon = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-  </svg>
-);
-
-const FarcasterIcon = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <path d="M5.5 3h13v18h-2.25v-7.5a4.25 4.25 0 0 0-8.5 0V21H5.5V3z" fill="#855DCD" />
-    <path d="M3 5.5L5.5 3h13L21 5.5H3z" fill="#855DCD" />
-  </svg>
-);
 
 export default function Home() {
   const { isConnected, isOnboarded, isHydrated, isNamesSettled, address } = useAuth();
   const { login: privyLogin } = useLogin();
-  const { connect } = useConnect();
+  const { connect, isPending: isConnecting, error: connectError } = useConnect();
+  const connectors = useConnectors();
   const router = useRouter();
   const [searchName, setSearchName] = useState("");
+  const [connectAttempted, setConnectAttempted] = useState(false);
   const hasPrivy = isPrivyEnabled;
+  const hasInjectedWallet = typeof window !== "undefined" && !!window.ethereum;
+
+  const handleConnect = () => {
+    setConnectAttempted(true);
+    if (hasPrivy) {
+      // Privy's modal handles everything: wallets, WalletConnect, social logins
+      privyLogin();
+      return;
+    }
+    // Non-Privy fallback: use injected wallet or prompt install
+    if (hasInjectedWallet) {
+      const injectedConnector = connectors.find(c => c.type === "injected") ?? injected();
+      connect({ connector: injectedConnector as ReturnType<typeof injected> });
+    } else {
+      window.open("https://metamask.io/download/", "_blank", "noopener,noreferrer");
+    }
+  };
 
   useEffect(() => { cleanupCorruptedStorage(); }, []);
 
@@ -194,34 +197,23 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Connect & Auth */}
-            <div className="flex items-center gap-4">
-              {hasPrivy && !isConnected && (
-                <div className="flex items-center gap-2">
-                  {[
-                    { icon: GoogleIcon, method: "google" as const },
-                    { icon: MailIcon, method: "email" as const },
-                    { icon: FarcasterIcon, method: "farcaster" as const },
-                  ].map((opt) => (
-                    <button
-                      key={opt.method}
-                      className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center cursor-pointer transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-px"
-                      onClick={() => privyLogin({ loginMethods: [opt.method] })}
-                    >
-                      <opt.icon size={16} />
-                    </button>
-                  ))}
-                </div>
-              )}
-              {/* Manual Connect Button */}
+            {/* Connect Wallet */}
+            <div className="flex flex-col items-end gap-1">
               <button
-                className="flex items-center gap-2 px-4 md:px-5 py-2.5 bg-[#00FF41] text-[#06080F] rounded-sm font-mono font-bold text-sm tracking-wider uppercase cursor-pointer transition-all hover:-translate-y-px hover:shadow-[0_0_20px_rgba(0,255,65,0.4)] active:translate-y-0"
+                className="flex items-center gap-2 px-4 md:px-5 py-2.5 bg-[#00FF41] text-[#06080F] rounded-sm font-mono font-bold text-sm tracking-wider uppercase cursor-pointer transition-all hover:-translate-y-px hover:shadow-[0_0_20px_rgba(0,255,65,0.4)] active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 style={{ animation: "btn-glow 3s ease-in-out infinite" }}
-                onClick={() => connect({ connector: injected() })}
+                onClick={handleConnect}
+                disabled={isConnecting}
+                title={!hasInjectedWallet && !hasPrivy ? "No wallet detected — click to install MetaMask" : undefined}
               >
                 <WalletIcon size={16} color="#06080F" />
-                Connect
+                {isConnecting ? "Connecting…" : !hasInjectedWallet && !hasPrivy ? "Install Wallet" : "Connect Wallet"}
               </button>
+              {connectAttempted && connectError && (
+                <p className="text-[10px] font-mono text-[#ff6b6b] whitespace-nowrap leading-none">
+                  {connectError.message.includes("rejected") ? "Rejected — try again" : "Connection failed — try again"}
+                </p>
+              )}
             </div>
           </div>
         </header>
