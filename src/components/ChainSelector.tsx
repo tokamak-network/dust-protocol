@@ -11,7 +11,7 @@ function ChainIcon({ chain, size = 16 }: { chain: ChainConfig; size?: number }) 
   return <ChainTokenIcon size={size} chainId={chain.id} />;
 }
 
-export function ChainSelector() {
+export function ChainSelector({ compact = false }: { compact?: boolean }) {
   const { activeChainId, setActiveChain } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -28,11 +28,15 @@ export function ChainSelector() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const triggerClass = compact
+    ? "flex items-center gap-1.5 text-[10px] font-mono text-[rgba(255,255,255,0.7)] hover:text-white transition-all bg-transparent border-none outline-none"
+    : "flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] text-[10px] font-mono text-[rgba(255,255,255,0.7)] hover:border-[rgba(0,255,65,0.2)] transition-all";
+
   return (
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] text-[10px] font-mono text-[rgba(255,255,255,0.7)] hover:border-[rgba(0,255,65,0.2)] transition-all"
+        className={triggerClass}
       >
         <ChainIcon chain={activeChain} />
         <span>{activeChain.name}</span>
