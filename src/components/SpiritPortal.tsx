@@ -206,14 +206,17 @@ export const SpiritPortal = ({ variant = "default" }: SpiritPortalProps) => {
 
     return (
         <div className="absolute top-0 left-0 w-full h-full z-0 overflow-hidden bg-[#06080F]">
-            {/* Base Image */}
-            <div
-                className="absolute inset-0 bg-cover bg-center bg-fixed transition-[filter] duration-500 ease-in-out"
-                style={{
-                    backgroundImage: "url('/nature_privacy_portal_bg.png')",
-                    filter: variant === 'onboarding' ? "brightness(0.5) blur(6px)" : "brightness(0.65)",
-                }}
-            />
+            {/* Base Video */}
+            <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover transition-[filter] duration-500 ease-in-out"
+                style={{ filter: variant === 'onboarding' ? "brightness(0.5) blur(6px)" : "brightness(0.65)" }}
+            >
+                <source src="/bg.webm" type="video/webm" />
+            </video>
 
             {/* Optional: Subtle Vignette to reinforce circular portal feel */}
             <div

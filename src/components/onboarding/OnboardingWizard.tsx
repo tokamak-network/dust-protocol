@@ -54,7 +54,7 @@ export function OnboardingWizard() {
 
   return (
     <div className="w-full max-w-[420px] mx-auto">
-      <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] rounded-sm overflow-hidden">
+      <div className="bg-[rgba(6,8,15,0.85)] backdrop-blur-md border border-[rgba(255,255,255,0.12)] rounded-sm overflow-hidden shadow-[0_8px_48px_rgba(0,0,0,0.6)]">
         {/* Progress dots */}
         <div className="flex gap-[6px] justify-center pt-5">
           {STEPS.map((_, i) => (

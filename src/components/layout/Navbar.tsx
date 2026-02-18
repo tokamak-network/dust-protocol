@@ -59,7 +59,7 @@ export function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 h-16 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex items-center px-4 md:px-8">
         <Link href="/dashboard" className="flex items-center gap-2.5 mr-8 shrink-0">
           <DustLogo size={26} color="#00FF41" />
-          <span className="hidden sm:flex items-baseline gap-1.5">
+          <span className="flex items-baseline gap-1.5">
             <span className="text-base font-bold tracking-widest text-white font-mono">DUST</span>
             <span className="text-[10px] font-mono tracking-[0.25em] text-[rgba(0,255,65,0.35)] uppercase">PROTOCOL</span>
           </span>
