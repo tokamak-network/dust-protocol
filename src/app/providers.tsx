@@ -1,8 +1,10 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
-import { WagmiProvider, createConfig } from "@privy-io/wagmi";
+import { WagmiProvider, createConfig as createPrivyConfig } from "@privy-io/wagmi";
+import { createConfig as createWagmiConfig } from "wagmi";
 import { http, fallback } from "wagmi";
+import { injected, metaMask } from "wagmi/connectors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getSupportedChains } from "@/config/chains";
 import { PRIVY_APP_ID, PRIVY_CONFIG, isPrivyEnabled } from "@/config/privy";
@@ -18,26 +20,40 @@ const transports = Object.fromEntries(
   ])
 );
 
-const config = createConfig({
+// Privy-managed wagmi config (used when Privy is enabled)
+const privyConfig = createPrivyConfig({
   chains: viemChains as [typeof viemChains[0], ...typeof viemChains],
   transports,
 });
+
+// Standalone wagmi config (used when Privy is disabled — dev / no env var)
+const standaloneConfig = createWagmiConfig({
+  chains: viemChains as [typeof viemChains[0], ...typeof viemChains],
+  transports,
+  connectors: [injected(), metaMask()],
+});
+
+// Re-export so the landing page can import WagmiProvider from here when needed
+import { WagmiProvider as WagmiProviderStandalone } from "wagmi";
 
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   if (!isPrivyEnabled) {
+    // Always provide a WagmiProvider so useConnect / useAccount work everywhere
     return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
+      <WagmiProviderStandalone config={standaloneConfig}>
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      </WagmiProviderStandalone>
     );
   }
 
   return (
     <PrivyProvider appId={PRIVY_APP_ID} config={PRIVY_CONFIG}>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={config}>
+        <WagmiProvider config={privyConfig}>
           {children}
         </WagmiProvider>
       </QueryClientProvider>
