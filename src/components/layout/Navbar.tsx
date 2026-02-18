@@ -56,21 +56,26 @@ export function Navbar() {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 h-16 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex items-center px-4 md:px-8">
-        <Link href="/dashboard" className="flex items-center gap-2.5 mr-8 shrink-0">
-          <DustLogo size={26} color="#00FF41" />
-          <span className="flex items-baseline gap-1.5">
-            <span className="text-base font-bold tracking-widest text-white font-mono">DUST</span>
-            <span className="text-[10px] font-mono tracking-[0.25em] text-[rgba(0,255,65,0.35)] uppercase">PROTOCOL</span>
-          </span>
-        </Link>
+      <nav className="fixed top-0 left-0 right-0 z-50 h-16 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex items-center px-4 lg:px-8">
 
-        <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+        {/* Left — logo */}
+        <div className="flex-1 flex items-center min-w-0">
+          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+            <DustLogo size={26} color="#00FF41" />
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-base font-bold tracking-widest text-white font-mono">DUST</span>
+              <span className="hidden sm:inline text-[10px] font-mono tracking-[0.25em] text-[rgba(0,255,65,0.35)] uppercase">PROTOCOL</span>
+            </span>
+          </Link>
+        </div>
+
+        {/* Center — nav links, truly centered, collapses on small screens */}
+        <div className="hidden md:flex items-center gap-0.5 shrink-0">
           {navItems.map(item => (
             <Link
               key={item.href}
               href={item.href}
-              className={`inline-flex items-center px-4 py-2 text-xs font-mono tracking-wider transition-all rounded-sm ${
+              className={`inline-flex items-center px-3 py-1.5 text-[11px] font-mono tracking-wider transition-all rounded-sm whitespace-nowrap ${
                 pathname === item.href
                   ? 'text-[#00FF41] bg-[rgba(0,255,65,0.06)] border border-[rgba(0,255,65,0.15)]'
                   : 'text-[rgba(255,255,255,0.5)] hover:text-white hover:bg-[rgba(255,255,255,0.04)] border border-transparent'
@@ -81,82 +86,79 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* Single wallet button (desktop) */}
-        <div className="hidden md:flex items-center ml-auto" ref={walletRef}>
-          {displayName ? (
-            <div className="relative">
-              <button
-                onClick={() => setWalletOpen(v => !v)}
-                className="flex items-center gap-3 px-5 py-2.5 rounded-sm border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(0,255,65,0.2)] hover:bg-[rgba(255,255,255,0.04)] transition-all"
-              >
-                <ChainTokenIcon size={20} chainId={activeChain.id} />
-                <div className="w-2 h-2 rounded-full bg-[#00FF41] animate-pulse shrink-0" />
-                <span className="text-sm font-mono text-[rgba(255,255,255,0.85)]">{displayName}</span>
-                <ChevronDownIcon
-                  className="w-4 h-4 text-[rgba(255,255,255,0.4)] transition-transform duration-150"
-                  style={{ transform: walletOpen ? "rotate(180deg)" : "none" }}
-                />
-              </button>
+        {/* Right — wallet button always visible + hamburger for small screens */}
+        <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+          <div className="relative shrink-0" ref={walletRef}>
+            {displayName ? (
+              <>
+                <button
+                  onClick={() => setWalletOpen(v => !v)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-sm border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(0,255,65,0.2)] hover:bg-[rgba(255,255,255,0.04)] transition-all"
+                >
+                  <ChainTokenIcon size={18} chainId={activeChain.id} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse shrink-0" />
+                  <span className="text-xs font-mono text-[rgba(255,255,255,0.85)]">{displayName}</span>
+                  <ChevronDownIcon
+                    className="w-3.5 h-3.5 text-[rgba(255,255,255,0.4)] transition-transform duration-150"
+                    style={{ transform: walletOpen ? "rotate(180deg)" : "none" }}
+                  />
+                </button>
 
-              {walletOpen && (
-                <div className="absolute top-full mt-2 right-0 bg-[#0a0d14] border border-[rgba(255,255,255,0.1)] rounded-sm min-w-[230px] z-50 overflow-hidden">
-                  {/* Network section */}
-                  <div className="px-4 pt-3 pb-1">
-                    <span className="text-[11px] font-mono text-[rgba(255,255,255,0.3)] tracking-widest">NETWORK</span>
+                {walletOpen && (
+                  <div className="absolute top-full mt-2 right-0 bg-[#0a0d14] border border-[rgba(255,255,255,0.1)] rounded-sm min-w-[230px] z-50 overflow-hidden">
+                    <div className="px-4 pt-3 pb-1">
+                      <span className="text-[11px] font-mono text-[rgba(255,255,255,0.3)] tracking-widest">NETWORK</span>
+                    </div>
+                    {chains.map(chain => {
+                      const isActive = chain.id === activeChainId;
+                      return (
+                        <button
+                          key={chain.id}
+                          onClick={() => { setActiveChain(chain.id); setWalletOpen(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-xs font-mono transition-all flex items-center gap-2.5 ${
+                            isActive
+                              ? 'text-[#00FF41] bg-[rgba(0,255,65,0.05)]'
+                              : 'text-[rgba(255,255,255,0.6)] hover:bg-[rgba(255,255,255,0.04)] hover:text-white'
+                          }`}
+                        >
+                          <ChainTokenIcon size={16} chainId={chain.id} />
+                          <span className="flex-1">{chain.name}</span>
+                          {isActive && <span className="text-[#00FF41]">●</span>}
+                        </button>
+                      );
+                    })}
+                    <div className="border-t border-[rgba(255,255,255,0.06)] mt-1" />
+                    <button
+                      onClick={copyAddress}
+                      className="w-full text-left px-4 py-3 text-xs font-mono text-[rgba(255,255,255,0.5)] hover:bg-[rgba(255,255,255,0.04)] hover:text-white transition-all flex items-center gap-2.5"
+                    >
+                      {copied ? <CheckIcon className="w-4 h-4 text-[#00FF41]" /> : <CopyIcon className="w-4 h-4" />}
+                      {copied ? "COPIED!" : "COPY ADDRESS"}
+                    </button>
+                    <button
+                      onClick={() => { disconnect(); setWalletOpen(false); }}
+                      className="w-full text-left px-4 py-3 mb-1 text-xs font-mono text-[rgba(255,100,100,0.7)] hover:bg-[rgba(255,80,80,0.06)] hover:text-[#ff6b6b] transition-all flex items-center gap-2.5"
+                    >
+                      <LogOutIcon className="w-4 h-4" />
+                      DISCONNECT
+                    </button>
                   </div>
-                  {chains.map(chain => {
-                    const isActive = chain.id === activeChainId;
-                    return (
-                      <button
-                        key={chain.id}
-                        onClick={() => { setActiveChain(chain.id); setWalletOpen(false); }}
-                        className={`w-full text-left px-4 py-2.5 text-xs font-mono transition-all flex items-center gap-2.5 ${
-                          isActive
-                            ? 'text-[#00FF41] bg-[rgba(0,255,65,0.05)]'
-                            : 'text-[rgba(255,255,255,0.6)] hover:bg-[rgba(255,255,255,0.04)] hover:text-white'
-                        }`}
-                      >
-                        <ChainTokenIcon size={16} chainId={chain.id} />
-                        <span className="flex-1">{chain.name}</span>
-                        {isActive && <span className="text-[#00FF41]">●</span>}
-                      </button>
-                    );
-                  })}
+                )}
+              </>
+            ) : null}
+          </div>
 
-                  <div className="border-t border-[rgba(255,255,255,0.06)] mt-1" />
-
-                  {/* Actions */}
-                  <button
-                    onClick={copyAddress}
-                    className="w-full text-left px-4 py-3 text-xs font-mono text-[rgba(255,255,255,0.5)] hover:bg-[rgba(255,255,255,0.04)] hover:text-white transition-all flex items-center gap-2.5"
-                  >
-                    {copied
-                      ? <CheckIcon className="w-4 h-4 text-[#00FF41]" />
-                      : <CopyIcon className="w-4 h-4" />
-                    }
-                    {copied ? "COPIED!" : "COPY ADDRESS"}
-                  </button>
-                  <button
-                    onClick={() => { disconnect(); setWalletOpen(false); }}
-                    className="w-full text-left px-4 py-3 mb-1 text-xs font-mono text-[rgba(255,100,100,0.7)] hover:bg-[rgba(255,80,80,0.06)] hover:text-[#ff6b6b] transition-all flex items-center gap-2.5"
-                  >
-                    <LogOutIcon className="w-4 h-4" />
-                    DISCONNECT
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : null}
+          {/* Hamburger — only nav links on small screens */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden shrink-0 text-[rgba(255,255,255,0.6)] hover:text-white transition-colors"
+          >
+            {mobileOpen ? <XIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
+          </button>
         </div>
-
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden ml-auto text-[rgba(255,255,255,0.6)] hover:text-white transition-colors"
-        >
-          {mobileOpen ? <XIcon className="w-5 h-5" /> : <MenuIcon className="w-5 h-5" />}
-        </button>
       </nav>
 
+      {/* Mobile nav drawer — wallet stays in the bar, not here */}
       {mobileOpen && (
         <div className="fixed top-16 left-0 right-0 z-40 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex flex-col py-2">
           {navItems.map(item => (
@@ -173,23 +175,6 @@ export function Navbar() {
               {item.label.toUpperCase()}
             </Link>
           ))}
-          {/* Mobile wallet row */}
-          <div className="px-6 py-3 border-t border-[rgba(255,255,255,0.06)] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ChainTokenIcon size={14} chainId={activeChain.id} />
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" />
-              <span className="text-[10px] font-mono text-[rgba(255,255,255,0.6)]">{displayName}</span>
-            </div>
-            {address && (
-              <button
-                onClick={() => { disconnect(); setMobileOpen(false); }}
-                className="flex items-center gap-1.5 text-[10px] font-mono text-[rgba(255,100,100,0.7)] hover:text-[#ff6b6b] transition-all"
-              >
-                <LogOutIcon className="w-3 h-3" />
-                DISCONNECT
-              </button>
-            )}
-          </div>
         </div>
       )}
     </>

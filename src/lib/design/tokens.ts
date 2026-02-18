@@ -168,7 +168,7 @@ export const glass = {
 export const buttonVariants = {
   primary: {
     bg: "linear-gradient(135deg, #00FF41 0%, #00FF41 50%, #00FF41 100%)",
-    color: "#FFFFFF",
+    color: "#06080F",
     border: "none",
     boxShadow: shadows.buttonPrimary,
     hover: {

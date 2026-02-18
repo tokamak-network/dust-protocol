@@ -178,7 +178,7 @@ export function ActivityList({
               className={[
                 "px-3 py-1.5 rounded-full text-[11px] font-mono font-medium transition-all duration-150",
                 selectedIndex === idx
-                  ? "bg-[#00FF41] border border-[#00FF41] text-white"
+                  ? "bg-[#00FF41] border border-[#00FF41] text-[#06080F]"
                   : "bg-transparent border border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.30)]",
               ].join(" ")}
             >

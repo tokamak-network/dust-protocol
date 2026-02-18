@@ -306,8 +306,8 @@ export default function PayPage({ params }: { params: { name: string } }) {
                             }}
                             onClick={() => connect({ connector: injected() })}
                           >
-                            <WalletIcon size={16} color="white" />
-                            <span style={{ fontSize: "14px", color: "white", fontWeight: 600 }}>Connect Wallet</span>
+                            <WalletIcon size={16} color="#06080F" />
+                            <span style={{ fontSize: "14px", color: "#06080F", fontWeight: 600 }}>Connect Wallet</span>
                           </button>
                           <span style={{ fontSize: "11px", color: colors.text.muted, textAlign: "center" }}>
                             Or switch to <span style={{ color: colors.accent.indigo, cursor: "pointer", fontWeight: 500 }} onClick={() => setActiveTab("qr")}>QR / Address</span> to send from any wallet
@@ -348,7 +348,7 @@ export default function PayPage({ params }: { params: { name: string } }) {
                             }}
                             onClick={handlePreview}
                           >
-                            <span style={{ fontSize: "15px", fontWeight: 600, color: amount ? "white" : colors.text.muted }}>
+                            <span style={{ fontSize: "15px", fontWeight: 600, color: amount ? "#06080F" : colors.text.muted }}>
                               Preview Payment
                             </span>
                           </button>
@@ -405,11 +405,11 @@ export default function PayPage({ params }: { params: { name: string } }) {
                               onClick={handleSend}
                             >
                               {isLoading ? (
-                                <div style={{ width: "16px", height: "16px", border: "2px solid white", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                                <div style={{ width: "16px", height: "16px", border: "2px solid #06080F", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
                               ) : (
                                 <>
-                                  <SendIcon size={15} color="white" />
-                                  <span style={{ fontSize: "14px", fontWeight: 600, color: "white" }}>Send Payment</span>
+                                  <SendIcon size={15} color="#06080F" />
+                                  <span style={{ fontSize: "14px", fontWeight: 600, color: "#06080F" }}>Send Payment</span>
                                 </>
                               )}
                             </button>
