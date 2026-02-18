@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { UsernameStep } from "./steps/UsernameStep";
 import { PinStep } from "./steps/PinStep";
 import { storageKey } from "@/lib/storageKey";
+import { AlertCircle as AlertCircleIcon } from "lucide-react";
 
 type Step = "username" | "pin" | "activating";
 const STEPS_FULL: Step[] = ["username", "pin"];
