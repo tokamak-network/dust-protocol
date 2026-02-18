@@ -117,25 +117,33 @@ export async function decryptPin(encrypted: string, signature: string): Promise<
   return new TextDecoder().decode(decrypted);
 }
 
-// Storage helpers
-const PIN_STORAGE_PREFIX = 'dust_pin_';
+// Storage helpers — keys are hashed to avoid fingerprinting the wallet address
+import { storageKey, migrateKey } from '@/lib/storageKey';
+
+function pinKey(address: string): string {
+  return storageKey('pin', address);
+}
 
 export function hasPinStored(address: string): boolean {
   if (typeof window === 'undefined') return false;
-  return !!localStorage.getItem(PIN_STORAGE_PREFIX + address.toLowerCase());
+  migrateKey('dust_pin_' + address.toLowerCase(), pinKey(address));
+  return !!localStorage.getItem(pinKey(address));
 }
 
 export function getStoredPin(address: string): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(PIN_STORAGE_PREFIX + address.toLowerCase());
+  migrateKey('dust_pin_' + address.toLowerCase(), pinKey(address));
+  return localStorage.getItem(pinKey(address));
 }
 
 export function storeEncryptedPin(address: string, encrypted: string): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(PIN_STORAGE_PREFIX + address.toLowerCase(), encrypted);
+  localStorage.setItem(pinKey(address), encrypted);
 }
 
 export function clearStoredPin(address: string): void {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(PIN_STORAGE_PREFIX + address.toLowerCase());
+  localStorage.removeItem(pinKey(address));
+  // Also clean up legacy key if still present
+  localStorage.removeItem('dust_pin_' + address.toLowerCase());
 }

@@ -50,7 +50,12 @@ export function deriveStealthKeyPairFromSignature(signature: string): StealthKey
   };
 }
 
-const KEY_VERSION_STORAGE = 'dust_key_version_';
+import { storageKey, migrateKey } from '@/lib/storageKey';
+import { hasPinStored } from './pin';
+
+function keyVersionKey(address: string): string {
+  return storageKey('keyver', address);
+}
 
 /**
  * Detect key derivation version for a wallet address.
@@ -63,18 +68,18 @@ const KEY_VERSION_STORAGE = 'dust_key_version_';
  */
 export function getKeyVersion(address?: string): number {
   if (typeof window === 'undefined' || !address) return 2;
-  const stored = localStorage.getItem(KEY_VERSION_STORAGE + address.toLowerCase());
+  migrateKey('dust_key_version_' + address.toLowerCase(), keyVersionKey(address));
+  const stored = localStorage.getItem(keyVersionKey(address));
   if (stored === '2') return 2;
   if (stored === '1') return 1;
   if (stored === '0') return 0;
   // No version stored — check if this is a pre-audit user (has stored PIN)
-  const hasPin = !!localStorage.getItem('dust_pin_' + address.toLowerCase());
-  return hasPin ? 0 : 2;
+  return hasPinStored(address) ? 0 : 2;
 }
 
 export function setKeyVersion(address: string, version: number): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(KEY_VERSION_STORAGE + address.toLowerCase(), String(version));
+  localStorage.setItem(keyVersionKey(address), String(version));
 }
 
 export async function deriveStealthKeyPairFromSignatureAndPin(signature: string, pin: string, walletAddress?: string): Promise<StealthKeyPair> {

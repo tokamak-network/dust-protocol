@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { UsernameStep } from "./steps/UsernameStep";
 import { PinStep } from "./steps/PinStep";
-import { AlertCircleIcon } from "../stealth/icons";
+import { storageKey } from "@/lib/storageKey";
 
 type Step = "username" | "pin" | "activating";
 const STEPS_FULL: Step[] = ["username", "pin"];
@@ -64,7 +64,7 @@ export function OnboardingWizard() {
       }
 
       if (address) {
-        localStorage.setItem('dust_onboarded_' + address.toLowerCase(), 'true');
+        localStorage.setItem(storageKey('onboarded', address), 'true');
       }
 
       router.replace("/dashboard");

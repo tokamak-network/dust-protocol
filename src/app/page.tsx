@@ -14,7 +14,7 @@ import DecryptedText from "@/components/DecryptedText";
 // One-time cleanup of stale cache data from previous sessions
 function cleanupCorruptedStorage() {
   if (typeof window === "undefined") return;
-  const CURRENT_VERSION = 6;
+  const CURRENT_VERSION = 7;
   const flag = "stealth_storage_version";
   const stored = parseInt(localStorage.getItem(flag) || "0", 10);
   if (stored >= CURRENT_VERSION) return;
@@ -31,17 +31,36 @@ function cleanupCorruptedStorage() {
   }
   keysToRemove.forEach(k => localStorage.removeItem(k));
 
-  if (stored < 6) {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith("tokamak_stealth_keys_") || key?.startsWith("dust_pin_")) {
-        const addr = key.replace("tokamak_stealth_keys_", "").replace("dust_pin_", "");
-        const onboardedKey = "dust_onboarded_" + addr;
-        if (!localStorage.getItem(onboardedKey)) {
-          localStorage.setItem(onboardedKey, "true");
+  // Backfill hashed onboarded flag for existing users
+  // who have a stealth keys or PIN entry (pre-hashing era).
+  // Import lazily to avoid circular deps from top-level import.
+  if (stored < 7) {
+    import('@/lib/storageKey').then(({ storageKey: sk, migrateKey: mk }) => {
+      // Snapshot keys first — avoid mutating localStorage while iterating
+      const allKeys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k) allKeys.push(k);
+      }
+      for (const key of allKeys) {
+        // Only `tokamak_stealth_keys_<rawAddr>` entries contain a raw wallet
+        // address we can reconstruct. `dust_pin_` keys may already be hashed
+        // (post-migration), so we can't safely extract an address from them.
+        if (!key.startsWith("tokamak_stealth_keys_")) continue;
+        const addr = key.replace("tokamak_stealth_keys_", "");
+        // Must look like an Ethereum address (0x + 40 hex chars)
+        if (!addr || !/^0x[0-9a-fA-F]{40}$/.test(addr)) continue;
+        // Write hashed onboarded key if not already set
+        const hashedKey = sk('onboarded', addr);
+        if (!localStorage.getItem(hashedKey)) {
+          // Migrate legacy onboarded flag first, then backfill if still absent
+          mk('dust_onboarded_' + addr.toLowerCase(), hashedKey);
+          if (!localStorage.getItem(hashedKey)) {
+            localStorage.setItem(hashedKey, 'true');
+          }
         }
       }
-    }
+    }).catch(() => { /* non-critical */ });
   }
 
   localStorage.setItem(flag, String(CURRENT_VERSION));

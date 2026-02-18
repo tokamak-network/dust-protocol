@@ -9,13 +9,14 @@ import type { OutgoingPayment } from '@/lib/design/types';
 import { getChainConfig, DEFAULT_CHAIN_ID } from '@/config/chains';
 import { getChainProvider } from '@/lib/providers';
 
-const OUTGOING_STORAGE_KEY = 'dust_outgoing_payments_';
+import { storageKey, migrateKey } from '@/lib/storageKey';
 
 function outgoingKey(senderAddress: string, chainId: number): string {
-  return `${OUTGOING_STORAGE_KEY}${chainId}_${senderAddress.toLowerCase()}`;
+  return storageKey('sends', senderAddress, chainId);
 }
 
 function saveOutgoingPayment(senderAddress: string, chainId: number, payment: OutgoingPayment) {
+  if (typeof window === 'undefined') return;
   const key = outgoingKey(senderAddress, chainId);
   const existing: OutgoingPayment[] = JSON.parse(localStorage.getItem(key) || '[]');
   existing.unshift(payment);
@@ -26,6 +27,7 @@ function saveOutgoingPayment(senderAddress: string, chainId: number, payment: Ou
 export function loadOutgoingPayments(senderAddress: string, chainId?: number): OutgoingPayment[] {
   if (typeof window === 'undefined') return [];
   const cid = chainId ?? DEFAULT_CHAIN_ID;
+  migrateKey(`dust_outgoing_payments_${cid}_${senderAddress.toLowerCase()}`, outgoingKey(senderAddress, cid));
   const key = outgoingKey(senderAddress, cid);
   try {
     return JSON.parse(localStorage.getItem(key) || '[]');

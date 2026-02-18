@@ -38,30 +38,18 @@ interface StealthPayment extends ScanResult {
   announcedChainId?: number | null;
 }
 
-// localStorage keys
-const PAYMENTS_STORAGE_KEY = 'stealth_payments_';
+// localStorage keys — hashed to avoid wallet fingerprinting
+import { storageKey, migrateKey } from '@/lib/storageKey';
 
 function paymentsKey(address: string, chainId: number): string {
-  return `${PAYMENTS_STORAGE_KEY}${chainId}_${address.toLowerCase()}`;
-}
-
-// Migrate legacy (non-chain-scoped) payment data to new key format
-function migrateLegacyPayments(address: string, chainId: number): void {
-  if (typeof window === 'undefined') return;
-  const legacyKey = `${PAYMENTS_STORAGE_KEY}${address.toLowerCase()}`;
-  const newKey = paymentsKey(address, chainId);
-  try {
-    const legacy = localStorage.getItem(legacyKey);
-    if (legacy && !localStorage.getItem(newKey)) {
-      localStorage.setItem(newKey, legacy);
-      localStorage.removeItem(legacyKey);
-    }
-  } catch { /* ignore */ }
+  return storageKey('payments', address, chainId);
 }
 
 function loadPaymentsFromStorage(address: string, chainId: number): StealthPayment[] {
   if (typeof window === 'undefined') return [];
-  migrateLegacyPayments(address, chainId);
+  // Migrate both legacy key formats to hashed key
+  migrateKey(`stealth_payments_${chainId}_${address.toLowerCase()}`, paymentsKey(address, chainId));
+  migrateKey(`stealth_payments_${address.toLowerCase()}`, paymentsKey(address, chainId));
   try {
     const raw = localStorage.getItem(paymentsKey(address, chainId));
     if (!raw) return [];

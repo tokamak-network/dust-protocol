@@ -3,6 +3,7 @@
 import React, { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircleIcon, AlertCircleIcon } from "@/components/stealth/icons";
+import { storageKey } from "@/lib/storageKey";
 
 interface ActivateStepProps {
   username: string;
@@ -42,7 +43,7 @@ export function ActivateStep({ username, pin, onComplete }: ActivateStepProps) {
       if (!nameTx) throw new Error("Failed to register name");
 
       if (address) {
-        localStorage.setItem('dust_onboarded_' + address.toLowerCase(), 'true');
+        localStorage.setItem(storageKey('onboarded', address), 'true');
       }
 
       setStatus("done");

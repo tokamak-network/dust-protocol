@@ -5,20 +5,10 @@ import { useAccount } from "wagmi";
 import type { PaymentLink } from "@/lib/design/types";
 import { useAuth } from "@/contexts/AuthContext";
 
-function getStorageKey(address: string, chainId: number) {
-  return `dust_links_${chainId}_${address.toLowerCase()}`;
-}
+import { storageKey, migrateKey } from '@/lib/storageKey';
 
-function migrateLegacyLinks(address: string, chainId: number): void {
-  const legacyKey = `dust_links_${address.toLowerCase()}`;
-  const newKey = getStorageKey(address, chainId);
-  try {
-    const legacy = localStorage.getItem(legacyKey);
-    if (legacy && !localStorage.getItem(newKey)) {
-      localStorage.setItem(newKey, legacy);
-      localStorage.removeItem(legacyKey);
-    }
-  } catch { /* ignore */ }
+function getStorageKey(address: string, chainId: number) {
+  return storageKey('links', address, chainId);
 }
 
 function generateId(): string {
@@ -33,7 +23,9 @@ export function usePaymentLinks() {
   // Load from localStorage
   useEffect(() => {
     if (!address) { setLinks([]); return; }
-    migrateLegacyLinks(address, activeChainId);
+    // Migrate both legacy key formats to hashed key
+    migrateKey(`dust_links_${address.toLowerCase()}`, getStorageKey(address, activeChainId));
+    migrateKey(`dust_links_${activeChainId}_${address.toLowerCase()}`, getStorageKey(address, activeChainId));
     try {
       const stored = localStorage.getItem(getStorageKey(address, activeChainId));
       if (stored) setLinks(JSON.parse(stored));
