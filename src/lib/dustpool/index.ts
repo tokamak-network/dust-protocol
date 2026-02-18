@@ -139,26 +139,11 @@ function formatProofForContract(proof: {
 }
 
 // ============ Storage ============
-
-const STORAGE_KEY = 'dustpool_deposits_';
+import { storageKey, migrateKey } from '@/lib/storageKey';
 
 function depositsKey(address: string, chainId?: number): string {
   const cid = chainId ?? 0;
-  return `${STORAGE_KEY}${cid}_${address.toLowerCase()}`;
-}
-
-// Migrate legacy (non-chain-scoped) deposit data to new key format
-function migrateLegacyDeposits(address: string, chainId?: number): void {
-  if (typeof window === 'undefined') return;
-  const legacyKey = `${STORAGE_KEY}${address.toLowerCase()}`;
-  const newKey = depositsKey(address, chainId);
-  try {
-    const legacy = localStorage.getItem(legacyKey);
-    if (legacy && !localStorage.getItem(newKey)) {
-      localStorage.setItem(newKey, legacy);
-      localStorage.removeItem(legacyKey);
-    }
-  } catch { /* ignore */ }
+  return storageKey('pool', address, cid);
 }
 
 export function saveDeposits(address: string, deposits: StoredDeposit[], chainId?: number): void {
@@ -170,7 +155,10 @@ export function saveDeposits(address: string, deposits: StoredDeposit[], chainId
 
 export function loadDeposits(address: string, chainId?: number): StoredDeposit[] {
   if (typeof window === 'undefined') return [];
-  migrateLegacyDeposits(address, chainId);
+  // Migrate both legacy key formats
+  const cid = chainId ?? 0;
+  migrateKey(`dustpool_deposits_${address.toLowerCase()}`, depositsKey(address, chainId));
+  migrateKey(`dustpool_deposits_${cid}_${address.toLowerCase()}`, depositsKey(address, chainId));
   try {
     const raw = localStorage.getItem(depositsKey(address, chainId));
     if (!raw) return [];

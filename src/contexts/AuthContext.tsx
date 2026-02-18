@@ -7,8 +7,13 @@ import { DEFAULT_CHAIN_ID, isChainSupported } from "@/config/chains";
 import type { StealthKeyPair } from "@/lib/stealth";
 import type { OwnedName } from "@/lib/design/types";
 
+import { storageKey, migrateKey } from '@/lib/storageKey';
+
 const CHAIN_STORAGE_KEY = 'dust_active_chain';
-const ONBOARDED_STORAGE_PREFIX = 'dust_onboarded_';
+
+function onboardedKey(address: string): string {
+  return storageKey('onboarded', address);
+}
 
 interface AuthState {
   // Connection
@@ -96,9 +101,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Migrate legacy onboarded key once when address changes
+  useEffect(() => {
+    if (!address || typeof window === 'undefined') return;
+    migrateKey('dust_onboarded_' + address.toLowerCase(), onboardedKey(address));
+  }, [address]);
+
   // Explicit onboarded flag — synchronous localStorage check, survives cleanup and race conditions
   const hasOnboardedFlag = address
-    ? typeof window !== 'undefined' && !!localStorage.getItem(ONBOARDED_STORAGE_PREFIX + address.toLowerCase())
+    ? typeof window !== 'undefined' && !!localStorage.getItem(onboardedKey(address))
     : false;
 
   // User is onboarded if:

@@ -77,20 +77,28 @@ export function verifyClaimAddressDerivation(signature: string, address: string,
   return -1;
 }
 
-// Storage helpers
-const STORAGE_PREFIX = 'stealth_claim_addresses_';
-const SIG_PREFIX = 'stealth_claim_signature_';
+// Storage helpers — keys are hashed to avoid fingerprinting the wallet address
+import { storageKey, migrateKey } from '@/lib/storageKey';
+
+function claimAddrsKey(walletAddress: string): string {
+  return storageKey('hdwallet', walletAddress);
+}
+
+function claimSigKey(walletAddress: string): string {
+  return storageKey('hdwalletsig', walletAddress);
+}
 
 export function saveClaimAddressesToStorage(walletAddress: string, addresses: DerivedClaimAddress[]): void {
   if (typeof window === 'undefined') return;
   const data = addresses.map(({ address, path, index, label }) => ({ address, path, index, label }));
-  localStorage.setItem(STORAGE_PREFIX + walletAddress.toLowerCase(), JSON.stringify(data));
+  localStorage.setItem(claimAddrsKey(walletAddress), JSON.stringify(data));
 }
 
 export function loadClaimAddressesFromStorage(walletAddress: string): Array<{ address: string; path: string; index: number; label?: string }> {
   if (typeof window === 'undefined') return [];
+  migrateKey('stealth_claim_addresses_' + walletAddress.toLowerCase(), claimAddrsKey(walletAddress));
   try {
-    const stored = localStorage.getItem(STORAGE_PREFIX + walletAddress.toLowerCase());
+    const stored = localStorage.getItem(claimAddrsKey(walletAddress));
     return stored ? JSON.parse(stored) : [];
   } catch {
     return [];
@@ -99,13 +107,14 @@ export function loadClaimAddressesFromStorage(walletAddress: string): Array<{ ad
 
 export function saveSignatureHash(walletAddress: string, signature: string): void {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(SIG_PREFIX + walletAddress.toLowerCase(), ethers.utils.keccak256(signature));
+    localStorage.setItem(claimSigKey(walletAddress), ethers.utils.keccak256(signature));
   }
 }
 
 export function verifySignatureHash(walletAddress: string, signature: string): boolean {
   if (typeof window === 'undefined') return false;
-  const stored = localStorage.getItem(SIG_PREFIX + walletAddress.toLowerCase());
+  migrateKey('stealth_claim_signature_' + walletAddress.toLowerCase(), claimSigKey(walletAddress));
+  const stored = localStorage.getItem(claimSigKey(walletAddress));
   return !stored || stored === ethers.utils.keccak256(signature);
 }
 
@@ -114,5 +123,5 @@ export function updateClaimAddressLabel(walletAddress: string, targetAddress: st
   const updated = addresses.map(a =>
     a.address.toLowerCase() === targetAddress.toLowerCase() ? { ...a, label: newLabel } : a
   );
-  localStorage.setItem(STORAGE_PREFIX + walletAddress.toLowerCase(), JSON.stringify(updated));
+  localStorage.setItem(claimAddrsKey(walletAddress), JSON.stringify(updated));
 }

@@ -14,10 +14,12 @@ import { ReceiveModal } from "@/components/dashboard/ReceiveModal";
 import { ConsolidateModal } from "@/components/dashboard/ConsolidateModal";
 import { SendIcon, ArrowDownLeftIcon } from "@/components/stealth/icons";
 import { loadOutgoingPayments } from '@/hooks/stealth/useStealthSend';
+import { storageKey } from '@/lib/storageKey';
+import { RestoringBanner } from '@/components/RestoringBanner';
 import type { OutgoingPayment } from '@/lib/design/types';
 
 function claimToPoolKey(address: string, chainId: number): string {
-  return `dust_claim_to_pool_${chainId}_${address.toLowerCase()}`;
+  return storageKey('claim2pool', address, chainId);
 }
 
 export default function DashboardPage() {
@@ -139,6 +141,9 @@ export default function DashboardPage() {
             Privacy-first asset management
           </p>
         </div>
+
+        {/* Restoring banner — shown on new device / cleared cache while re-scanning */}
+        <RestoringBanner isScanning={isScanning && payments.length === 0} />
 
         {/* Unified balance card */}
         <UnifiedBalanceCard

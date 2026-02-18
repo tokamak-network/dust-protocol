@@ -248,17 +248,22 @@ export async function scanAnnouncementsViewOnly(
   return matches;
 }
 
-const STORAGE_KEY = 'stealth_last_scanned_';
+import { storageKey, migrateKey } from '@/lib/storageKey';
+
+function lastScannedKey(address: string): string {
+  return storageKey('scanner', address);
+}
 
 export function getLastScannedBlock(address: string): number | null {
   if (typeof window === 'undefined') return null;
-  const val = localStorage.getItem(STORAGE_KEY + address.toLowerCase());
+  migrateKey('stealth_last_scanned_' + address.toLowerCase(), lastScannedKey(address));
+  const val = localStorage.getItem(lastScannedKey(address));
   return val ? parseInt(val, 10) : null;
 }
 
 export function setLastScannedBlock(address: string, block: number): void {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY + address.toLowerCase(), block.toString());
+    localStorage.setItem(lastScannedKey(address), block.toString());
   }
 }
 

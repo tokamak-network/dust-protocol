@@ -13,7 +13,10 @@ import {
 import { getProviderWithAccounts, getChainProvider, signMessage as signWithWallet } from '@/lib/providers';
 import { getChainConfig, DEFAULT_CHAIN_ID } from '@/config/chains';
 
-const STORAGE_KEY = 'tokamak_stealth_keys_';
+import { storageKey, migrateKey } from '@/lib/storageKey';
+
+const LEGACY_STORAGE_KEY = 'tokamak_stealth_keys_';
+function stealthKeysKey(addr: string): string { return storageKey('stealthkeys', addr); }
 
 // Full validation: tries formatStealthMetaAddress + parseStealthMetaAddress round-trip
 function areKeysValid(keys: StealthKeyPair): boolean {
@@ -71,17 +74,18 @@ export function useStealthAddress() {
     setSelectedClaimIndex(0);
     signatureRef.current = null;
 
-    const stored = localStorage.getItem(STORAGE_KEY + address.toLowerCase());
+    migrateKey(LEGACY_STORAGE_KEY + address.toLowerCase(), stealthKeysKey(address));
+    const stored = localStorage.getItem(stealthKeysKey(address));
     if (stored) {
       try {
         const keys = JSON.parse(stored) as StealthKeyPair;
         if (areKeysValid(keys)) {
           setStealthKeys(keys);
         } else {
-          localStorage.removeItem(STORAGE_KEY + address.toLowerCase());
+          localStorage.removeItem(stealthKeysKey(address));
         }
       } catch {
-        localStorage.removeItem(STORAGE_KEY + address.toLowerCase());
+        localStorage.removeItem(stealthKeysKey(address));
       }
     }
     // Load claim addresses metadata
@@ -95,7 +99,7 @@ export function useStealthAddress() {
   // Save keys when changed
   useEffect(() => {
     if (address && stealthKeys && typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY + address.toLowerCase(), JSON.stringify(stealthKeys));
+      localStorage.setItem(stealthKeysKey(address), JSON.stringify(stealthKeys));
     }
   }, [address, stealthKeys]);
 
@@ -196,7 +200,7 @@ export function useStealthAddress() {
     setClaimAddresses([]);
     signatureRef.current = null;
     if (address && typeof window !== 'undefined') {
-      localStorage.removeItem(STORAGE_KEY + address.toLowerCase());
+      localStorage.removeItem(stealthKeysKey(address));
     }
   }, [address]);
 
