@@ -50,6 +50,8 @@ interface AuthState {
   registerName: (name: string, metaAddress: string) => Promise<string | null>;
   formatName: (name: string) => string;
   isOnboarded: boolean;
+  /** True once the on-chain name query has settled (graph or legacy RPC). Use to gate routing. */
+  isNamesSettled: boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -99,14 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ? typeof window !== 'undefined' && !!localStorage.getItem(ONBOARDED_STORAGE_PREFIX + address.toLowerCase())
     : false;
 
-  // User is onboarded if the explicit flag is set, OR they have a PIN stored,
-  // OR they have stealth keys + claim addresses (legacy fallback).
-  // Sync checks (hasOnboardedFlag, hasPin) are NOT gated behind isHydrated —
-  // they read localStorage synchronously and don't need async hydration.
-  // Only the legacy stealthKeys fallback requires hydration to load keys first.
+  // User is onboarded if:
+  //  1. The explicit localStorage flag is set (normal case, same browser)
+  //  2. A PIN is stored in localStorage (same browser, key already setup)
+  //  3. Stealth keys + claim addresses present (legacy fallback)
+  //  4. They have an on-chain name registered to their wallet (cleared cache / new browser)
+  //     — only counted once isNamesSettled=true so we don't flash false negatives
   const isOnboarded =
     hasOnboardedFlag || pinHook.hasPin ||
-    (stealthAddr.isHydrated && !!stealthAddr.stealthKeys && stealthAddr.claimAddressesInitialized);
+    (stealthAddr.isHydrated && !!stealthAddr.stealthKeys && stealthAddr.claimAddressesInitialized) ||
+    (nameHook.isNamesSettled && nameHook.ownedNames.length > 0);
 
   const value: AuthState = {
     isConnected,
@@ -141,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     registerName: nameHook.registerName,
     formatName: nameHook.formatName,
     isOnboarded,
+    isNamesSettled: nameHook.isNamesSettled,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

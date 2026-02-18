@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { UsernameStep } from "./steps/UsernameStep";
@@ -8,17 +8,33 @@ import { PinStep } from "./steps/PinStep";
 import { AlertCircleIcon } from "../stealth/icons";
 
 type Step = "username" | "pin" | "activating";
-const STEPS: Step[] = ["username", "pin"];
+const STEPS_FULL: Step[] = ["username", "pin"];
+const STEPS_REACTIVATE: Step[] = ["pin"];
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const { address, deriveKeysFromWallet, setPin: storePinEncrypted, registerMetaAddress, registerName } = useAuth();
-  const [step, setStep] = useState<Step>("username");
-  const [username, setUsername] = useState("");
+  const { address, ownedNames, deriveKeysFromWallet, setPin: storePinEncrypted, registerMetaAddress, registerName } = useAuth();
+
+  // Re-activation: user has an on-chain name but localStorage was cleared (new browser / cleared cache)
+  const isReactivation = ownedNames.length > 0;
+  const existingName = ownedNames[0]?.fullName ?? "";
+
+  const STEPS = isReactivation ? STEPS_REACTIVATE : STEPS_FULL;
+
+  const [step, setStep] = useState<Step>(isReactivation ? "pin" : "username");
+  const [username, setUsername] = useState(isReactivation ? (ownedNames[0]?.name ?? "") : "");
   const [error, setError] = useState<string | null>(null);
   const activatingRef = useRef(false);
 
-  const currentIndex = step === "activating" ? 2 : STEPS.indexOf(step);
+  // If names load after mount (async) and we haven't moved yet, jump to pin
+  useEffect(() => {
+    if (ownedNames.length > 0 && step === "username") {
+      setUsername(ownedNames[0].name);
+      setStep("pin");
+    }
+  }, [ownedNames, step]);
+
+  const currentIndex = step === "activating" ? STEPS.length : STEPS.indexOf(step);
 
   const handlePinComplete = async (pin: string) => {
     if (activatingRef.current) return;
@@ -33,11 +49,19 @@ export function OnboardingWizard() {
       const pinStored = await storePinEncrypted(pin, result.sig);
       if (!pinStored) throw new Error("Failed to store PIN");
 
-      const [nameTx] = await Promise.all([
-        registerName(username, result.metaAddress),
-        registerMetaAddress().catch(() => null),
-      ]);
-      if (!nameTx) throw new Error("Failed to register name");
+      if (isReactivation) {
+        // Wallet already has a name — just re-derive keys and re-register ERC-6538 meta-address.
+        // Skip registerName to avoid an unnecessary API call.
+        await registerMetaAddress().catch(() => null);
+      } else {
+        // Fresh onboarding — register the chosen name on-chain.
+        // registerName returns the txHash string, or 'already-registered' for idempotent re-reg.
+        const [nameTx] = await Promise.all([
+          registerName(username, result.metaAddress),
+          registerMetaAddress().catch(() => null),
+        ]);
+        if (!nameTx) throw new Error("Failed to register name");
+      }
 
       if (address) {
         localStorage.setItem('dust_onboarded_' + address.toLowerCase(), 'true');
@@ -73,6 +97,17 @@ export function OnboardingWizard() {
           ))}
         </div>
 
+        {/* Re-activation banner */}
+        {isReactivation && step !== "activating" && (
+          <div className="mx-7 md:mx-9 mt-5 px-3 py-2.5 rounded-sm bg-[rgba(0,255,65,0.05)] border border-[rgba(0,255,65,0.15)] flex flex-col gap-0.5">
+            <p className="text-[11px] font-mono text-[rgba(0,255,65,0.7)] uppercase tracking-widest">Welcome back</p>
+            <p className="text-[13px] text-white font-semibold">{existingName}</p>
+            <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono mt-0.5">
+              Enter your PIN to re-activate your private wallet.
+            </p>
+          </div>
+        )}
+
         {/* Content */}
         <div className="px-7 md:px-9 pt-6 pb-8">
           {step === "username" && (
@@ -88,10 +123,10 @@ export function OnboardingWizard() {
             <div className="flex flex-col gap-5">
               <div className="flex flex-col gap-1">
                 <p className="text-[20px] font-semibold text-white tracking-tight">
-                  Setting up your wallet
+                  {isReactivation ? "Re-activating wallet" : "Setting up your wallet"}
                 </p>
                 <p className="text-[13px] text-[rgba(255,255,255,0.4)]">
-                  {error ? "Activation failed" : "Creating your private identity..."}
+                  {error ? "Activation failed" : isReactivation ? "Restoring your private identity..." : "Creating your private identity..."}
                 </p>
               </div>
 

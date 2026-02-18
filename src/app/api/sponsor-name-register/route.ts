@@ -12,6 +12,7 @@ const SPONSOR_KEY = process.env.RELAYER_PRIVATE_KEY;
 const NAME_REGISTRY_ABI = [
   'function registerName(string calldata name, bytes calldata stealthMetaAddress) external',
   'function isNameAvailable(string calldata name) external view returns (bool)',
+  'function resolveName(string calldata name) external view returns (bytes)',
 ];
 
 const NAME_REGISTRY_MERKLE_ABI = [
@@ -134,6 +135,17 @@ export async function POST(req: Request) {
       const registry = new ethers.Contract(config.contracts.nameRegistry, NAME_REGISTRY_ABI, sponsor);
       const available = await registry.isNameAvailable(stripped);
       if (!available) {
+        // Idempotency check: if already registered to the same metaAddress, treat as success
+        try {
+          const storedMeta: string = await registry.resolveName(stripped);
+          const normalizeHex = (h: string) => h.toLowerCase().replace(/^0x/, '');
+          if (normalizeHex(storedMeta) === normalizeHex(metaBytes)) {
+            console.log(`[SponsorNameRegister] Name "${stripped}" already registered to same meta-address — idempotent success`);
+            return NextResponse.json({ success: true, txHash: null, name: stripped, alreadyRegistered: true });
+          }
+        } catch (e) {
+          console.warn('[SponsorNameRegister] Could not resolve existing name meta-address:', e);
+        }
         return NextResponse.json({ error: 'Name already taken' }, { status: 409 });
       }
       return NextResponse.json({ error: 'Name registration failed' }, { status: 500 });
