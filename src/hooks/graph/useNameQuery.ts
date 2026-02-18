@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getGraphClient, isGraphAvailable } from '@/lib/graph/client';
-import { GET_NAMES_BY_OWNER, GET_NAMES_BY_META_ADDRESS, GET_NAME, SEARCH_NAMES, sanitizeSearchTerm } from '@/lib/graph/queries';
+import { GET_NAMES_BY_OWNER, GET_NAMES_BY_META_ADDRESS, GET_NAME, SEARCH_NAMES, GET_STEALTH_META_BY_REGISTRANT, sanitizeSearchTerm } from '@/lib/graph/queries';
 import { useChainId } from 'wagmi';
 
 interface NameEntity {
@@ -83,6 +83,47 @@ export function useNameLookup(name: string | undefined) {
     },
     enabled: !!name && graphAvailable,
     staleTime: 60_000,
+    retry: 2,
+  });
+}
+
+/**
+ * Look up names for a wallet address by chaining:
+ *   1. wallet address → StealthMetaAddress (from ERC-6538 events in subgraph)
+ *   2. metaAddress → Names (from name registry events in subgraph)
+ *
+ * This works even when the user hasn't derived keys yet (cleared cache / new browser)
+ * because ERC-6538 events are indexed on-chain, not dependent on localStorage.
+ */
+export function useNamesByWallet(walletAddress: string | undefined, chainIdOverride?: number) {
+  const wagmiChainId = useChainId();
+  const chainId = chainIdOverride ?? wagmiChainId;
+  const graphAvailable = isGraphAvailable(chainId);
+  const normalizedAddress = walletAddress?.toLowerCase();
+
+  return useQuery({
+    queryKey: ['names', 'wallet', chainId, normalizedAddress],
+    queryFn: async () => {
+      if (!normalizedAddress) return [];
+      const client = getGraphClient(chainId);
+
+      // Step 1: Get the user's on-chain stealth meta-address from ERC-6538 events
+      const userData = await client.request<{
+        user: { metaAddress: { stealthMetaAddress: string; schemeId: string } | null } | null;
+      }>(GET_STEALTH_META_BY_REGISTRANT, { address: normalizedAddress });
+
+      const onChainMeta = userData?.user?.metaAddress?.stealthMetaAddress;
+      if (!onChainMeta) return [];
+
+      // Step 2: Find names registered with that meta-address
+      const data = await client.request<NamesQueryResult>(GET_NAMES_BY_META_ADDRESS, {
+        metaAddress: onChainMeta.toLowerCase(),
+      });
+      return data.names;
+    },
+    enabled: !!normalizedAddress && graphAvailable,
+    staleTime: 120_000,
+    refetchInterval: 120_000,
     retry: 2,
   });
 }

@@ -110,6 +110,12 @@ export function UsernameStep({ onNext, initialName = "" }: UsernameStepProps) {
               <span className="text-[12px] text-[#FFB000] font-mono">{validation.error}</span>
             </div>
           )}
+          {!isChecking && isAvailable === null && validation?.valid && nameInput && (
+            <div className="flex items-center gap-[5px]">
+              <AlertCircleIcon size={12} color="#FFB000" />
+              <span className="text-[12px] text-[#FFB000] font-mono">Could not check availability — try again</span>
+            </div>
+          )}
         </div>
       </div>
 
