@@ -1,32 +1,103 @@
 # Dust Protocol
 
-Private payment infrastructure for EVM chains. Send and receive payments using stealth addresses and `.tok` names. Funds can be pooled and withdrawn with zero on-chain linkability using Groth16 ZK proofs. Token swaps execute with full privacy through Uniswap V4 hooks.
+Dust is a private finance protocol on EVM chains. It has two main primitives: **stealth transfers** and **privacy swaps**. Both are live on Ethereum Sepolia and Thanos Sepolia.
 
-Deployed on **Ethereum Sepolia** and **Thanos Sepolia**.
+Stealth transfers let you send ETH or tokens to anyone without creating an on-chain link between sender and recipient. Every payment goes to a one-time address derived through ECDH — nobody watching the chain can associate it with the recipient's identity. `.tok` names sit on top so people can share a readable name instead of an address, and the whole mechanism works with any wallet without requiring the sender to run stealth-aware software.
 
----
+Privacy swaps let you trade ETH ↔ USDC without on-chain traceability. You deposit into a ZK pool, generate a Groth16 proof in-browser that proves you own a deposit without revealing which one, and the swap executes through a Uniswap V4 hook that verifies the proof on-chain. Output lands at a stealth address with no linkage to whoever deposited. This is not a wrapped privacy layer on top of a DEX — the ZK verification is built directly into the swap hook via `beforeSwap` / `afterSwap` callbacks, so the proof verification and the swap are atomic.
 
-## Features
-
-- **Stealth Addresses** — Payments go to one-time addresses derived via ECDH. On-chain observers can't link them to the recipient
-- **`.tok` Names** — Human-readable stealth addresses (`alice.tok`, `sub.alice.tok`)
-- **No-Opt-In Payments** — Any wallet (MetaMask, hardware, exchange) can pay a `.tok` name without stealth-aware software. The pay page pre-generates and announces a stealth address before the sender even sends
-- **ERC-4337 Stealth Accounts** — Each stealth address is a smart account. Claims are gasless via DustPaymaster. The stealth private key never leaves the browser
-- **Payment Links** — Shareable links for receiving payments to a specific stealth address
-- **DustPool (ZK Privacy Pool)** — Deposit from multiple stealth wallets and withdraw to a fresh address. A Groth16 ZK proof proves ownership of a deposit without revealing which one. Poseidon Merkle tree (depth 20, 1M capacity), browser-side proof generation via snarkjs
-- **Privacy Swaps** — Swap ETH/USDC with full privacy using Uniswap V4 hooks and ZK proofs. Deposit to pool → generate proof → swap executes → funds arrive at a stealth address with no on-chain link to the depositor
-- **Multi-Chain** — Chain-aware scanner, hooks, and API routes. Switch between Ethereum Sepolia and Thanos Sepolia in the UI
+Both primitives share a common ZK backend: Poseidon hashing (BN254 curve), Groth16 proof system, Merkle trees with depth 20 (capacity ~1M leaves), browser-side proof generation via snarkjs. Stealth key derivation uses ECDH on secp256k1 per ERC-5564. Claims are gasless via ERC-4337 — the stealth private key signs locally, the server relays via DustPaymaster, the key never leaves the browser.
 
 ---
 
-## Supported Networks
+## What It Does
 
-| Network | Chain ID | Currency | Explorer |
-|---------|----------|----------|---------|
-| Ethereum Sepolia | `11155111` | ETH | [sepolia.etherscan.io](https://sepolia.etherscan.io) |
-| Thanos Sepolia | `111551119090` | TON | [explorer.thanos-sepolia.tokamak.network](https://explorer.thanos-sepolia.tokamak.network) |
+### Stealth Transfers
 
-`.tok` name registry is canonical on Ethereum Sepolia. All chain config (RPC URLs, contract addresses, creation codes) lives in `src/config/chains.ts`.
+When someone wants to receive privately, they register a `.tok` name on-chain pointing to their stealth meta-address — a pair of public keys (`spendKey`, `viewKey`) derived from their wallet signature and a PIN. When a sender visits the pay page for `alice.tok`, the page generates a fresh one-time stealth address by picking a random `r`, computing `sharedSecret = r * viewKey`, and deriving the stealth address from `spendKey + sharedSecret * G`. It announces this on-chain before the sender pays anything. The sender sends to a normal-looking address using any wallet. The recipient's scanner detects the announcement, recomputes the shared secret from their view key, derives the stealth private key, and claims the funds.
+
+The claim is gasless. Each stealth address is an ERC-4337 smart account (not yet deployed at creation time). The scanner builds a UserOperation, DustPaymaster signs it to sponsor gas, the client signs the `userOpHash` locally, and the server submits it to the EntryPoint which deploys the account and drains the funds atomically in one transaction. The stealth private key never touches the server.
+
+Sub-addresses (`sub.alice.tok`) are also supported, letting users segment their payment streams without exposing a link between them.
+
+### Privacy Swaps
+
+The problem privacy swaps solve: even if you receive funds privately via stealth addresses, the moment you swap those funds on a DEX you create an on-chain fingerprint. The input wallet, output wallet, token amounts, and timing are all public.
+
+DustSwap breaks this. You deposit ETH or USDC into `DustSwapPool` with a Poseidon commitment (`commitment = Poseidon(Poseidon(nullifier, secret), amount)`). This deposit note is inserted into an on-chain Poseidon Merkle tree. Later, in-browser, you generate a Groth16 proof that proves you know a valid Merkle path (nullifier + secret + path) without revealing which leaf. This proof is passed as `hookData` to the Uniswap V4 swap router. The `DustSwapHook` runs `beforeSwap`, verifies the proof against the on-chain tree root, marks the `nullifierHash = Poseidon(nullifier, nullifier)` as spent (double-spend prevention), and routes the swap output to a stealth address you specify. There is no transaction that links your deposit to your withdrawal.
+
+Two separate pools exist: `DustSwapPoolETH` and `DustSwapPoolUSDC`, with fixed denominations to prevent amount-based correlation.
+
+### DustPool (Privacy Pool for Transfers)
+
+Separate from DustSwap, DustPool solves the on-chain linkage problem when consolidating multiple stealth wallets. If you receive 10 payments to 10 stealth addresses and claim them all to the same destination, that destination gets linked to all 10 inputs. DustPool lets you deposit from each stealth wallet into the pool as separate commitments, then withdraw everything to a fresh address with a single ZK proof. The withdraw proof proves you own a set of deposits without revealing which ones. Nullifiers prevent double-spend.
+
+The circuit (`DustPoolWithdraw.circom`) is Groth16 on BN254, ~5,900 constraints, generates in ~1–2 seconds in-browser.
+
+---
+
+## How It Works — Technical Detail
+
+### Stealth Key Derivation
+
+```
+wallet_signature = sign("Dust Protocol stealth key", walletAddress)
+entropy = PBKDF2(wallet_signature + PIN, salt, 100000 iterations, SHA-512)
+spendKey = entropy[0:32]   // secp256k1 scalar
+viewKey  = entropy[32:64]  // secp256k1 scalar
+metaAddress = (spendKey * G, viewKey * G)  // registered on ERC-6538
+```
+
+Both keys are required (signature + PIN). Keys are stored in a React ref, never serialized to localStorage or sent to any server.
+
+### Stealth Address Generation (Sender Side)
+
+```
+r = random scalar
+R = r * G
+sharedSecret = r * recipientViewPub
+stealthAddress = derive(recipientSpendPub, sharedSecret)
+announce(R, stealthAddress)  // ERC-5564 announcement on-chain
+```
+
+### Stealth Address Recovery (Recipient Side)
+
+```
+for each announcement (R, stealthAddress):
+    sharedSecret = viewKey * R   // same as r * viewPub by ECDH
+    candidate = derive(spendPub, sharedSecret)
+    if candidate == stealthAddress:
+        stealthPrivKey = spendKey + hash(sharedSecret)   // spendable
+```
+
+### ZK Proof Flow (DustPool / DustSwap)
+
+**Deposit:**
+- Browser generates `nullifier` and `secret` (random scalars)
+- `commitment = Poseidon(Poseidon(nullifier, secret), amount)`
+- Commitment submitted on-chain, inserted into Poseidon Merkle tree (depth 20)
+
+**Withdraw / Swap:**
+- Browser fetches Merkle path for the commitment
+- Generates Groth16 proof of: `commitment ∈ tree ∧ I know (nullifier, secret) ∧ nullifierHash = Poseidon(nullifier, nullifier)`
+- Public inputs: `root`, `nullifierHash`, `recipient`, `amount`
+- Contract verifies proof, checks root is historical (prevents front-running), marks nullifier spent, releases funds
+
+### ERC-4337 Claim Flow
+
+```
+1. Scanner detects stealth payment via ERC-5564 announcement log
+2. Browser derives stealth private key (ECDH + spendKey)
+3. POST /api/bundle — server builds UserOperation, DustPaymaster signs for gas
+4. Browser signs userOpHash with stealth key (never leaves browser)
+5. POST /api/bundle/submit — server calls entryPoint.handleOps()
+6. EntryPoint deploys StealthAccount (CREATE2) and drains funds — one tx
+```
+
+The scanner supports three account types:
+- **ERC-4337 smart accounts** → gasless via DustPaymaster
+- **CREATE2 wallets** → gas sponsored via `/api/sponsor-claim`
+- **Legacy EOA** → direct claim if balance > 0.0001 ETH
 
 ---
 
@@ -54,187 +125,31 @@ NEXT_PUBLIC_USE_GRAPH=true
 
 ---
 
-## Smart Contracts
+## Supported Networks
 
-### Ethereum Sepolia (chain ID: 11155111)
+| Network | Chain ID | Currency | Explorer |
+|---------|----------|----------|---------|
+| Ethereum Sepolia | `11155111` | ETH | [sepolia.etherscan.io](https://sepolia.etherscan.io) |
+| Thanos Sepolia | `111551119090` | TON | [explorer.thanos-sepolia.tokamak.network](https://explorer.thanos-sepolia.tokamak.network) |
 
-#### Core Stealth
+`.tok` name registry is canonical on Ethereum Sepolia. DustSwap (privacy swaps) is currently on Ethereum Sepolia only.
 
-| Contract | Address |
-|----------|---------|
-| ERC5564Announcer | `0x64044FfBefA7f1252DdfA931c939c19F21413aB0` |
-| ERC6538Registry | `0xb848398167054cCb66264Ec25C35F8CfB1EF1Ca7` |
-| StealthNameRegistry | `0x4364cd60dF5F4dC82E81346c4E64515C08f19BBc` |
-
-#### ERC-4337
-
-| Contract | Address |
-|----------|---------|
-| EntryPoint v0.6 | `0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789` |
-| StealthAccountFactory | `0xc73fce071129c7dD7f2F930095AfdE7C1b8eA82A` |
-| StealthWalletFactory | `0x1c65a6F830359f207e593867B78a303B9D757453` |
-| DustPaymaster | `0x20C28cbF9bc462Fb361C8DAB0C0375011b81BEb2` |
-
-#### DustPool
-
-| Contract | Address |
-|----------|---------|
-| DustPool | `0xc95a359E66822d032A6ADA81ec410935F3a88bcD` |
-| Groth16Verifier | `0x17f52f01ffcB6d3C376b2b789314808981cebb16` |
-
-Deployment block: `10251347` · DustPool: `10259728`
-
-#### DustSwap (Privacy Swaps — Uniswap V4)
-
-| Contract | Address |
-|----------|---------|
-| DustSwapPoolETH | `0x52FAc2AC445b6a5b7351cb809DCB0194CEa223D0` |
-| DustSwapPoolUSDC | `0xc788576786381d41B8F5180D0B92A15497CF72B3` |
-| DustSwapHook | `0x09b6a164917F8ab6e8b552E47bD3957cAe6d80C4` |
-| DustSwapVerifier | `0x1677C9c4E575C910B9bCaF398D615B9F3775d0f1` |
-| DustSwapRouter | `0x82faD70Aa95480F719Da4B81E17607EF3A631F42` |
-| Uniswap V4 PoolManager | `0x93805603e0167574dFe2F50ABdA8f42C85002FD8` |
-
-DustSwap deployment block: `10268660`
+Contract addresses: [`docs/CONTRACTS.md`](docs/CONTRACTS.md)
 
 ---
 
-### Thanos Sepolia (chain ID: 111551119090)
-
-#### Core Stealth
-
-| Contract | Address |
-|----------|---------|
-| ERC5564Announcer | `0x2C2a59E9e71F2D1A8A2D447E73813B9F89CBb125` |
-| ERC6538Registry | `0x9C527Cc8CB3F7C73346EFd48179e564358847296` |
-| StealthNameRegistry | `0x0129DE641192920AB78eBca2eF4591E2Ac48BA59` |
-
-#### ERC-4337
-
-| Contract | Address |
-|----------|---------|
-| EntryPoint v0.6 | `0x5c058Eb93CDee95d72398E5441d989ef6453D038` |
-| StealthAccountFactory | `0xfE89381ae27a102336074c90123A003e96512954` |
-| StealthWalletFactory | `0xbc8e75a5374a6533cD3C4A427BF4FA19737675D3` |
-| DustPaymaster | `0x9e2eb36F7161C066351DC9E418E7a0620EE5d095` |
-
-#### DustPool
-
-| Contract | Address |
-|----------|---------|
-| DustPool | `0x16b8c82e3480b1c5B8dbDf38aD61a828a281e2c3` |
-| Groth16Verifier | `0x9914F482c262dC8BCcDa734c6fF3f5384B1E19Aa` |
-
-Deployment block: `6272527` · DustPool: `6372598`
-
-*DustSwap not yet deployed on Thanos Sepolia.*
-
----
-
-## How It Works
-
-### Stealth Payments
-
-1. Connect wallet → derive stealth keys from `SHA-512(wallet signature + PIN)`
-2. Register `yourname.tok` → on-chain mapping to your stealth meta-address
-3. Sender visits the pay page → page generates a one-time stealth address via ECDH and announces it on-chain before any payment
-4. Sender pays to the shown address from any wallet
-5. Scanner detects the announcement, derives the private key in-browser, claims via ERC-4337 UserOperation (gasless)
-
-**No-opt-in mechanic:** The stealth address is generated and announced before the sender pays. Works with MetaMask, hardware wallets, exchanges — anything that can send to an address.
-
-### DustPool: ZK Privacy Pool
-
-Claiming multiple stealth wallets to the same address links them on-chain. DustPool breaks this:
-
-```
-Without pool:
-  Wallet A → 0xYOUR_ADDRESS  ← all linked
-  Wallet B → 0xYOUR_ADDRESS
-  Wallet C → 0xYOUR_ADDRESS
-
-With pool:
-  Wallet A → DustPool (commitment₁)
-  Wallet B → DustPool (commitment₂)  ← mixed, unlinkable
-  Wallet C → DustPool (commitment₃)
-                  ↓
-        ZK proof (reveals nothing about which commitment)
-                  ↓
-        Fresh address receives all funds
-```
-
-**Deposit:** Browser generates `secret` + `nullifier`, computes `commitment = Poseidon(Poseidon(nullifier, secret), amount)`. Stealth wallet drains to relayer, relayer calls `DustPool.deposit(commitment)`. Commitment inserted into on-chain Poseidon Merkle tree (depth 20).
-
-**Withdraw:** Browser generates a Groth16 proof proving knowledge of a Merkle leaf without revealing which one (~1–2s per proof). Contract verifies, sends funds to fresh address. `nullifierHash = Poseidon(nullifier, nullifier)` is stored on-chain to prevent double-spend — it can't be linked back to the original commitment without the private nullifier.
-
-**Circuit:** `DustPoolWithdraw.circom` — Groth16 on BN254, ~5,900 constraints.
-
-| Signal | Public | Purpose |
-|--------|--------|---------|
-| `root` | ✓ | Merkle tree root (must match on-chain) |
-| `nullifierHash` | ✓ | Double-spend prevention |
-| `recipient` | ✓ | Where funds go |
-| `amount` | ✓ | Withdrawal amount |
-| `nullifier` | — | Known only to depositor |
-| `secret` | — | Known only to depositor |
-| `pathElements[20]` | — | Merkle proof siblings |
-| `pathIndices[20]` | — | Left/right path bits |
-
-### Privacy Swaps (DustSwap)
-
-Extends the pool model to token swaps via Uniswap V4 hooks.
-
-1. Deposit ETH or USDC to `DustSwapPool` with a Poseidon commitment
-2. Generate a Groth16 ZK proof of deposit ownership in-browser
-3. Call the swap router — proof is passed as `hookData`
-4. `DustSwapHook` (beforeSwap + afterSwap) verifies the proof on-chain, marks the nullifier spent, routes swap output to a stealth address
-
-No on-chain link between who deposited and who receives the swapped tokens.
-
-**Gas optimizations vs V1 (51% reduction, ~247k gas):**
-- O(1) Merkle root lookup via storage mapping (~208k)
-- 6 public inputs instead of 8 (~13k)
-- Storage packing + hardcoded Poseidon zero hashes (~26k)
-
----
-
-## Architecture
-
-### ERC-4337 Claim Flow
-
-```
-Stealth address has funds (contract not deployed yet)
-    ↓
-Scanner detects payment via on-chain announcement
-    ↓
-Browser derives stealth private key via ECDH
-    ↓
-POST /api/bundle → server builds UserOp + DustPaymaster signature
-    ↓
-Browser signs userOpHash locally (key never leaves browser)
-    ↓
-POST /api/bundle/submit → server calls entryPoint.handleOps()
-    ↓
-EntryPoint deploys account (CREATE2) + drains funds to claim address
-DustPaymaster sponsors all gas — claim is gasless
-```
-
-The scanner supports three wallet types:
-- **ERC-4337 accounts** → `/api/bundle`
-- **CREATE2 wallets** → `/api/sponsor-claim`
-- **Legacy EOA** → direct claim if balance > 0.0001 ETH
-
-### Security Model
+## Security Model
 
 | Layer | Mechanism |
 |-------|-----------|
-| Stealth addresses | ECDH — only the receiver derives the private key |
-| Key derivation | `SHA-512(wallet signature + PIN)` — requires both |
-| Key isolation | Keys stay in browser memory (React ref, never serialized) |
-| Gasless claims | Client signs locally, server relays — key never sent to server |
-| DustPool privacy | Groth16 ZK — withdrawal is cryptographically unlinkable to deposit |
-| Double-spend prevention | Nullifier hash stored on-chain, reuse rejected by contract |
+| Stealth address generation | ECDH on secp256k1 — only the recipient can derive the private key |
+| Key derivation | PBKDF2 (SHA-512, 100k iterations) over wallet signature + PIN — both required |
+| Key isolation | Keys in React ref, never serialized, never sent to server |
+| Gasless claim | Client signs userOpHash locally, server relays — key never leaves browser |
+| ZK pool privacy | Groth16 proof — withdrawal / swap output is cryptographically unlinkable to deposit |
+| Double-spend prevention | `nullifierHash = Poseidon(nullifier, nullifier)` stored on-chain, reuse rejected by contract |
 | Replay protection | EIP-712 domain includes `chainId` |
+| Amount correlation | Fixed denominations in DustSwap pools prevent amount-based deanonymization |
 
 ---
 
@@ -251,7 +166,7 @@ src/
 │   ├── activities/           # Transaction history
 │   ├── links/                # Payment link management
 │   ├── settings/             # Account settings
-│   ├── pay/[name]/           # Public pay page (no-opt-in)
+│   ├── pay/[name]/           # Public pay page (no-opt-in payments)
 │   └── api/
 │       ├── bundle/           # ERC-4337 UserOp build + submit
 │       ├── resolve/[name]    # Stealth address generation for .tok names
@@ -259,7 +174,7 @@ src/
 │       ├── pool-withdraw/    # ZK-verified pool withdrawal
 │       └── sponsor-*/        # Gas sponsorship for legacy claim types
 ├── components/
-│   ├── layout/               # Navbar, Sidebar
+│   ├── layout/               # Navbar
 │   ├── dashboard/            # Balance cards, withdraw modal
 │   ├── onboarding/           # OnboardingWizard
 │   └── swap/                 # SwapInterface, PoolStats, PoolComposition
@@ -286,7 +201,7 @@ contracts/
 public/zk/                    # DustPool browser ZK assets (WASM + zkey)
 public/circuits/              # DustSwap browser ZK assets (WASM + zkey)
 subgraph/                     # The Graph subgraph (name + announcement indexing)
-relayer/                      # Standalone relayer service (Docker)
+relayer/                      # Standalone relayer service (TypeScript, Docker)
 ```
 
 ---
@@ -297,6 +212,8 @@ relayer/                      # Standalone relayer service (Docker)
 - **Blockchain**: wagmi, viem, ethers.js v5, elliptic
 - **ZK**: circom, snarkjs (Groth16 on BN254), circomlibjs (Poseidon)
 - **Contracts**: Foundry, Solidity 0.8.x, poseidon-solidity, Uniswap V4
+- **Account Abstraction**: ERC-4337, EIP-7702
+- **Auth**: NextAuth v4, SIWE (EIP-4361), Lit Protocol PKP
 - **Indexing**: The Graph
 - **Standards**: ERC-5564, ERC-6538, ERC-4337
 
@@ -309,6 +226,7 @@ relayer/                      # Standalone relayer service (Docker)
 - [ERC-6538: Stealth Meta-Address Registry](https://ethereum-magicians.org/t/stealth-meta-address-registry/12888)
 - [Privacy Pools](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4563364) — Buterin et al.
 - [An Incomplete Guide to Stealth Addresses](https://vitalik.eth.limo/general/2023/01/20/stealth.html) — Vitalik
+- [Uniswap V4 Hooks](https://docs.uniswap.org/contracts/v4/overview)
 
 ---
 
