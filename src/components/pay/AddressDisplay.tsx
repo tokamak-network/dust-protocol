@@ -41,10 +41,6 @@ export function AddressDisplay({ address, label }: AddressDisplayProps) {
     }
   }, [address]);
 
-  const truncated = address
-    ? `${address.slice(0, 8)}...${address.slice(-6)}`
-    : "";
-
   return (
     <div className="flex flex-col items-center gap-4">
       {label && (
@@ -72,11 +68,11 @@ export function AddressDisplay({ address, label }: AddressDisplayProps) {
         className="w-full px-4 py-3 bg-[rgba(255,255,255,0.04)] rounded-sm border border-[rgba(255,255,255,0.06)] cursor-pointer hover:border-[#7c7fff] transition-[border-color] duration-150"
         onClick={handleCopy}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <span
-            className="text-sm font-semibold text-white font-mono tracking-tight"
+            className="text-sm font-semibold text-white font-mono tracking-tight break-all text-left"
           >
-            {truncated}
+            {address}
           </span>
           {copied ? (
             <CheckIcon size={16} color="#7c7fff" />

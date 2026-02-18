@@ -34,6 +34,8 @@ export function NoOptInPayment({
   const [stealthAddress, setStealthAddress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Prevent double-fire in React StrictMode (two mounts → rate limit on second call)
+  const hasFiredRef = useRef(false);
 
   const { hasDeposit, depositAmount } = useBalancePoller(
     status === "ready" ? stealthAddress : null
@@ -57,7 +59,10 @@ export function NoOptInPayment({
       if (signal?.aborted) return;
 
       if (!res.ok) {
-        setError(data.error || "Failed to resolve address");
+        const friendlyError = res.status === 429
+          ? "Address was just generated — please wait a moment and retry"
+          : (data.error || "Failed to resolve address");
+        setError(friendlyError);
         setStatus("error");
         return;
       }
@@ -74,6 +79,9 @@ export function NoOptInPayment({
 
   // Resolve on mount — AbortController cancels on cleanup (handles React StrictMode)
   useEffect(() => {
+    // Guard: only fire once across StrictMode double-mount
+    if (hasFiredRef.current) return;
+    hasFiredRef.current = true;
     const controller = new AbortController();
     abortRef.current = controller;
     doResolve(controller.signal);
@@ -82,6 +90,7 @@ export function NoOptInPayment({
 
   // Retry handler (user-initiated, no abort needed)
   const handleRetry = useCallback(() => {
+    hasFiredRef.current = false; // allow re-resolve
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -105,9 +114,14 @@ export function NoOptInPayment({
     return (
       <div className="flex flex-col items-center gap-4 py-6">
         <div className="w-8 h-8 border-2 border-[#7c7fff] border-t-transparent rounded-full animate-spin" />
-        <span className="text-sm text-[rgba(255,255,255,0.4)]">
-          Generating stealth address...
-        </span>
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-sm text-[rgba(255,255,255,0.6)]">
+            Generating your private address...
+          </span>
+          <span className="text-xs text-[rgba(255,255,255,0.3)]">
+            Creating a one-time stealth address for this payment
+          </span>
+        </div>
       </div>
     );
   }

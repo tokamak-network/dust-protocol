@@ -20,7 +20,7 @@ const secp256k1 = new EC('secp256k1');
 
 // Rate limiting with automatic cleanup
 const resolveCooldowns = new Map<string, number>();
-const COOLDOWN_MS = 5_000;
+const COOLDOWN_MS = 3_000;
 const MAX_COOLDOWN_ENTRIES = 1000;
 
 function checkRateLimit(key: string): boolean {
@@ -161,22 +161,28 @@ export async function GET(req: Request, { params }: { params: { name: string } }
       metadata += slugHex;
     }
 
-    // 5. Announce on-chain (deployer pays gas)
+    // 5. Announce on-chain (deployer pays gas) — fire-and-forget so we respond immediately
     const sponsor = getServerSponsor(chainId);
     const announcer = new ethers.Contract(config.contracts.announcer, ANNOUNCER_ABI, sponsor);
     const ephPubKeyHex = '0x' + ephemeralPublicKey.replace(/^0x/, '');
 
-    const tx = await announcer.announce(1, stealthAddress, ephPubKeyHex, metadata);
-    const receipt = await tx.wait();
+    // Submit tx without awaiting confirmation — return stealth address right away
+    announcer.announce(1, stealthAddress, ephPubKeyHex, metadata)
+      .then((tx: ethers.ContractTransaction) => tx.wait())
+      .then((receipt: ethers.ContractReceipt) => {
+        console.log('[Resolve] announced', normalized, linkSlug || '', '→', stealthAddress, 'tx:', receipt.transactionHash);
+      })
+      .catch((e: unknown) => {
+        console.error('[Resolve] announce failed (non-fatal):', e instanceof Error ? e.message : e);
+      });
 
-    console.log('[Resolve]', normalized, linkSlug || '', '→', stealthAddress, 'tx:', receipt.transactionHash);
+    console.log('[Resolve]', normalized, linkSlug || '', '→', stealthAddress, '(announce submitted async)');
 
     return NextResponse.json(
       {
         stealthAddress,
         network: config.name,
         chainId: config.id,
-        announceTxHash: receipt.transactionHash,
       },
       { headers: NO_STORE }
     );
