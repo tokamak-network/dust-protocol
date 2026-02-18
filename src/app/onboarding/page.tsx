@@ -9,7 +9,7 @@ import { DustLogo } from "@/components/DustLogo";
 
 
 export default function OnboardingPage() {
-  const { isConnected, isOnboarded, isHydrated, address } = useAuth();
+  const { isConnected, isOnboarded, isHydrated, isNamesSettled, address } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -18,10 +18,14 @@ export default function OnboardingPage() {
     // Wait for address before checking isOnboarded — avoids flash of onboarding wizard
     // when wallet is connected but address hasn't populated yet
     if (isConnected && !address) return;
+    // Wait for on-chain name query to settle before allowing onboarding to proceed.
+    // If a name is found on-chain (cleared cache / new browser), isOnboarded flips true
+    // and we redirect to dashboard instead of showing the onboarding wizard.
+    if (!isNamesSettled) return;
     if (isOnboarded) router.replace("/dashboard");
-  }, [isConnected, isOnboarded, isHydrated, address, router]);
+  }, [isConnected, isOnboarded, isHydrated, isNamesSettled, address, router]);
 
-  if (!isConnected || !isHydrated) return null;
+  if (!isConnected || !isHydrated || !isNamesSettled) return null;
 
   return (
     <>

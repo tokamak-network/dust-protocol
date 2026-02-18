@@ -37,6 +37,8 @@ export function ActivateStep({ username, pin, onComplete }: ActivateStepProps) {
         registerName(username, result.metaAddress),
         registerMetaAddress().catch(() => null),
       ]);
+      // nameTx is a txHash string (new registration), 'already-registered' (idempotent),
+      // or null (failure). Treat any truthy value as success.
       if (!nameTx) throw new Error("Failed to register name");
 
       if (address) {

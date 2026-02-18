@@ -65,7 +65,7 @@ const FarcasterIcon = ({ size = 18 }: { size?: number }) => (
 );
 
 export default function Home() {
-  const { isConnected, isOnboarded, isHydrated, address } = useAuth();
+  const { isConnected, isOnboarded, isHydrated, isNamesSettled, address } = useAuth();
   const { login: privyLogin } = useLogin();
   const { connect } = useConnect();
   const router = useRouter();
@@ -79,10 +79,13 @@ export default function Home() {
     if (isConnected && !address) return;
     if (isConnected && isOnboarded) {
       router.replace("/dashboard");
-    } else if (isConnected && !isOnboarded) {
+    } else if (isConnected && !isOnboarded && isNamesSettled) {
+      // Only route to onboarding AFTER the on-chain name query has settled.
+      // This prevents a false redirect when the user has a name registered
+      // on-chain but localStorage was cleared (new browser / cleared cache).
       router.replace("/onboarding");
     }
-  }, [isConnected, isOnboarded, isHydrated, address, router]);
+  }, [isConnected, isOnboarded, isNamesSettled, isHydrated, address, router]);
 
   const handlePaySearch = () => {
     const name = searchName.trim().toLowerCase().replace(/\.tok$/, "");
@@ -90,7 +93,9 @@ export default function Home() {
     router.push(`/pay/${name}`);
   };
 
-  if (!isHydrated || (isConnected && !address) || (isConnected && isOnboarded)) {
+  // Show loading spinner while hydrating OR while connected but name query is still in-flight
+  // (prevents flash of landing page for returning users in new browser)
+  if (!isHydrated || (isConnected && !address) || (isConnected && isOnboarded) || (isConnected && !isNamesSettled)) {
     return (
       <div className="min-h-screen bg-[#06080F] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
