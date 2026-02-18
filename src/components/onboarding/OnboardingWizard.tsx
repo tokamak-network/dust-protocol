@@ -20,9 +20,12 @@ export function OnboardingWizard() {
   const isReactivation = ownedNames.length > 0;
   const existingName = ownedNames[0]?.fullName ?? "";
 
-  const STEPS = isReactivation ? STEPS_REACTIVATE : STEPS_FULL;
+  // Reclaim flow: user says "I already have an account" — go to PIN first, then look up name by metaAddress
+  const [isReclaiming, setIsReclaiming] = useState(false);
 
-  const [step, setStep] = useState<Step>(isReactivation ? "pin" : "username");
+  const STEPS = (isReactivation || isReclaiming) ? STEPS_REACTIVATE : STEPS_FULL;
+
+  const [step, setStep] = useState<Step>((isReactivation || isReclaiming) ? "pin" : "username");
   const [username, setUsername] = useState(isReactivation ? (ownedNames[0]?.name ?? "") : "");
   const [error, setError] = useState<string | null>(null);
   const activatingRef = useRef(false);
@@ -36,6 +39,11 @@ export function OnboardingWizard() {
   }, [ownedNames, step]);
 
   const currentIndex = step === "activating" ? STEPS.length : STEPS.indexOf(step);
+
+  const handleReclaim = () => {
+    setIsReclaiming(true);
+    setStep("pin");
+  };
 
   const handlePinComplete = async (pin: string) => {
     if (activatingRef.current) return;
@@ -59,6 +67,24 @@ export function OnboardingWizard() {
         // Wallet already has a name — just re-derive keys and re-register ERC-6538 meta-address.
         // Skip registerName to avoid an unnecessary API call.
         await registerMetaAddress().catch(() => null);
+      } else if (isReclaiming) {
+        // Reclaim flow: user says they already have an account.
+        // Use derived metaAddress to find their name via server-side lookup.
+        const normalizedMeta = (result.metaAddress.match(/^st:[a-z]+:(0x[0-9a-fA-F]+)$/)?.[1] || result.metaAddress).toLowerCase();
+        const reclaimRes = await fetch(`/api/reclaim-name?metaAddress=${normalizedMeta}&registrant=${address}`);
+        if (reclaimRes.ok) {
+          const reclaimData = await reclaimRes.json();
+          if (reclaimData.name) {
+            setUsername(reclaimData.name);
+            // Re-register ERC-6538 meta-address (fire-and-forget, fix the failed registration)
+            registerMetaAddress().catch(() => null);
+          } else {
+            // No name found — this wallet hasn't registered a name before
+            throw new Error("No existing account found — please go back and create a new username");
+          }
+        } else {
+          throw new Error("Failed to look up existing account");
+        }
       } else {
         // Fresh onboarding — register the chosen name on-chain.
         // registerName returns the txHash string, or 'already-registered' for idempotent re-reg.
@@ -77,7 +103,7 @@ export function OnboardingWizard() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Activation failed";
       setError(msg);
-      setStep("pin");
+      setStep(isReclaiming ? "pin" : "pin");
       activatingRef.current = false;
     }
   };
@@ -104,10 +130,10 @@ export function OnboardingWizard() {
         </div>
 
         {/* Re-activation banner */}
-        {isReactivation && step !== "activating" && (
+        {(isReactivation || isReclaiming) && step !== "activating" && (
           <div className="mx-7 md:mx-9 mt-5 px-3 py-2.5 rounded-sm bg-[rgba(0,255,65,0.05)] border border-[rgba(0,255,65,0.15)] flex flex-col gap-0.5">
             <p className="text-[11px] font-mono text-[rgba(0,255,65,0.7)] uppercase tracking-widest">Welcome back</p>
-            <p className="text-[13px] text-white font-semibold">{existingName}</p>
+            {existingName && <p className="text-[13px] text-white font-semibold">{existingName}</p>}
             <p className="text-[11px] text-[rgba(255,255,255,0.4)] font-mono mt-0.5">
               Enter your PIN to re-activate your private wallet.
             </p>
@@ -119,6 +145,7 @@ export function OnboardingWizard() {
           {step === "username" && (
             <UsernameStep
               onNext={(name) => { setUsername(name); setStep("pin"); }}
+              onReclaim={handleReclaim}
               initialName={username}
             />
           )}

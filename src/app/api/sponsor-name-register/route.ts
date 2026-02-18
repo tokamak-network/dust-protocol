@@ -13,6 +13,7 @@ const NAME_REGISTRY_ABI = [
   'function registerName(string calldata name, bytes calldata stealthMetaAddress) external',
   'function isNameAvailable(string calldata name) external view returns (bool)',
   'function resolveName(string calldata name) external view returns (bytes)',
+  'function transferName(string calldata name, address newOwner) external',
 ];
 
 const NAME_REGISTRY_MERKLE_ABI = [
@@ -38,11 +39,13 @@ function checkRegisterCooldown(key: string): boolean {
   return true;
 }
 
-/** Register a name on a single chain. Returns txHash or null on failure. */
+/** Register a name on a single chain. Returns txHash or null on failure.
+ *  If registrant is provided, auto-transfers ownership from deployer to the user. */
 async function registerOnChain(
   chainId: number,
   stripped: string,
   metaBytes: string,
+  registrant?: string,
 ): Promise<string | null> {
   try {
     const config = getChainConfig(chainId);
@@ -54,6 +57,20 @@ async function registerOnChain(
     const tx = await registry.registerName(stripped, metaBytes);
     const receipt = await tx.wait();
     console.log(`[SponsorNameRegister] Registered "${stripped}" on ${config.name}, tx: ${receipt.transactionHash}`);
+
+    // Auto-transfer ownership to the user so getNamesOwnedBy(userAddress) works
+    // on future logins (even without ERC-6538 registration)
+    if (registrant && /^0x[0-9a-fA-F]{40}$/.test(registrant)) {
+      try {
+        const transferTx = await registry.transferName(stripped, registrant);
+        await transferTx.wait();
+        console.log(`[SponsorNameRegister] Auto-transferred "${stripped}" to ${registrant}`);
+      } catch (e) {
+        // Non-fatal: name is registered but still deployer-owned
+        console.warn(`[SponsorNameRegister] Auto-transfer failed for "${stripped}":`, e);
+      }
+    }
+
     return receipt.transactionHash;
   } catch (e) {
     console.warn(`[SponsorNameRegister] Failed to register "${stripped}" on chain ${chainId}:`, e);
@@ -101,7 +118,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const primaryChainId = parseChainId(body);
 
-    const { name, metaAddress } = body;
+    const { name, metaAddress, registrant } = body;
 
     if (!name || !metaAddress) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -127,7 +144,7 @@ export async function POST(req: Request) {
     }
 
     // Register on the primary (requested) chain first
-    const primaryTxHash = await registerOnChain(primaryChainId, stripped, metaBytes);
+    const primaryTxHash = await registerOnChain(primaryChainId, stripped, metaBytes, registrant);
     if (!primaryTxHash) {
       // Check if name is taken on primary chain
       const config = getChainConfig(primaryChainId);
@@ -175,7 +192,7 @@ export async function POST(req: Request) {
     );
     if (otherChains.length > 0) {
       Promise.allSettled(
-        otherChains.map(c => registerOnChain(c.id, stripped, metaBytes))
+        otherChains.map(c => registerOnChain(c.id, stripped, metaBytes, registrant))
       ).then(results => {
         results.forEach((r, i) => {
           if (r.status === 'rejected') {

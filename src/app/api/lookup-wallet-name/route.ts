@@ -1,8 +1,10 @@
 // GET /api/lookup-wallet-name?address=0x...
 // Server-side lookup: wallet address → registered name
-// Works without derived keys by cross-referencing:
-//   1. ERC-6538 StealthMetaAddressSet events (to get on-chain metaAddress)
-//   2. Name tree entries (name → metaAddress mapping)
+// Multi-strategy lookup (in order of reliability):
+//   1. Direct contract read: stealthMetaAddressOf(wallet, 1) → match against subgraph names
+//   2. ERC-6538 StealthMetaAddressSet events (to get historical on-chain metaAddresses)
+//   3. Name tree entries (name → metaAddress mapping)
+//   4. Direct RPC scan of deployer names (slowest but most thorough)
 // This is the most reliable fallback for cleared-cache / new-browser scenarios.
 
 import { NextResponse } from 'next/server';
@@ -15,6 +17,7 @@ export const maxDuration = 15;
 
 const ERC6538_ABI = [
   'event StealthMetaAddressSet(indexed address registrant, indexed uint256 schemeId, bytes stealthMetaAddress)',
+  'function stealthMetaAddressOf(address registrant, uint256 schemeId) external view returns (bytes)',
 ];
 
 const NAME_REGISTRY_ABI = [
@@ -23,6 +26,28 @@ const NAME_REGISTRY_ABI = [
 ];
 
 const DEPLOYER = process.env.SPONSOR_ADDRESS ?? '0x8d56E94a02F06320BDc68FAfE23DEc9Ad7463496';
+
+// The Graph subgraph URL (same as client-side)
+const SUBGRAPH_URL = process.env.NEXT_PUBLIC_SUBGRAPH_URL
+  || 'https://api.studio.thegraph.com/query/1741961/dust-protocol-sepolia/v0.0.1';
+
+/** Query the subgraph for names matching a metaAddress */
+async function querySubgraphNamesByMeta(metaAddress: string): Promise<{ name: string; metaAddress: string } | null> {
+  try {
+    const res = await fetch(SUBGRAPH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `{ names(where: { metaAddress: "${metaAddress.toLowerCase()}" }, first: 1) { name metaAddress } }`,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const names = data?.data?.names;
+    if (names?.length > 0) return names[0];
+  } catch { /* silent */ }
+  return null;
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -33,15 +58,50 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Strategy 1: Use the name Merkle tree + ERC-6538 events
-    // The name tree has all registered names and their metaAddresses.
-    // We need to find which metaAddress belongs to this wallet.
-    const tree = getNameMerkleTree().exportTree();
     const chains = getSupportedChains();
-
-    // Collect all historical metaAddresses for this wallet from ERC-6538 events
     const historicalMetas = new Set<string>();
 
+    // Strategy 1: Direct contract read — stealthMetaAddressOf(wallet, 1)
+    // This is the fastest and most reliable check (single RPC call per chain)
+    const directReadResults = await Promise.allSettled(
+      chains.map(async (chain) => {
+        const registryAddr = chain.contracts.registry;
+        if (!registryAddr) return null;
+        try {
+          const provider = getServerProvider(chain.id);
+          const erc6538 = new ethers.Contract(registryAddr, ERC6538_ABI, provider);
+          const meta: string = await erc6538.stealthMetaAddressOf(address, 1);
+          if (meta && meta !== '0x' && meta.length > 2) {
+            return meta;
+          }
+        } catch { /* silent */ }
+        return null;
+      })
+    );
+
+    for (const result of directReadResults) {
+      if (result.status === 'fulfilled' && result.value) {
+        historicalMetas.add(result.value.toLowerCase());
+      }
+    }
+
+    // If we found a current metaAddress, search subgraph for matching names
+    if (historicalMetas.size > 0) {
+      for (const meta of historicalMetas) {
+        const nameFromGraph = await querySubgraphNamesByMeta(meta);
+        if (nameFromGraph) {
+          return NextResponse.json({
+            name: nameFromGraph.name,
+            metaAddress: nameFromGraph.metaAddress,
+            source: 'direct-read+graph',
+          }, {
+            headers: { 'Cache-Control': 'public, max-age=120' },
+          });
+        }
+      }
+    }
+
+    // Strategy 2: ERC-6538 event scanning (catches historical registrations that may have been overwritten)
     const eventResults = await Promise.allSettled(
       chains.map(async (chain) => {
         const registryAddr = chain.contracts.registry;
@@ -66,7 +126,24 @@ export async function GET(req: Request) {
       }
     }
 
-    // Match against name tree entries
+    // Check new metas from events against subgraph
+    if (historicalMetas.size > 0) {
+      for (const meta of historicalMetas) {
+        const nameFromGraph = await querySubgraphNamesByMeta(meta);
+        if (nameFromGraph) {
+          return NextResponse.json({
+            name: nameFromGraph.name,
+            metaAddress: nameFromGraph.metaAddress,
+            source: 'events+graph',
+          }, {
+            headers: { 'Cache-Control': 'public, max-age=120' },
+          });
+        }
+      }
+    }
+
+    // Strategy 3: Match against name tree entries
+    const tree = getNameMerkleTree().exportTree();
     if (tree.entries.length > 0 && historicalMetas.size > 0) {
       for (const entry of tree.entries) {
         if (historicalMetas.has(entry.metaAddress.toLowerCase())) {
@@ -81,8 +158,8 @@ export async function GET(req: Request) {
       }
     }
 
-    // Strategy 2: Direct RPC — check deployer-owned names on all chains
-    // (slower but works even if tree hasn't been warmed)
+    // Strategy 4: Direct RPC — check deployer-owned names on all chains
+    // (slower but works even if subgraph and tree have issues)
     if (historicalMetas.size > 0) {
       for (const chain of chains) {
         if (!chain.contracts.nameRegistry) continue;

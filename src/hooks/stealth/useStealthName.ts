@@ -73,6 +73,13 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
   // Graph→RPC fallback: if Graph is enabled but errored, fall back to legacy RPC path
   const useGraphData = graphEnabled && !graphFailed && !(needsWalletLookup && graphWalletFailed);
 
+  // Detect when graph succeeded but returned NOTHING — this happens when:
+  //   - Subgraph has no ERC-6538 data for this wallet (registration failed silently)
+  //   - Names exist but are all deployer-owned (user's wallet is not the owner)
+  // In this case, we must still run the legacy pipeline (API fallback, RPC scan).
+  const graphReturnedEmpty = graphEnabled && !userMetaAddress &&
+    !graphWalletLoading && !graphWalletFailed && graphOwnedNames.length === 0;
+
   // Unified ownedNames: prefer Graph when it has data, fall back to legacy/discovery
   const ownedNames = graphOwnedNames.length > 0 ? graphOwnedNames : legacyOwnedNames;
 
@@ -214,8 +221,12 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
   // Run legacy discovery when:
   //  a) Graph is disabled (always use RPC), OR
   //  b) Graph is enabled but BOTH metaAddress-based AND wallet-based queries failed
-  //     (wallet-based query is the primary fallback for cleared-cache users now)
-  const needsLegacyDiscovery = !useGraphData || (graphEnabled && !userMetaAddress && graphWalletFailed);
+  //     (wallet-based query is the primary fallback for cleared-cache users now), OR
+  //  c) Graph returned empty results (e.g. no ERC-6538 data in subgraph, all names deployer-owned)
+  //     — we still need to check the legacy/API pipeline
+  const needsLegacyDiscovery = !useGraphData
+    || (graphEnabled && !userMetaAddress && graphWalletFailed)
+    || graphReturnedEmpty;
   useEffect(() => {
     if (needsLegacyDiscovery && isConnected && isConfigured) loadOwnedNames();
     else if (needsLegacyDiscovery && (!isConnected || !isConfigured)) setLegacyNamesSettled(true);
@@ -224,9 +235,13 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
   // For graph mode, settled = not loading (disabled query also returns loading=false immediately)
   // When userMetaAddress is available: use metaAddress-based graph query loading state.
   // When userMetaAddress is null (cleared cache): use wallet-based graph query loading state,
-  // falling back to legacyNamesSettled if the wallet query also failed.
+  // OR wait for legacy pipeline if graph returned empty.
   const isNamesSettled = useGraphData
-    ? (userMetaAddress ? !graphLoading : (!graphWalletLoading || legacyNamesSettled))
+    ? (userMetaAddress
+        ? !graphLoading
+        : (graphOwnedNames.length > 0
+            ? true
+            : (!graphWalletLoading ? legacyNamesSettled : false)))
     : legacyNamesSettled;
   const registerName = useCallback(async (name: string, metaAddress: string): Promise<string | null> => {
     if (!isConnected || !isConfigured) {
@@ -247,10 +262,11 @@ export function useStealthName(userMetaAddress?: string | null, chainId?: number
 
     try {
       // Sponsored: deployer registers name on-chain (user pays no gas)
+      // Include registrant address so the API can auto-transfer ownership
       const res = await fetch('/api/sponsor-name-register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: stripNameSuffix(name), metaAddress, chainId }),
+        body: JSON.stringify({ name: stripNameSuffix(name), metaAddress, chainId, registrant: address }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Name registration failed');

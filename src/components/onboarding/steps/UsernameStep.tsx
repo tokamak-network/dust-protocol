@@ -7,10 +7,11 @@ import { CheckCircleIcon, AlertCircleIcon } from "@/components/stealth/icons";
 
 interface UsernameStepProps {
   onNext: (name: string) => void;
+  onReclaim?: () => void;
   initialName?: string;
 }
 
-export function UsernameStep({ onNext, initialName = "" }: UsernameStepProps) {
+export function UsernameStep({ onNext, onReclaim, initialName = "" }: UsernameStepProps) {
   const [nameInput, setNameInput] = useState(initialName);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(false);
@@ -132,6 +133,16 @@ export function UsernameStep({ onNext, initialName = "" }: UsernameStepProps) {
       >
         Continue
       </button>
+
+      {/* Reclaim existing account */}
+      {onReclaim && (
+        <button
+          onClick={onReclaim}
+          className="w-full text-center text-[12px] text-[rgba(255,255,255,0.35)] hover:text-[rgba(255,255,255,0.6)] font-mono transition-colors"
+        >
+          Already have an account? Reclaim it
+        </button>
+      )}
     </div>
   );
 }
