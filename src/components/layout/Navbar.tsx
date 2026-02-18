@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAccount, useDisconnect } from "wagmi";
 import { useAuth } from "@/contexts/AuthContext";
 import { DustLogo } from "@/components/DustLogo";
-import { ChainSelector } from "@/components/ChainSelector";
-import { MenuIcon, XIcon } from "lucide-react";
+import { getSupportedChains } from "@/config/chains";
+import { ChainIcon as ChainTokenIcon } from "@/components/stealth/icons";
+import { MenuIcon, XIcon, ChevronDownIcon, CopyIcon, LogOutIcon, CheckIcon } from "lucide-react";
+
+const chains = getSupportedChains();
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
@@ -23,27 +26,51 @@ export function Navbar() {
   const pathname = usePathname();
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
-  const { ownedNames } = useAuth();
+  const { ownedNames, activeChainId, setActiveChain } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const walletRef = useRef<HTMLDivElement>(null);
 
-  const displayName = ownedNames.length > 0
-    ? `${ownedNames[0].name}.tok`
-    : address ? `${address.slice(0, 6)}…${address.slice(-4)}` : null;
+  const activeChain = chains.find(c => c.id === activeChainId) || chains[0];
+
+  const displayName = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : null;
+
+  // Close wallet dropdown on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (walletRef.current && !walletRef.current.contains(e.target as Node)) {
+        setWalletOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  function copyAddress() {
+    if (!address) return;
+    navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 h-14 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex items-center px-4 md:px-6">
-        <Link href="/dashboard" className="flex items-center gap-2 mr-6 shrink-0">
-          <DustLogo size={22} color="#00FF41" />
-          <span className="text-sm font-bold tracking-widest text-white font-mono hidden sm:block">DUST</span>
+      <nav className="fixed top-0 left-0 right-0 z-50 h-16 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex items-center px-4 md:px-8">
+        <Link href="/dashboard" className="flex items-center gap-2.5 mr-8 shrink-0">
+          <DustLogo size={26} color="#00FF41" />
+          <span className="hidden sm:flex items-baseline gap-1.5">
+            <span className="text-base font-bold tracking-widest text-white font-mono">DUST</span>
+            <span className="text-[10px] font-mono tracking-[0.25em] text-[rgba(0,255,65,0.35)] uppercase">PROTOCOL</span>
+          </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-1 flex-1">
+        <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
           {navItems.map(item => (
             <Link
               key={item.href}
               href={item.href}
-              className={`px-3 py-1.5 text-[11px] font-mono tracking-wider transition-all rounded-sm ${
+              className={`inline-flex items-center px-4 py-2 text-xs font-mono tracking-wider transition-all rounded-sm ${
                 pathname === item.href
                   ? 'text-[#00FF41] bg-[rgba(0,255,65,0.06)] border border-[rgba(0,255,65,0.15)]'
                   : 'text-[rgba(255,255,255,0.5)] hover:text-white hover:bg-[rgba(255,255,255,0.04)] border border-transparent'
@@ -54,20 +81,72 @@ export function Navbar() {
           ))}
         </div>
 
-        <div className="hidden md:flex items-center gap-2 ml-auto">
-          <ChainSelector />
-          {displayName && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)]">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" />
-              <span className="text-[10px] font-mono text-[rgba(255,255,255,0.7)]">{displayName}</span>
+        {/* Single wallet button (desktop) */}
+        <div className="hidden md:flex items-center ml-auto" ref={walletRef}>
+          {displayName ? (
+            <div className="relative">
+              <button
+                onClick={() => setWalletOpen(v => !v)}
+                className="flex items-center gap-3 px-5 py-2.5 rounded-sm border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(0,255,65,0.2)] hover:bg-[rgba(255,255,255,0.04)] transition-all"
+              >
+                <ChainTokenIcon size={20} chainId={activeChain.id} />
+                <div className="w-2 h-2 rounded-full bg-[#00FF41] animate-pulse shrink-0" />
+                <span className="text-sm font-mono text-[rgba(255,255,255,0.85)]">{displayName}</span>
+                <ChevronDownIcon
+                  className="w-4 h-4 text-[rgba(255,255,255,0.4)] transition-transform duration-150"
+                  style={{ transform: walletOpen ? "rotate(180deg)" : "none" }}
+                />
+              </button>
+
+              {walletOpen && (
+                <div className="absolute top-full mt-2 right-0 bg-[#0a0d14] border border-[rgba(255,255,255,0.1)] rounded-sm min-w-[230px] z-50 overflow-hidden">
+                  {/* Network section */}
+                  <div className="px-4 pt-3 pb-1">
+                    <span className="text-[11px] font-mono text-[rgba(255,255,255,0.3)] tracking-widest">NETWORK</span>
+                  </div>
+                  {chains.map(chain => {
+                    const isActive = chain.id === activeChainId;
+                    return (
+                      <button
+                        key={chain.id}
+                        onClick={() => { setActiveChain(chain.id); setWalletOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-xs font-mono transition-all flex items-center gap-2.5 ${
+                          isActive
+                            ? 'text-[#00FF41] bg-[rgba(0,255,65,0.05)]'
+                            : 'text-[rgba(255,255,255,0.6)] hover:bg-[rgba(255,255,255,0.04)] hover:text-white'
+                        }`}
+                      >
+                        <ChainTokenIcon size={16} chainId={chain.id} />
+                        <span className="flex-1">{chain.name}</span>
+                        {isActive && <span className="text-[#00FF41]">●</span>}
+                      </button>
+                    );
+                  })}
+
+                  <div className="border-t border-[rgba(255,255,255,0.06)] mt-1" />
+
+                  {/* Actions */}
+                  <button
+                    onClick={copyAddress}
+                    className="w-full text-left px-4 py-3 text-xs font-mono text-[rgba(255,255,255,0.5)] hover:bg-[rgba(255,255,255,0.04)] hover:text-white transition-all flex items-center gap-2.5"
+                  >
+                    {copied
+                      ? <CheckIcon className="w-4 h-4 text-[#00FF41]" />
+                      : <CopyIcon className="w-4 h-4" />
+                    }
+                    {copied ? "COPIED!" : "COPY ADDRESS"}
+                  </button>
+                  <button
+                    onClick={() => { disconnect(); setWalletOpen(false); }}
+                    className="w-full text-left px-4 py-3 mb-1 text-xs font-mono text-[rgba(255,100,100,0.7)] hover:bg-[rgba(255,80,80,0.06)] hover:text-[#ff6b6b] transition-all flex items-center gap-2.5"
+                  >
+                    <LogOutIcon className="w-4 h-4" />
+                    DISCONNECT
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-          <button
-            onClick={() => disconnect()}
-            className="px-2.5 py-1 text-[10px] font-mono text-[rgba(255,255,255,0.4)] border border-[rgba(255,255,255,0.06)] rounded-sm hover:text-white hover:border-[rgba(255,255,255,0.15)] transition-all"
-          >
-            DISCONNECT
-          </button>
+          ) : null}
         </div>
 
         <button
@@ -79,7 +158,7 @@ export function Navbar() {
       </nav>
 
       {mobileOpen && (
-        <div className="fixed top-14 left-0 right-0 z-40 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex flex-col py-2">
+        <div className="fixed top-16 left-0 right-0 z-40 bg-[#06080F] border-b border-[rgba(255,255,255,0.06)] flex flex-col py-2">
           {navItems.map(item => (
             <Link
               key={item.href}
@@ -94,13 +173,19 @@ export function Navbar() {
               {item.label.toUpperCase()}
             </Link>
           ))}
-          <div className="px-6 py-3 flex items-center gap-3">
-            <ChainSelector />
+          {/* Mobile wallet row */}
+          <div className="px-6 py-3 border-t border-[rgba(255,255,255,0.06)] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ChainTokenIcon size={14} chainId={activeChain.id} />
+              <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" />
+              <span className="text-[10px] font-mono text-[rgba(255,255,255,0.6)]">{displayName}</span>
+            </div>
             {address && (
               <button
                 onClick={() => { disconnect(); setMobileOpen(false); }}
-                className="text-[10px] font-mono text-[rgba(255,255,255,0.4)] hover:text-white"
+                className="flex items-center gap-1.5 text-[10px] font-mono text-[rgba(255,100,100,0.7)] hover:text-[#ff6b6b] transition-all"
               >
+                <LogOutIcon className="w-3 h-3" />
                 DISCONNECT
               </button>
             )}
