@@ -11,7 +11,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname === "/" || pathname.startsWith("/pay/") || pathname === "/onboarding") return;
+    if (pathname === "/" || pathname.startsWith("/pay/") || pathname === "/onboarding" || pathname.startsWith("/docs")) return;
     if (!isHydrated) return;
     if (!isConnected) { router.replace("/"); return; }
     if (!address) return;
@@ -20,6 +20,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (pathname === "/" || pathname === "/onboarding" || pathname.startsWith("/pay/")) {
     return <>{children}</>;
+  }
+
+  // Docs are public — render with navbar, no auth required
+  if (pathname.startsWith("/docs")) {
+    return (
+      <div className="min-h-screen bg-[#06080F] text-white">
+        <Navbar />
+        <main className="pt-14">
+          {children}
+        </main>
+      </div>
+    );
   }
 
   if (!isHydrated || !isConnected || !address) {

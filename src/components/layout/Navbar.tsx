@@ -20,7 +20,13 @@ const navItems = [
   { href: "/links", label: "Links" },
   { href: "/activities", label: "Activity" },
   { href: "/settings", label: "Settings" },
+  { href: "/docs", label: "Docs" },
 ];
+
+function isNavActive(itemHref: string, pathname: string) {
+  if (itemHref === "/docs") return pathname.startsWith("/docs");
+  return pathname === itemHref;
+}
 
 export function Navbar() {
   const pathname = usePathname();
@@ -76,7 +82,7 @@ export function Navbar() {
               key={item.href}
               href={item.href}
               className={`inline-flex items-center px-3 py-1.5 text-[11px] font-mono tracking-wider transition-all rounded-sm whitespace-nowrap ${
-                pathname === item.href
+                isNavActive(item.href, pathname)
                   ? 'text-[#00FF41] bg-[rgba(0,255,65,0.06)] border border-[rgba(0,255,65,0.15)]'
                   : 'text-[rgba(255,255,255,0.5)] hover:text-white hover:bg-[rgba(255,255,255,0.04)] border border-transparent'
               }`}
@@ -167,7 +173,7 @@ export function Navbar() {
               href={item.href}
               onClick={() => setMobileOpen(false)}
               className={`px-6 py-3 text-[11px] font-mono tracking-wider transition-all ${
-                pathname === item.href
+                isNavActive(item.href, pathname)
                   ? 'text-[#00FF41] bg-[rgba(0,255,65,0.04)]'
                   : 'text-[rgba(255,255,255,0.5)] hover:text-white hover:bg-[rgba(255,255,255,0.03)]'
               }`}
