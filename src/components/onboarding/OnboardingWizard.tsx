@@ -64,7 +64,7 @@ export function OnboardingWizard() {
               style={{
                 backgroundColor:
                   i < currentIndex
-                    ? "rgba(74,117,240,0.5)"
+                    ? "rgba(0,255,65,0.5)"
                     : i === currentIndex
                     ? "rgba(255,255,255,0.8)"
                     : "rgba(255,255,255,0.1)",
@@ -99,7 +99,7 @@ export function OnboardingWizard() {
                 <div className="flex items-center gap-2 justify-center py-8">
                   {/* Spinner */}
                   <svg
-                    className="animate-spin w-4 h-4 text-[rgba(74,117,240,0.8)]"
+                    className="animate-spin w-4 h-4 text-[rgba(0,255,65,0.8)]"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"

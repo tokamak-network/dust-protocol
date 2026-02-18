@@ -66,7 +66,7 @@ export function UsernameStep({ onNext, initialName = "" }: UsernameStepProps) {
           {isChecking && (
             <div className="flex items-center gap-[5px]">
               <svg
-                className="animate-spin w-3 h-3 text-[rgba(74,117,240,0.6)]"
+                className="animate-spin w-3 h-3 text-[rgba(0,255,65,0.6)]"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"

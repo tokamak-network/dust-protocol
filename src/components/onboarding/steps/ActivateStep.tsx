@@ -72,7 +72,7 @@ export function ActivateStep({ username, pin, onComplete }: ActivateStepProps) {
           <span className="text-[9px] uppercase tracking-wider font-mono text-[rgba(255,255,255,0.5)]">
             Username
           </span>
-          <span className="text-[13px] font-medium text-[rgba(74,117,240,0.9)] font-mono">
+          <span className="text-[13px] font-medium text-[rgba(0,255,65,0.9)] font-mono">
             {formatName(username)}
           </span>
         </div>
@@ -91,7 +91,7 @@ export function ActivateStep({ username, pin, onComplete }: ActivateStepProps) {
       {(status === "signing" || status === "activating") && (
         <div className="flex items-center gap-2 justify-center py-2">
           <svg
-            className="animate-spin w-4 h-4 text-[rgba(74,117,240,0.8)]"
+            className="animate-spin w-4 h-4 text-[rgba(0,255,65,0.8)]"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
