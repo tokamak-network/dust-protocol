@@ -7,7 +7,6 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { DustLogo } from "@/components/DustLogo";
 
-import { SpiritPortal } from "@/components/SpiritPortal";
 
 export default function OnboardingPage() {
   const { isConnected, isOnboarded, isHydrated, address } = useAuth();
@@ -39,30 +38,28 @@ export default function OnboardingPage() {
       {/* Container with background */}
       <div className="min-h-screen bg-[#06080F] text-white flex flex-col relative overflow-hidden">
 
-        {/* Background image layer */}
+        {/* Background video layer */}
         <div className="absolute top-0 left-0 w-full h-full z-0">
-          <div
-            className="absolute inset-0 brightness-75"
-            style={{
-              backgroundImage: "url('/nature_privacy_portal_bg.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          />
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover brightness-75"
+          >
+            <source src="/bg.webm" type="video/webm" />
+          </video>
         </div>
 
         {/* Header — transparent overlay */}
         <header className="border-b border-[rgba(255,255,255,0.06)] bg-[rgba(6,8,15,0.2)] backdrop-blur-md relative z-[100] px-6 py-4">
           <div className="flex items-center justify-between max-w-[1200px] mx-auto">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <DustLogo size={26} color="#00FF41" />
-              <span
-                className="text-[22px] font-bold text-white tracking-tight"
-                style={{ fontFamily: "var(--font-instrument-serif), serif" }}
-              >
-                Dust
-              </span>
-              <span className="text-[13px] font-medium text-white/35">Protocol</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-base font-bold tracking-widest text-white font-mono">DUST</span>
+                <span className="text-[10px] font-mono tracking-[0.25em] text-[rgba(0,255,65,0.35)] uppercase">PROTOCOL</span>
+              </div>
             </div>
             <ConnectButton />
           </div>

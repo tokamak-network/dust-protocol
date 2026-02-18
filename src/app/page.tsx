@@ -9,9 +9,7 @@ import { useLogin } from "@privy-io/react-auth";
 import { isPrivyEnabled } from "@/config/privy";
 import { useConnect } from "wagmi";
 import { injected } from "wagmi/connectors";
-import Image from "next/image";
-
-import { SpiritPortal } from "@/components/SpiritPortal";
+import DecryptedText from "@/components/DecryptedText";
 
 // One-time cleanup of stale cache data from previous sessions
 function cleanupCorruptedStorage() {
@@ -134,21 +132,30 @@ export default function Home() {
 
       <div className="min-h-screen bg-[#06080F] flex flex-col relative overflow-x-hidden">
 
-        {/* Mobile Background Image */}
-        <div className="absolute top-0 left-0 w-full h-full z-0 lg:hidden opacity-60">
-          <Image
-            src="/mobile.png"
-            alt="Background"
-            fill
-            priority
-            style={{ objectFit: "cover", objectPosition: "center" }}
-            quality={90}
-          />
+        {/* Mobile Background Video */}
+        <div className="absolute top-0 left-0 w-full h-full z-0 lg:hidden">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover brightness-[0.5]"
+          >
+            <source src="/bg.webm" type="video/webm" />
+          </video>
         </div>
 
-        {/* Dust Spirit Portal (Desktop Only) */}
-        <div className="hidden lg:block">
-          <SpiritPortal />
+        {/* Desktop Background Video */}
+        <div className="absolute top-0 left-0 w-full h-full z-0 hidden lg:block">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover brightness-[0.65]"
+          >
+            <source src="/bg.webm" type="video/webm" />
+          </video>
         </div>
 
         {/* Header */}
@@ -156,20 +163,10 @@ export default function Home() {
           <div className="w-full flex items-center justify-between">
             {/* Left: Logo */}
             <div className="flex items-center gap-3">
-              <DustLogo size={32} color="#00FF41" />
-              <div className="hidden sm:flex items-baseline gap-1.5">
-                <span
-                  className="text-2xl font-normal text-white tracking-tight"
-                  style={{ fontFamily: "var(--font-instrument-serif), serif" }}
-                >
-                  Dust
-                </span>
-                <span
-                  className="text-2xl font-normal text-white/50 tracking-tight"
-                  style={{ fontFamily: "var(--font-instrument-serif), serif" }}
-                >
-                  Protocol
-                </span>
+              <DustLogo size={40} color="#00FF41" />
+              <div className="hidden sm:flex items-baseline gap-2">
+                <span className="text-2xl font-bold tracking-widest text-white font-mono">DUST</span>
+                <span className="text-[13px] font-bold font-mono tracking-[0.25em] text-[rgba(0,255,65,0.35)] uppercase">PROTOCOL</span>
               </div>
             </div>
 
@@ -257,10 +254,12 @@ export default function Home() {
                 className="text-[72px] text-white leading-[1.1] tracking-[-0.03em] mb-4"
                 style={{ fontFamily: "var(--font-instrument-serif), serif" }}
               >
-                Private<br />Transfers
+                <DecryptedText text="Private" animateOn="both" sequential revealDirection="start" speed={40} />
+                <br />
+                <DecryptedText text="Transfers" animateOn="both" sequential revealDirection="start" speed={40} />
               </p>
               <p className="text-base text-white/70 max-w-[320px] leading-relaxed">
-                Untraceable payments that dissolve into the blockchain.
+                <DecryptedText text="Untraceable payments that dissolve into the blockchain." animateOn="both" sequential revealDirection="start" speed={20} />
               </p>
             </div>
 
@@ -294,17 +293,12 @@ export default function Home() {
                 className="text-[72px] text-white leading-[1.1] tracking-[-0.03em] mb-4"
                 style={{ fontFamily: "var(--font-instrument-serif), serif" }}
               >
-                Privacy<br />Swap
+                <DecryptedText text="Privacy" animateOn="both" sequential revealDirection="start" speed={40} />
+                <br />
+                <DecryptedText text="Swap" animateOn="both" sequential revealDirection="start" speed={40} />
               </p>
               <p className="text-base text-white/70 max-w-[320px] leading-relaxed ml-auto">
-                Swap tokens anonymously without leaving a trace.
-              </p>
-            </div>
-
-            {/* Coming Soon pill */}
-            <div className="fade-up d4 px-6 py-3 rounded-full border border-white/15 bg-white/5 backdrop-blur-md">
-              <p className="text-[13px] font-mono text-white/60 tracking-[0.1em]">
-                COMING_SOON
+                <DecryptedText text="Swap tokens anonymously without leaving a trace." animateOn="both" sequential revealDirection="start" speed={20} />
               </p>
             </div>
           </div>
