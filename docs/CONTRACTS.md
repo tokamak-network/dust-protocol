@@ -75,4 +75,26 @@ Deployment block: `6272527` · DustPool: `6372598`
 
 ---
 
+## V2 Contracts (DustPool ZK-UTXO)
+
+### Ethereum Sepolia (chain ID: 11155111)
+
+| Contract | Address |
+|----------|---------|
+| FflonkVerifier | `0xD1D89bBAeD5b2e4453d6ED59c6e6fa78C13852A7` |
+| DustPoolV2 | `0x36ECE3c48558630372fa4d35B1C4293Fcc18F7B6` |
+
+Deployer/Relayer: `0x8d56E94a02F06320BDc68FAfE23DEc9Ad7463496`
+
+### Thanos Sepolia (chain ID: 111551119090)
+
+| Contract | Address |
+|----------|---------|
+| FflonkVerifier | `0x1f01345e6dCccfC3E213C391C81a70FAa20Ea6bc` |
+| DustPoolV2 | `0x6987FE79057D83BefD19B80822Decb52235A5a67` |
+
+Deployer/Relayer: `0x8d56E94a02F06320BDc68FAfE23DEc9Ad7463496`
+
+---
+
 All chain configuration including RPC URLs, contract addresses, and CREATE2 creation codes lives in `src/config/chains.ts`.
