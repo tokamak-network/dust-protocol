@@ -3,9 +3,8 @@
 
 import { fflonk } from 'snarkjs'
 
-// Web Workers can't use @/ path aliases — hardcode public asset paths
 const WASM_PATH = '/circuits/v2/DustV2Transaction.wasm'
-const ZKEY_PATH = '/circuits/v2/DustV2Transaction.zkey'
+const FALLBACK_ZKEY_PATH = '/circuits/v2/DustV2Transaction.zkey'
 
 export interface WorkerMessage {
   type: 'generate' | 'verify'
@@ -15,6 +14,7 @@ export interface WorkerMessage {
     proof?: unknown
     publicSignals?: string[]
     vKey?: unknown
+    zkeyPath?: string
   }
 }
 
@@ -38,13 +38,13 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
     if (type === 'generate') {
       sendProgress('Preparing inputs', 0.1)
 
-      const { circuitInputs } = data
+      const { circuitInputs, zkeyPath } = data
       if (!circuitInputs) throw new Error('Missing circuitInputs')
 
       sendProgress('Loading circuit files', 0.2)
       sendProgress('Generating witness + proof', 0.3)
 
-      const result = await fflonk.fullProve(circuitInputs, WASM_PATH, ZKEY_PATH)
+      const result = await fflonk.fullProve(circuitInputs, WASM_PATH, zkeyPath || FALLBACK_ZKEY_PATH)
 
       sendProgress('Formatting calldata', 0.8)
 

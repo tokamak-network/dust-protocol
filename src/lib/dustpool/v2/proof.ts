@@ -10,7 +10,7 @@ import type { ProofInputs } from './types'
 import { TREE_DEPTH } from './constants'
 
 const WASM_PATH = '/circuits/v2/DustV2Transaction.wasm'
-const ZKEY_PATH = '/circuits/v2/DustV2Transaction.zkey'
+const ZKEY_PATH = process.env.NEXT_PUBLIC_V2_ZKEY_URL || '/circuits/v2/DustV2Transaction.zkey'
 const VKEY_PATH = '/circuits/v2/verification_key.json'
 const PROOF_TIMEOUT_MS = 120_000
 
@@ -169,7 +169,7 @@ export async function generateV2Proof(
     worker.postMessage({
       type: 'generate',
       id,
-      data: { circuitInputs },
+      data: { circuitInputs, zkeyPath: ZKEY_PATH },
     })
 
     setTimeout(() => {
