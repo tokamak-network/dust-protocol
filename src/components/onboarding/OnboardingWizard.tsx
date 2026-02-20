@@ -28,6 +28,7 @@ export function OnboardingWizard() {
   const [step, setStep] = useState<Step>((isReactivation || isReclaiming) ? "pin" : "username");
   const [username, setUsername] = useState(isReactivation ? (ownedNames[0]?.name ?? "") : "");
   const [error, setError] = useState<string | null>(null);
+  const [metaRegWarning, setMetaRegWarning] = useState<string | null>(null);
   const activatingRef = useRef(false);
 
   // If names load after mount (async) and we haven't moved yet, jump to pin
@@ -78,7 +79,8 @@ export function OnboardingWizard() {
       if (alreadyHasName) {
         // Wallet already has a name — just re-derive keys and re-register ERC-6538 meta-address.
         // Skip registerName to avoid an unnecessary API call.
-        await tryRegisterMeta();
+        const metaOk = await tryRegisterMeta();
+        if (!metaOk) setMetaRegWarning("Account restored, but stealth keys couldn't be registered on-chain. Your account may not be discoverable from other devices.");
       } else if (isReclaiming) {
         // Reclaim flow: user says they already have an account.
         // Use derived metaAddress to find their name via server-side lookup.
@@ -100,15 +102,21 @@ export function OnboardingWizard() {
       } else {
         // Fresh onboarding — register the chosen name on-chain.
         // registerName returns the txHash string, or 'already-registered' for idempotent re-reg.
-        const [nameTx] = await Promise.all([
+        const [nameTx, metaOk] = await Promise.all([
           registerName(username, result.metaAddress),
           tryRegisterMeta(),
         ]);
         if (!nameTx) throw new Error("Failed to register name");
+        if (!metaOk) setMetaRegWarning("Account created, but stealth keys couldn't be registered on-chain. Your account may not be discoverable from other devices.");
       }
 
       if (address) {
         localStorage.setItem(storageKey('onboarded', address), 'true');
+      }
+
+      // If meta registration failed, briefly show warning before navigating
+      if (metaRegWarning) {
+        await new Promise(r => setTimeout(r, 3000));
       }
 
       router.replace("/dashboard");
@@ -207,6 +215,13 @@ export function OnboardingWizard() {
                 <div className="flex items-center gap-[6px] pl-[2px]">
                   <AlertCircleIcon size={12} color="#ef4444" />
                   <span className="text-[12px] text-[#ef4444] font-mono">{error}</span>
+                </div>
+              )}
+
+              {metaRegWarning && !error && (
+                <div className="flex items-start gap-[6px] pl-[2px] px-1 py-2 bg-[rgba(255,200,0,0.05)] border border-[rgba(255,200,0,0.15)] rounded-sm">
+                  <AlertCircleIcon size={12} color="#eab308" className="mt-0.5 shrink-0" />
+                  <span className="text-[11px] text-[#eab308] font-mono">{metaRegWarning}</span>
                 </div>
               )}
             </div>

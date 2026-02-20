@@ -161,22 +161,41 @@ export async function GET(req: Request, { params }: { params: { name: string } }
       metadata += slugHex;
     }
 
-    // 5. Announce on-chain (deployer pays gas) — fire-and-forget so we respond immediately
+    // 5. Announce on-chain (deployer pays gas) — await TX submission, background confirmation.
+    //    Without a successful announcement, the recipient's scanner cannot find the payment.
     const sponsor = getServerSponsor(chainId);
     const announcer = new ethers.Contract(config.contracts.announcer, ANNOUNCER_ABI, sponsor);
     const ephPubKeyHex = '0x' + ephemeralPublicKey.replace(/^0x/, '');
 
-    // Submit tx without awaiting confirmation — return stealth address right away
-    announcer.announce(1, stealthAddress, ephPubKeyHex, metadata)
-      .then((tx: ethers.ContractTransaction) => tx.wait())
+    // Retry TX submission up to 3 times (handles transient nonce/gas errors)
+    let announceTx: ethers.ContractTransaction | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        announceTx = await announcer.announce(1, stealthAddress, ephPubKeyHex, metadata);
+        break;
+      } catch (e) {
+        console.warn(`[Resolve] announce attempt ${attempt + 1}/3 failed:`, e instanceof Error ? e.message : e);
+        if (attempt < 2) await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
+
+    if (!announceTx) {
+      return NextResponse.json(
+        { error: 'Announcement failed — please try again' },
+        { status: 503, headers: NO_STORE }
+      );
+    }
+
+    // TX submitted — wait for confirmation in background (don't block response)
+    announceTx.wait()
       .then((receipt: ethers.ContractReceipt) => {
         console.log('[Resolve] announced', normalized, linkSlug || '', '→', stealthAddress, 'tx:', receipt.transactionHash);
       })
       .catch((e: unknown) => {
-        console.error('[Resolve] announce failed (non-fatal):', e instanceof Error ? e.message : e);
+        console.error('[Resolve] announce confirmation failed:', e instanceof Error ? e.message : e);
       });
 
-    console.log('[Resolve]', normalized, '(announce submitted async)');
+    console.log('[Resolve]', normalized, '→', stealthAddress, 'tx:', announceTx.hash);
 
     return NextResponse.json(
       {
