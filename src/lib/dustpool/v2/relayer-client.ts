@@ -84,6 +84,9 @@ class RelayerError extends Error {
   }
 }
 
+const MAX_RETRIES = 3
+const RETRY_BASE_DELAY_MS = 1000
+
 async function relayerFetch<T>(
   config: RelayerConfig,
   path: string,
@@ -91,23 +94,32 @@ async function relayerFetch<T>(
 ): Promise<T> {
   const url = `${config.baseUrl}${path}`
 
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    ...options,
-  })
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      ...options,
+    })
 
-  if (!response.ok) {
+    if (response.ok) {
+      return response.json() as Promise<T>
+    }
+
     const body = await response.text().catch(() => undefined)
-    throw new RelayerError(
+    const error = new RelayerError(
       `Relayer request failed: ${response.status} ${response.statusText}`,
       response.status,
       body
     )
+
+    const isRetryable = response.status >= 500 && attempt < MAX_RETRIES
+    if (!isRetryable) throw error
+
+    await new Promise(r => setTimeout(r, RETRY_BASE_DELAY_MS * Math.pow(2, attempt)))
   }
 
-  return response.json() as Promise<T>
+  throw new Error('relayerFetch: unreachable')
 }
 
 // ─── Client ─────────────────────────────────────────────────────────────────────

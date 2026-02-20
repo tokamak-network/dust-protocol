@@ -5,9 +5,9 @@ import { TreeStore } from '../../tree/tree-store';
 export function createTreeRouter(tree: GlobalTree, store: TreeStore): Router {
   const router = Router();
 
-  router.get('/root', (_req: Request, res: Response) => {
+  router.get('/root', async (_req: Request, res: Response) => {
     try {
-      const root = tree.getRoot();
+      const root = await tree.getRoot();
       res.json({
         root: '0x' + root.toString(16).padStart(64, '0'),
         leafCount: tree.leafCount,
@@ -19,7 +19,7 @@ export function createTreeRouter(tree: GlobalTree, store: TreeStore): Router {
     }
   });
 
-  router.get('/proof/:leafIndex', (req: Request<{ leafIndex: string }>, res: Response) => {
+  router.get('/proof/:leafIndex', async (req: Request<{ leafIndex: string }>, res: Response) => {
     try {
       const leafIndex = parseInt(req.params.leafIndex, 10);
       if (isNaN(leafIndex) || leafIndex < 0) {
@@ -32,7 +32,7 @@ export function createTreeRouter(tree: GlobalTree, store: TreeStore): Router {
         return;
       }
 
-      const proof = tree.getProof(leafIndex);
+      const proof = await tree.getProof(leafIndex);
       res.json({
         pathElements: proof.pathElements.map((e) => '0x' + e.toString(16).padStart(64, '0')),
         pathIndices: proof.pathIndices,

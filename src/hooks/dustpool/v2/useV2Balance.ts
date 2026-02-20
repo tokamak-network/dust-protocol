@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAccount, useChainId } from 'wagmi'
 import { zeroAddress } from 'viem'
 import { computeAssetId } from '@/lib/dustpool/v2/commitment'
-import { openV2Database, getUnspentNotes, hexToBigint, storedToNoteCommitment } from '@/lib/dustpool/v2/storage'
+import { openV2Database, getUnspentNotes, getPendingNotes, hexToBigint, storedToNoteCommitment } from '@/lib/dustpool/v2/storage'
 import type { NoteCommitmentV2 } from '@/lib/dustpool/v2/types'
 
 export function useV2Balance(chainIdOverride?: number) {
@@ -13,6 +13,7 @@ export function useV2Balance(chainIdOverride?: number) {
   const [balances, setBalances] = useState<Map<bigint, bigint>>(new Map())
   const [totalEthBalance, setTotalEthBalance] = useState<bigint>(0n)
   const [notes, setNotes] = useState<NoteCommitmentV2[]>([])
+  const [pendingDeposits, setPendingDeposits] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
 
   const refreshBalances = useCallback(async () => {
@@ -20,6 +21,7 @@ export function useV2Balance(chainIdOverride?: number) {
       setBalances(new Map())
       setTotalEthBalance(0n)
       setNotes([])
+      setPendingDeposits(0)
       setIsLoading(false)
       return
     }
@@ -44,6 +46,9 @@ export function useV2Balance(chainIdOverride?: number) {
       // Extract ETH-specific balance
       const ethAssetId = await computeAssetId(chainId, zeroAddress)
       setTotalEthBalance(balanceMap.get(ethAssetId) ?? 0n)
+
+      const pending = await getPendingNotes(db, address, chainId)
+      setPendingDeposits(pending.length)
     } catch (e) {
       console.error('[DustPoolV2] Failed to load balances:', e)
     } finally {
@@ -55,5 +60,5 @@ export function useV2Balance(chainIdOverride?: number) {
     refreshBalances()
   }, [refreshBalances])
 
-  return { balances, totalEthBalance, notes, isLoading, refreshBalances }
+  return { balances, totalEthBalance, notes, pendingDeposits, isLoading, refreshBalances }
 }

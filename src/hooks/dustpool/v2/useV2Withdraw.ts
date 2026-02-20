@@ -1,23 +1,27 @@
 import { useState, useCallback, useRef, type RefObject } from 'react'
-import { useAccount, useChainId } from 'wagmi'
+import { useAccount, useChainId, usePublicClient } from 'wagmi'
 import { zeroAddress, type Address } from 'viem'
 import { computeAssetId } from '@/lib/dustpool/v2/commitment'
 import { buildWithdrawInputs } from '@/lib/dustpool/v2/proof-inputs'
 import {
-  openV2Database, getUnspentNotes, markNoteSpent,
-  saveNoteV2, bigintToHex, hexToBigint, storedToNoteCommitment,
+  openV2Database, getUnspentNotes, markSpentAndSaveChange,
+  bigintToHex, hexToBigint, storedToNoteCommitment,
 } from '@/lib/dustpool/v2/storage'
 import type { StoredNoteV2 } from '@/lib/dustpool/v2/storage'
 import { createRelayerClient } from '@/lib/dustpool/v2/relayer-client'
 import { generateV2Proof, verifyV2ProofLocally } from '@/lib/dustpool/v2/proof'
 import type { V2Keys } from '@/lib/dustpool/v2/types'
 
+const RECEIPT_TIMEOUT_MS = 30_000
+
 export function useV2Withdraw(keysRef: RefObject<V2Keys | null>, chainIdOverride?: number) {
   const { address, isConnected } = useAccount()
   const wagmiChainId = useChainId()
   const chainId = chainIdOverride ?? wagmiChainId
+  const publicClient = usePublicClient()
 
   const [isPending, setIsPending] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const withdrawingRef = useRef(false)
@@ -63,34 +67,68 @@ export function useV2Withdraw(keysRef: RefObject<V2Keys | null>, chainIdOverride
       const inputNote = storedToNoteCommitment(inputStored)
 
       const relayer = createRelayerClient()
-      const merkleProof = await relayer.getMerkleProof(inputNote.leafIndex)
 
-      const proofInputs = await buildWithdrawInputs(
-        inputNote, amount, recipient, keys, merkleProof
-      )
+      const generateAndSubmit = async (isRetry: boolean) => {
+        if (isRetry) {
+          setStatus('Tree updated during proof generation. Retrying with fresh state...')
+        }
 
-      const { proof, publicSignals, proofCalldata } = await generateV2Proof(proofInputs)
+        const merkleProof = await relayer.getMerkleProof(inputNote.leafIndex)
+        const proofInputs = await buildWithdrawInputs(
+          inputNote, amount, recipient, keys, merkleProof
+        )
 
-      const isValid = await verifyV2ProofLocally(proof, publicSignals)
-      if (!isValid) {
-        throw new Error('Generated proof failed local verification')
+        const { proof, publicSignals, proofCalldata } = await generateV2Proof(proofInputs)
+
+        const isValid = await verifyV2ProofLocally(proof, publicSignals)
+        if (!isValid) {
+          throw new Error('Generated proof failed local verification')
+        }
+
+        setStatus('Submitting to relayer...')
+        return { proofInputs, result: await relayer.submitWithdrawal(proofCalldata, publicSignals, chainId, asset) }
       }
 
-      const result = await relayer.submitWithdrawal(proofCalldata, publicSignals, chainId, asset)
-      setTxHash(result.txHash)
+      let submission: Awaited<ReturnType<typeof generateAndSubmit>>
+      try {
+        submission = await generateAndSubmit(false)
+      } catch (submitErr) {
+        const errMsg = submitErr instanceof Error ? submitErr.message : ''
+        const errBody = (submitErr as { body?: string }).body ?? ''
+        const combined = `${errMsg} ${errBody}`.toLowerCase()
+        // Stale root: relayer rejected because tree changed during proof generation
+        if (combined.includes('unknown merkle root') || combined.includes('unknown root')) {
+          submission = await generateAndSubmit(true)
+        } else {
+          throw submitErr
+        }
+      }
 
-      // Only mark spent + save change AFTER successful relayer submission
-      await markNoteSpent(db, inputStored.id)
+      setTxHash(submission.result.txHash)
+      const proofInputs = submission.proofInputs
 
-      // Save change note if input had more than withdrawn amount
-      // Change note is output 0 in buildWithdrawInputs
+      // Verify the withdrawal tx actually succeeded on-chain before marking spent
+      if (!publicClient) {
+        throw new Error('Public client not available — cannot verify transaction')
+      }
+      setStatus('Confirming on-chain...')
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: submission.result.txHash as `0x${string}`,
+        timeout: RECEIPT_TIMEOUT_MS,
+      })
+      if (receipt.status === 'reverted') {
+        throw new Error(`Withdrawal transaction reverted (tx: ${submission.result.txHash})`)
+      }
+
+      // Atomically mark spent + save change in one IndexedDB transaction
       if (inputNote.note.amount < amount) {
         throw new Error('Input note amount less than withdrawal — stale data')
       }
       const changeAmount = inputNote.note.amount - amount
+      let changeStored: StoredNoteV2 | undefined
       if (changeAmount > 0n) {
         const changeCommitmentHex = bigintToHex(proofInputs.outputCommitment0)
-        const changeStored: StoredNoteV2 = {
+        changeStored = {
           id: changeCommitmentHex,
           walletAddress: address.toLowerCase(),
           chainId,
@@ -99,20 +137,21 @@ export function useV2Withdraw(keysRef: RefObject<V2Keys | null>, chainIdOverride
           amount: bigintToHex(proofInputs.outAmount[0]),
           asset: bigintToHex(proofInputs.outAsset[0]),
           blinding: bigintToHex(proofInputs.outBlinding[0]),
-          leafIndex: -1, // Pending relayer confirmation
+          leafIndex: -1,
           spent: false,
           createdAt: Date.now(),
         }
-        await saveNoteV2(db, address, changeStored)
       }
+      await markSpentAndSaveChange(db, inputStored.id, changeStored)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Withdrawal failed'
       setError(msg)
     } finally {
       setIsPending(false)
+      setStatus(null)
       withdrawingRef.current = false
     }
-  }, [isConnected, address, chainId])
+  }, [isConnected, address, chainId, publicClient])
 
-  return { withdraw, isPending, txHash, error }
+  return { withdraw, isPending, status, txHash, error }
 }

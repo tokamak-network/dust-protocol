@@ -5,8 +5,12 @@ import { parseDepositEvent, sortDeposits, type ParsedDeposit } from './event-par
 import { GlobalTree } from '../tree/global-tree';
 import { TreeStore } from '../tree/tree-store';
 import { RootPublisher } from '../tree/root-publisher';
+import { withTimeout } from '../utils';
 
 const MAX_BLOCK_RANGE = 2000;
+const RPC_BLOCK_NUMBER_TIMEOUT_MS = 10_000;
+const RPC_GET_LOGS_TIMEOUT_MS = 30_000;
+const WATCHER_STALE_THRESHOLD_MS = 5 * 60_000;
 
 /**
  * Watches DepositQueued events on all configured chains, inserts
@@ -21,6 +25,7 @@ export class ChainWatcher {
   private running = false;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private seenCommitments = new Set<string>();
+  private lastPollTime = 0;
 
   constructor(
     tree: GlobalTree,
@@ -57,7 +62,22 @@ export class ChainWatcher {
     console.log('[chain-watcher] Stopped');
   }
 
+  getStatus(): { running: boolean; lastPollTime: number; seenCommitments: number } {
+    return {
+      running: this.running,
+      lastPollTime: this.lastPollTime,
+      seenCommitments: this.seenCommitments.size,
+    };
+  }
+
+  isHealthy(): boolean {
+    if (!this.running) return false;
+    if (this.lastPollTime === 0) return true; // hasn't polled yet after start
+    return Date.now() - this.lastPollTime < WATCHER_STALE_THRESHOLD_MS;
+  }
+
   private async poll(): Promise<void> {
+    this.lastPollTime = Date.now();
     try {
       const allDeposits: ParsedDeposit[] = [];
 
@@ -82,7 +102,7 @@ export class ChainWatcher {
       for (const deposit of sorted) {
         if (this.seenCommitments.has(deposit.commitment)) continue;
 
-        const leafIndex = this.tree.insert(BigInt(deposit.commitment));
+        const leafIndex = await this.tree.insert(BigInt(deposit.commitment));
         this.seenCommitments.add(deposit.commitment);
 
         this.store.insertLeaf({
@@ -105,7 +125,8 @@ export class ChainWatcher {
 
       // Store current root locally so isKnownRoot passes immediately for withdrawals.
       // On-chain publication still happens at batch intervals via publishIfNeeded().
-      const rootHex = '0x' + this.tree.getRoot().toString(16).padStart(64, '0');
+      const root = await this.tree.getRoot();
+      const rootHex = '0x' + root.toString(16).padStart(64, '0');
       this.store.insertRoot(rootHex, null);
 
       await this.publisher.publishIfNeeded();
@@ -117,24 +138,31 @@ export class ChainWatcher {
 
   private async fetchDeposits(chain: V2ChainConfig): Promise<ParsedDeposit[]> {
     const provider = getProvider(chain);
-    const currentBlock = await provider.getBlockNumber();
+    const currentBlock = await withTimeout(
+      provider.getBlockNumber(),
+      RPC_BLOCK_NUMBER_TIMEOUT_MS,
+      `${chain.name} getBlockNumber`
+    );
     const storedCursor = this.store.getScanCursor(chain.chainId);
     const fromBlock = Math.max(storedCursor + 1, chain.startBlock);
 
     if (fromBlock > currentBlock) return [];
 
-    // Limit range to avoid RPC timeouts
     const toBlock = Math.min(fromBlock + MAX_BLOCK_RANGE - 1, currentBlock);
 
     const contract = new ethers.Contract(chain.dustPoolV2Address, DUST_POOL_V2_ABI, provider);
     const filter = contract.filters.DepositQueued();
 
-    const logs = await provider.getLogs({
-      address: chain.dustPoolV2Address,
-      topics: filter.topics as string[],
-      fromBlock,
-      toBlock,
-    });
+    const logs = await withTimeout(
+      provider.getLogs({
+        address: chain.dustPoolV2Address,
+        topics: filter.topics as string[],
+        fromBlock,
+        toBlock,
+      }),
+      RPC_GET_LOGS_TIMEOUT_MS,
+      `${chain.name} getLogs(${fromBlock}..${toBlock})`
+    );
 
     const deposits: ParsedDeposit[] = [];
     for (const log of logs) {

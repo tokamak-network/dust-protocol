@@ -105,6 +105,12 @@ export async function buildWithdrawInputs(
   merkleProof: { pathElements: bigint[]; pathIndices: number[] },
   changeNote?: NoteV2
 ): Promise<ProofInputs> {
+  if (amount > inputNote.note.amount) {
+    throw new Error(
+      `Withdrawal amount (${amount}) exceeds note balance (${inputNote.note.amount})`
+    )
+  }
+
   const dummy = createDummyNote()
   const dummyProof = dummyMerkleProof()
 
@@ -198,6 +204,12 @@ export async function buildTransferInputs(
   keys: V2Keys,
   merkleProof: { pathElements: bigint[]; pathIndices: number[] }
 ): Promise<ProofInputs> {
+  if (amount > inputNote.note.amount) {
+    throw new Error(
+      `Transfer amount (${amount}) exceeds note balance (${inputNote.note.amount})`
+    )
+  }
+
   const dummy = createDummyNote()
   const dummyProof = dummyMerkleProof()
 

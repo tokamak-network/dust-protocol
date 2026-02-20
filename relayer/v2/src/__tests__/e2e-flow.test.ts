@@ -21,11 +21,11 @@ describe('E2E: deposit event → tree → store → root', () => {
     store.close()
   })
 
-  it('full deposit flow: insert leaf + store root + isKnownRoot', () => {
+  it('full deposit flow: insert leaf + store root + isKnownRoot', async () => {
     // Simulate a DepositQueued event arriving
     const commitment = '0x' + '1'.repeat(64)
-    const leafIndex = tree.insert(BigInt(commitment))
-    const newRoot = tree.getRoot()
+    const leafIndex = await tree.insert(BigInt(commitment))
+    const newRoot = await tree.getRoot()
     const rootHex = '0x' + newRoot.toString(16).padStart(64, '0')
 
     // Persist leaf
@@ -51,11 +51,11 @@ describe('E2E: deposit event → tree → store → root', () => {
     expect(store.getLeafCount()).toBe(1)
   })
 
-  it('multiple deposits: sequential leaf indices, roots accumulate', () => {
+  it('multiple deposits: sequential leaf indices, roots accumulate', async () => {
     const commitments = ['0x' + 'a'.repeat(64), '0x' + 'b'.repeat(64), '0x' + 'c'.repeat(64)]
 
     for (let i = 0; i < commitments.length; i++) {
-      const leafIndex = tree.insert(BigInt(commitments[i]))
+      const leafIndex = await tree.insert(BigInt(commitments[i]))
       store.insertLeaf({
         leafIndex,
         commitment: commitments[i],
@@ -69,7 +69,8 @@ describe('E2E: deposit event → tree → store → root', () => {
       })
 
       // Publish root after each deposit
-      const rootHex = '0x' + tree.getRoot().toString(16).padStart(64, '0')
+      const root = await tree.getRoot()
+      const rootHex = '0x' + root.toString(16).padStart(64, '0')
       store.insertRoot(rootHex, null)
     }
 
@@ -81,12 +82,12 @@ describe('E2E: deposit event → tree → store → root', () => {
     expect(store.isKnownRoot(latestRoot!.root)).toBe(true)
   })
 
-  it('Merkle proof from tree is consistent with root', () => {
+  it('Merkle proof from tree is consistent with root', async () => {
     const commitment = BigInt('0x' + 'd'.repeat(64))
-    const leafIndex = tree.insert(commitment)
+    const leafIndex = await tree.insert(commitment)
 
-    const proof = tree.getProof(leafIndex)
-    const root = tree.getRoot()
+    const proof = await tree.getProof(leafIndex)
+    const root = await tree.getRoot()
 
     expect(proof.root).toBe(root)
     expect(proof.pathElements).toHaveLength(20)
@@ -211,8 +212,8 @@ describe('E2E: transfer validation', () => {
     const outCommitment0 = BigInt('0x' + '6'.repeat(64))
     const outCommitment1 = BigInt('0x' + '7'.repeat(64))
 
-    const idx0 = tree.insert(outCommitment0)
-    const idx1 = tree.insert(outCommitment1)
+    const idx0 = await tree.insert(outCommitment0)
+    const idx1 = await tree.insert(outCommitment1)
 
     store.insertLeaf({
       leafIndex: idx0,

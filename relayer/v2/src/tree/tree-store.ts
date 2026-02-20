@@ -35,6 +35,7 @@ export interface ScanCursorRow {
 
 export class TreeStore {
   private db: Database.Database;
+  private checkpointTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(dbPath: string) {
     const dir = path.dirname(dbPath);
@@ -46,6 +47,13 @@ export class TreeStore {
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
     this.migrate();
+
+    // Periodic PASSIVE checkpoint every 5 min to limit WAL file growth
+    if (dbPath !== ':memory:') {
+      this.checkpointTimer = setInterval(() => {
+        this.checkpointPassive();
+      }, 5 * 60_000);
+    }
   }
 
   private migrate(): void {
@@ -179,7 +187,71 @@ export class TreeStore {
     `).run(chainId, lastBlock, lastBlock);
   }
 
+  /**
+   * Non-blocking WAL checkpoint. Skips pages with active readers.
+   * Used periodically to limit WAL file growth.
+   */
+  private checkpointPassive(): void {
+    try {
+      const result = this.db.pragma('wal_checkpoint(PASSIVE)') as unknown[];
+      console.log(`[tree-store] WAL passive checkpoint: ${JSON.stringify(result)}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[tree-store] WAL passive checkpoint failed: ${msg}`);
+    }
+  }
+
+  /**
+   * Blocking WAL checkpoint. Waits for all readers to finish, then
+   * flushes all WAL pages to the main DB file and truncates the WAL.
+   * Used during graceful shutdown.
+   */
+  checkpoint(): void {
+    try {
+      const result = this.db.pragma('wal_checkpoint(TRUNCATE)') as unknown[];
+      console.log(`[tree-store] WAL truncate checkpoint: ${JSON.stringify(result)}`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[tree-store] WAL truncate checkpoint failed: ${msg}`);
+    }
+  }
+
+  beginImmediate(): void {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 100;
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        this.db.exec('BEGIN IMMEDIATE');
+        return;
+      } catch (err) {
+        const isBusy = err instanceof Error && err.message.includes('SQLITE_BUSY');
+        if (!isBusy || attempt === MAX_RETRIES - 1) throw err;
+        // Synchronous busy-wait — acceptable for brief lock contention
+        const start = Date.now();
+        while (Date.now() - start < RETRY_DELAY_MS) { /* spin */ }
+      }
+    }
+  }
+
+  commit(): void {
+    this.db.exec('COMMIT');
+  }
+
+  rollback(): void {
+    try {
+      this.db.exec('ROLLBACK');
+    } catch {
+      // Already rolled back or no active transaction — safe to ignore
+    }
+  }
+
   close(): void {
+    if (this.checkpointTimer) {
+      clearInterval(this.checkpointTimer);
+      this.checkpointTimer = null;
+    }
+    this.checkpoint();
     this.db.close();
   }
 }

@@ -20,6 +20,19 @@ function toBytes32(value: string): string {
   return ethers.utils.hexZeroPad(bn.toHexString(), 32);
 }
 
+// Per-nullifier rate limiting: prevents gas griefing where attacker submits
+// multiple concurrent requests with the same nullifier. All pass validation
+// (race condition), all submit on-chain, N-1 revert, relayer pays gas.
+const NULLIFIER_COOLDOWN_MS = 60_000;
+const recentNullifiers = new Map<string, number>();
+
+setInterval(() => {
+  const cutoff = Date.now() - NULLIFIER_COOLDOWN_MS;
+  for (const [key, timestamp] of recentNullifiers.entries()) {
+    if (timestamp < cutoff) recentNullifiers.delete(key);
+  }
+}, NULLIFIER_COOLDOWN_MS);
+
 export function createWithdrawRouter(store: TreeStore, tree: GlobalTree): Router {
   const router = Router();
 
@@ -34,6 +47,14 @@ export function createWithdrawRouter(store: TreeStore, tree: GlobalTree): Router
 
       if (!Array.isArray(publicSignals) || publicSignals.length !== 8) {
         res.status(400).json({ error: 'publicSignals must be an array of 8 elements' });
+        return;
+      }
+
+      // Per-nullifier rate limit: reject if same nullifier0 was submitted recently
+      const nullifier0Raw = publicSignals[1];
+      const lastSeen = recentNullifiers.get(nullifier0Raw);
+      if (lastSeen && Date.now() - lastSeen < NULLIFIER_COOLDOWN_MS) {
+        res.status(429).json({ error: 'Nullifier recently submitted, please wait' });
         return;
       }
 
@@ -75,6 +96,9 @@ export function createWithdrawRouter(store: TreeStore, tree: GlobalTree): Router
       };
 
       console.log(`[POST /withdraw] Processing withdrawal on chain ${targetChainId}`);
+
+      // Mark nullifier as in-flight before submission to block concurrent duplicates
+      recentNullifiers.set(nullifier0Raw, Date.now());
 
       const result = await relayWithdrawal(request, store, tree);
 

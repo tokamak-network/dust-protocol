@@ -72,19 +72,35 @@ async function main(): Promise<void> {
   const tree = await GlobalTree.create();
   const store = new TreeStore(config.dbPath);
 
-  // Rebuild tree from persisted leaves
+  // Rebuild tree from persisted leaves (no concurrency yet — use unsafe variants)
   const existingLeaves = store.getAllLeaves();
   if (existingLeaves.length > 0) {
     console.log(`[init] Rebuilding tree from ${existingLeaves.length} persisted leaves...`);
     for (const leaf of existingLeaves) {
-      tree.insert(BigInt(leaf.commitment));
+      tree.insertUnsafe(BigInt(leaf.commitment));
     }
-    console.log(`[init] Tree rebuilt — root: ${tree.getRoot().toString(16).slice(0, 16)}...`);
-  }
 
-  // Store initial root if no roots exist
-  if (!store.getLatestRoot()) {
-    const rootHex = '0x' + tree.getRoot().toString(16).padStart(64, '0');
+    const rebuiltRoot = '0x' + tree.getRootUnsafe().toString(16).padStart(64, '0');
+    console.log(`[init] Tree rebuilt — root: ${rebuiltRoot.slice(0, 18)}...`);
+
+    // Verify rebuilt root matches stored root (detect DB corruption)
+    const storedRoot = store.getLatestRoot();
+    if (storedRoot) {
+      if (storedRoot.root !== rebuiltRoot) {
+        console.error('CRITICAL: Rebuilt tree root does not match stored root!');
+        console.error(`  Rebuilt: ${rebuiltRoot}`);
+        console.error(`  Stored:  ${storedRoot.root}`);
+        console.error('This indicates DB corruption or missing leaves. Refusing to start.');
+        process.exit(1);
+      }
+      console.log('[init] Root verification passed — rebuilt root matches stored root');
+    } else {
+      console.log('[init] No stored root found — storing rebuilt root');
+      store.insertRoot(rebuiltRoot, null);
+    }
+  } else if (!store.getLatestRoot()) {
+    // Fresh DB with no leaves — store the empty tree root
+    const rootHex = '0x' + tree.getRootUnsafe().toString(16).padStart(64, '0');
     store.insertRoot(rootHex, null);
   }
 
@@ -152,10 +168,21 @@ async function main(): Promise<void> {
   // ─── Routes ──────────────────────────────────────────────────────────────
 
   app.get('/health', (_req: Request, res: Response) => {
-    res.json({
-      status: 'ok',
+    const watcherStatus = watcher.getStatus();
+    const watcherHealthy = watcher.isHealthy();
+
+    res.status(watcherHealthy ? 200 : 503).json({
+      status: watcherHealthy ? 'ok' : 'degraded',
       version: 'v2',
       leafCount: tree.leafCount,
+      watcher: {
+        running: watcherStatus.running,
+        lastPollTime: watcherStatus.lastPollTime
+          ? new Date(watcherStatus.lastPollTime).toISOString()
+          : null,
+        seenCommitments: watcherStatus.seenCommitments,
+        healthy: watcherHealthy,
+      },
       timestamp: new Date().toISOString(),
     });
   });
@@ -190,11 +217,13 @@ async function main(): Promise<void> {
     console.log('');
   });
 
-  // Graceful shutdown
+  // Graceful shutdown — stop watcher first (no new inserts), then checkpoint + close DB
   const shutdown = () => {
-    console.log('\nShutting down...');
+    console.log('\n[shutdown] Stopping chain watcher...');
     watcher.stop();
+    console.log('[shutdown] Checkpointing and closing database...');
     store.close();
+    console.log('[shutdown] Done.');
     process.exit(0);
   };
 

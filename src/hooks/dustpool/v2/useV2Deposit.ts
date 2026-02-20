@@ -109,6 +109,14 @@ export function useV2Deposit(keysRef: RefObject<V2Keys | null>, chainIdOverride?
 
       const db = await openV2Database()
       await saveNoteV2(db, address, stored)
+
+      if (leafIndex === -1) {
+        // Note is saved — background sync (useV2Notes) will resolve leafIndex later
+        throw new Error(
+          'Deposit confirmed on-chain but relayer has not indexed it yet. ' +
+          'Your note is saved and will sync automatically.'
+        )
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Deposit failed'
       if (msg.toLowerCase().includes('rejected') || msg.includes('denied')) {

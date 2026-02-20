@@ -4,8 +4,8 @@ import { zeroAddress, type Address } from 'viem'
 import { computeAssetId } from '@/lib/dustpool/v2/commitment'
 import { buildTransferInputs } from '@/lib/dustpool/v2/proof-inputs'
 import {
-  openV2Database, getUnspentNotes, markNoteSpent,
-  saveNoteV2, bigintToHex, hexToBigint, storedToNoteCommitment,
+  openV2Database, getUnspentNotes, markSpentAndSaveChange,
+  bigintToHex, hexToBigint, storedToNoteCommitment,
 } from '@/lib/dustpool/v2/storage'
 import type { StoredNoteV2 } from '@/lib/dustpool/v2/storage'
 import { createRelayerClient } from '@/lib/dustpool/v2/relayer-client'
@@ -18,6 +18,7 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
   const chainId = chainIdOverride ?? wagmiChainId
 
   const [isPending, setIsPending] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const transferringRef = useRef(false)
 
@@ -61,36 +62,58 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
       const inputNote = storedToNoteCommitment(inputStored)
 
       const relayer = createRelayerClient()
-      const merkleProof = await relayer.getMerkleProof(inputNote.leafIndex)
 
-      const proofInputs = await buildTransferInputs(
-        inputNote, recipientPubKey, amount, keys, merkleProof
-      )
+      const generateAndSubmit = async (isRetry: boolean) => {
+        if (isRetry) {
+          setStatus('Tree updated during proof generation. Retrying with fresh state...')
+        }
 
-      const { proof, publicSignals, proofCalldata } = await generateV2Proof(proofInputs)
+        const merkleProof = await relayer.getMerkleProof(inputNote.leafIndex)
+        const proofInputs = await buildTransferInputs(
+          inputNote, recipientPubKey, amount, keys, merkleProof
+        )
 
-      const isValid = await verifyV2ProofLocally(proof, publicSignals)
-      if (!isValid) {
-        throw new Error('Generated proof failed local verification')
+        const { proof, publicSignals, proofCalldata } = await generateV2Proof(proofInputs)
+
+        const isValid = await verifyV2ProofLocally(proof, publicSignals)
+        if (!isValid) {
+          throw new Error('Generated proof failed local verification')
+        }
+
+        setStatus('Submitting to relayer...')
+        const result = await relayer.submitTransfer(proofCalldata, publicSignals, chainId)
+        if (!result.success) {
+          throw new Error('Relayer rejected the transfer')
+        }
+
+        return { proofInputs }
       }
 
-      const result = await relayer.submitTransfer(proofCalldata, publicSignals, chainId)
-      if (!result.success) {
-        throw new Error('Relayer rejected the transfer')
+      let submission: Awaited<ReturnType<typeof generateAndSubmit>>
+      try {
+        submission = await generateAndSubmit(false)
+      } catch (submitErr) {
+        const errMsg = submitErr instanceof Error ? submitErr.message : ''
+        const errBody = (submitErr as { body?: string }).body ?? ''
+        const combined = `${errMsg} ${errBody}`.toLowerCase()
+        if (combined.includes('unknown merkle root') || combined.includes('unknown root')) {
+          submission = await generateAndSubmit(true)
+        } else {
+          throw submitErr
+        }
       }
 
-      // Only mark spent + save change AFTER successful submission
-      await markNoteSpent(db, inputStored.id)
+      const proofInputs = submission.proofInputs
 
-      // Save change note if input had more than transferred amount
-      // In buildTransferInputs: output 0 = recipient, output 1 = change
+      // Atomically mark spent + save change in one IndexedDB transaction
       if (inputNote.note.amount < amount) {
         throw new Error('Input note amount less than transfer — stale data')
       }
       const changeAmount = inputNote.note.amount - amount
+      let changeStored: StoredNoteV2 | undefined
       if (changeAmount > 0n) {
         const changeCommitmentHex = bigintToHex(proofInputs.outputCommitment1)
-        const changeStored: StoredNoteV2 = {
+        changeStored = {
           id: changeCommitmentHex,
           walletAddress: address.toLowerCase(),
           chainId,
@@ -99,20 +122,21 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
           amount: bigintToHex(proofInputs.outAmount[1]),
           asset: bigintToHex(proofInputs.outAsset[1]),
           blinding: bigintToHex(proofInputs.outBlinding[1]),
-          leafIndex: -1, // Pending relayer confirmation
+          leafIndex: -1,
           spent: false,
           createdAt: Date.now(),
         }
-        await saveNoteV2(db, address, changeStored)
       }
+      await markSpentAndSaveChange(db, inputStored.id, changeStored)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Transfer failed'
       setError(msg)
     } finally {
       setIsPending(false)
+      setStatus(null)
       transferringRef.current = false
     }
   }, [isConnected, address, chainId])
 
-  return { transfer, isPending, error }
+  return { transfer, isPending, status, error }
 }

@@ -175,6 +175,11 @@ export async function generateV2Proof(
     setTimeout(() => {
       if (workerPromises.has(id)) {
         workerPromises.delete(id)
+        // FC4: Terminate the stalled worker to stop burning CPU
+        if (proofWorker) {
+          proofWorker.terminate()
+          proofWorker = null
+        }
         reject(new Error('Proof generation timed out'))
       }
     }, PROOF_TIMEOUT_MS)
@@ -193,6 +198,12 @@ async function generateOnMainThread(
     WASM_PATH,
     ZKEY_PATH
   )
+
+  if (publicSignals.length !== 8) {
+    throw new Error(
+      `Proof generation produced ${publicSignals.length} public signals, expected 8`
+    )
+  }
 
   onProgress?.('Formatting calldata', 0.8)
 
@@ -230,6 +241,11 @@ export function terminateV2ProofWorker(): void {
   if (proofWorker) {
     proofWorker.terminate()
     proofWorker = null
+  }
+  // L7: Reject all pending promises so callers aren't left hanging
+  if (workerPromises.size > 0) {
+    const err = new Error('Proof worker terminated')
+    workerPromises.forEach((p) => p.reject(err))
     workerPromises.clear()
   }
 }

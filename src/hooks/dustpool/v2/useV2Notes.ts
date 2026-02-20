@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAccount, useChainId } from 'wagmi'
-import { openV2Database, storedToNoteCommitment } from '@/lib/dustpool/v2/storage'
+import {
+  openV2Database, storedToNoteCommitment, getPendingNotes, updateNoteLeafIndex,
+} from '@/lib/dustpool/v2/storage'
 import type { StoredNoteV2 } from '@/lib/dustpool/v2/storage'
+import { createRelayerClient } from '@/lib/dustpool/v2/relayer-client'
 import type { NoteCommitmentV2 } from '@/lib/dustpool/v2/types'
 
 export function useV2Notes(chainIdOverride?: number) {
@@ -11,14 +14,17 @@ export function useV2Notes(chainIdOverride?: number) {
 
   const [notes, setNotes] = useState<NoteCommitmentV2[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const refreshingRef = useRef(false)
 
   const refreshNotes = useCallback(async () => {
+    if (refreshingRef.current) return
     if (!address) {
       setNotes([])
       setIsLoading(false)
       return
     }
 
+    refreshingRef.current = true
     setIsLoading(true)
     try {
       const db = await openV2Database()
@@ -45,6 +51,7 @@ export function useV2Notes(chainIdOverride?: number) {
     } catch (e) {
       console.error('[DustPoolV2] Failed to load notes:', e)
     } finally {
+      refreshingRef.current = false
       setIsLoading(false)
     }
   }, [address, chainId])
@@ -52,6 +59,49 @@ export function useV2Notes(chainIdOverride?: number) {
   useEffect(() => {
     refreshNotes()
   }, [refreshNotes])
+
+  // Background sync: resolve pending notes (leafIndex === -1) via relayer
+  const syncingRef = useRef(false)
+
+  const syncPendingNotes = useCallback(async () => {
+    if (!address || syncingRef.current) return
+    syncingRef.current = true
+
+    try {
+      const db = await openV2Database()
+      const pending = await getPendingNotes(db, address, chainId)
+      if (pending.length === 0) return
+
+      const relayer = createRelayerClient()
+      let didUpdate = false
+
+      for (const note of pending) {
+        try {
+          const status = await relayer.getDepositStatus(note.commitment)
+          if (status.confirmed && status.leafIndex >= 0) {
+            await updateNoteLeafIndex(db, note.id, status.leafIndex)
+            didUpdate = true
+          }
+        } catch {
+          // Relayer may be down or commitment not yet indexed — skip this note
+        }
+      }
+
+      if (didUpdate) {
+        await refreshNotes()
+      }
+    } catch (e) {
+      console.error('[DustPoolV2] Background sync failed:', e)
+    } finally {
+      syncingRef.current = false
+    }
+  }, [address, chainId, refreshNotes])
+
+  useEffect(() => {
+    syncPendingNotes()
+    const interval = setInterval(syncPendingNotes, 30_000)
+    return () => clearInterval(interval)
+  }, [syncPendingNotes])
 
   const unspentNotes = notes.filter(n => !n.spent)
   const spentNotes = notes.filter(n => n.spent)

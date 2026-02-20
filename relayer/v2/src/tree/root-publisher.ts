@@ -13,7 +13,7 @@ export class RootPublisher {
   private store: TreeStore;
   private lastPublishedLeafCount = 0;
   private lastPublishTime = Date.now();
-  private publishing = false;
+  private publishLock: Promise<void> | null = null;
 
   constructor(tree: GlobalTree, store: TreeStore) {
     this.tree = tree;
@@ -40,18 +40,20 @@ export class RootPublisher {
    * Skips if already publishing (prevents concurrent submissions).
    */
   async publishIfNeeded(): Promise<void> {
-    if (this.publishing || !this.shouldPublish()) return;
+    if (this.publishLock || !this.shouldPublish()) return;
 
-    this.publishing = true;
+    let releaseLock: () => void;
+    this.publishLock = new Promise<void>((resolve) => { releaseLock = resolve; });
     try {
       await this.publish();
     } finally {
-      this.publishing = false;
+      this.publishLock = null;
+      releaseLock!();
     }
   }
 
   private async publish(): Promise<void> {
-    const root = this.tree.getRoot();
+    const root = await this.tree.getRoot();
     const rootHex = '0x' + root.toString(16).padStart(64, '0');
 
     console.log(`[root-publisher] Publishing root ${rootHex.slice(0, 18)}... (${this.tree.leafCount} leaves)`);

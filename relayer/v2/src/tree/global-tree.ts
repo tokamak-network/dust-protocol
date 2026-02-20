@@ -9,8 +9,38 @@ export interface MerkleProofData {
 }
 
 /**
+ * Promise-based async mutex. No external dependencies.
+ * Serializes access to critical sections — acquire() blocks until the lock is free.
+ */
+export class AsyncMutex {
+  private queue: (() => void)[] = [];
+  private locked = false;
+
+  async acquire(): Promise<void> {
+    if (!this.locked) {
+      this.locked = true;
+      return;
+    }
+    return new Promise<void>((resolve) => {
+      this.queue.push(resolve);
+    });
+  }
+
+  release(): void {
+    if (this.queue.length > 0) {
+      const next = this.queue.shift()!;
+      next();
+    } else {
+      this.locked = false;
+    }
+  }
+}
+
+/**
  * In-memory Poseidon Merkle tree (depth 20) with incremental insertion.
  * Matches the on-chain MerkleTree logic used by DustPoolV2.
+ * All mutating and reading methods are serialized via an async mutex
+ * to prevent concurrent access from ChainWatcher and proof relay.
  */
 export class GlobalTree {
   private depth: number;
@@ -19,6 +49,7 @@ export class GlobalTree {
   private nextIndex: number;
   private leaves: bigint[];
   private poseidon: PoseidonHashFn;
+  private mutex = new AsyncMutex();
 
   private constructor(poseidon: PoseidonHashFn, zeros: bigint[]) {
     this.depth = TREE_DEPTH;
@@ -48,9 +79,22 @@ export class GlobalTree {
 
   /**
    * Insert a commitment into the next available leaf slot.
-   * Returns the leaf index.
+   * Returns the leaf index. Serialized via mutex to prevent concurrent access.
    */
-  insert(commitment: bigint): number {
+  async insert(commitment: bigint): Promise<number> {
+    await this.mutex.acquire();
+    try {
+      return this.insertUnsafe(commitment);
+    } finally {
+      this.mutex.release();
+    }
+  }
+
+  /**
+   * Insert without acquiring the mutex. Used during startup rebuild
+   * when the tree is not yet shared with concurrent callers.
+   */
+  insertUnsafe(commitment: bigint): number {
     const capacity = 2 ** this.depth;
     if (this.nextIndex >= capacity) {
       throw new Error(`Merkle tree full (capacity ${capacity})`);
@@ -76,28 +120,20 @@ export class GlobalTree {
     return index;
   }
 
-  getRoot(): bigint {
-    if (this.nextIndex === 0) {
-      return this.zeros[this.depth];
+  async getRoot(): Promise<bigint> {
+    await this.mutex.acquire();
+    try {
+      return this.getRootUnsafe();
+    } finally {
+      this.mutex.release();
     }
+  }
 
-    // Recompute root from filledSubtrees
-    let currentHash = this.filledSubtrees[0];
-    let tempIndex = this.nextIndex - 1;
-    for (let i = 0; i < this.depth; i++) {
-      if (i === 0) {
-        if (tempIndex % 2 === 0) {
-          currentHash = this.poseidon([this.filledSubtrees[i], this.zeros[i]]);
-        } else {
-          currentHash = this.poseidon([this.filledSubtrees[i], this.leaves[this.nextIndex - 1]]);
-        }
-      }
-      tempIndex >>= 1;
-    }
-
-    // Actually, for correctness we need to do a full recompute from leaves
-    // The incremental approach above only works during insert.
-    // Use the proof generation approach for root.
+  /**
+   * Get root without acquiring the mutex. Used during startup
+   * when the tree is not yet shared with concurrent callers.
+   */
+  getRootUnsafe(): bigint {
     return this.computeRoot();
   }
 
@@ -128,7 +164,16 @@ export class GlobalTree {
     return currentLevel.get(0) ?? this.zeros[this.depth];
   }
 
-  getProof(leafIndex: number): MerkleProofData {
+  async getProof(leafIndex: number): Promise<MerkleProofData> {
+    await this.mutex.acquire();
+    try {
+      return this.getProofUnsafe(leafIndex);
+    } finally {
+      this.mutex.release();
+    }
+  }
+
+  getProofUnsafe(leafIndex: number): MerkleProofData {
     if (leafIndex < 0 || leafIndex >= this.leaves.length) {
       throw new Error(`Leaf index ${leafIndex} out of range [0, ${this.leaves.length})`);
     }

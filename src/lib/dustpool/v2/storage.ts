@@ -243,6 +243,106 @@ export async function getAllBalances(
 }
 
 /**
+ * Atomically mark an input note as spent and save a change note (if any).
+ * Both operations share a single IndexedDB transaction — if either fails,
+ * neither commits, preventing fund loss from partial updates.
+ */
+export function markSpentAndSaveChange(
+  db: IDBDatabase,
+  inputCommitmentHex: string,
+  changeNote?: StoredNoteV2
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_NAME], 'readwrite')
+
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+    tx.onabort = () => reject(tx.error ?? new Error('Transaction aborted'))
+
+    const store = tx.objectStore(STORE_NAME)
+    const getRequest = store.get(inputCommitmentHex)
+
+    getRequest.onsuccess = () => {
+      const note = getRequest.result as StoredNoteV2 | undefined
+      if (!note) {
+        tx.abort()
+        return
+      }
+
+      note.spent = true
+      store.put(note)
+
+      if (changeNote) {
+        store.put({
+          ...changeNote,
+          walletAddress: changeNote.walletAddress.toLowerCase(),
+        })
+      }
+    }
+
+    getRequest.onerror = () => {
+      tx.abort()
+    }
+  })
+}
+
+/**
+ * Update a stored note's leafIndex. Used by background sync to resolve
+ * pending notes (leafIndex === -1) after the relayer confirms them.
+ */
+export function updateNoteLeafIndex(
+  db: IDBDatabase,
+  commitmentHex: string,
+  leafIndex: number
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_NAME], 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    const getRequest = store.get(commitmentHex)
+
+    getRequest.onsuccess = () => {
+      const note = getRequest.result as StoredNoteV2 | undefined
+      if (!note) {
+        reject(new Error(`Note not found: ${commitmentHex}`))
+        return
+      }
+
+      note.leafIndex = leafIndex
+      const putRequest = store.put(note)
+      putRequest.onsuccess = () => resolve()
+      putRequest.onerror = () => reject(putRequest.error)
+    }
+
+    getRequest.onerror = () => reject(getRequest.error)
+  })
+}
+
+/**
+ * Get all unspent notes with leafIndex === -1 (pending relayer confirmation).
+ */
+export function getPendingNotes(
+  db: IDBDatabase,
+  walletAddress: string,
+  chainId: number
+): Promise<StoredNoteV2[]> {
+  const addr = walletAddress.toLowerCase()
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction([STORE_NAME], 'readonly')
+    const store = tx.objectStore(STORE_NAME)
+    const index = store.index('wallet_chain_spent')
+    const key = IDBKeyRange.only([addr, chainId, false])
+    const request = index.getAll(key)
+
+    request.onsuccess = () => {
+      const notes = (request.result as StoredNoteV2[]).filter(n => n.leafIndex === -1)
+      resolve(notes)
+    }
+    request.onerror = () => reject(request.error)
+  })
+}
+
+/**
  * Delete all notes for a wallet address. Intended for testing/reset.
  */
 export function deleteAllNotes(db: IDBDatabase, walletAddress: string): Promise<void> {
