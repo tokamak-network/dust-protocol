@@ -14,6 +14,20 @@ import type { V2Keys } from '@/lib/dustpool/v2/types'
 
 const RECEIPT_TIMEOUT_MS = 30_000
 
+// Relayer API returns JSON body with `error` field on failure.
+// The relayer-client wraps this in a RelayerError with a `body` string.
+function extractRelayerError(e: unknown, fallback: string): string {
+  if (!(e instanceof Error)) return fallback
+  const body = (e as { body?: string }).body
+  if (body) {
+    try {
+      const parsed = JSON.parse(body) as { error?: string }
+      if (parsed.error) return parsed.error
+    } catch {}
+  }
+  return e.message || fallback
+}
+
 export function useV2Withdraw(keysRef: RefObject<V2Keys | null>, chainIdOverride?: number) {
   const { address, isConnected } = useAccount()
   const wagmiChainId = useChainId()
@@ -144,8 +158,7 @@ export function useV2Withdraw(keysRef: RefObject<V2Keys | null>, chainIdOverride
       }
       await markSpentAndSaveChange(db, inputStored.id, changeStored)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Withdrawal failed'
-      setError(msg)
+      setError(extractRelayerError(e, 'Withdrawal failed'))
     } finally {
       setIsPending(false)
       setStatus(null)

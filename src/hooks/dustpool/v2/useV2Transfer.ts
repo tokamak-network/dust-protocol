@@ -12,6 +12,19 @@ import { createRelayerClient } from '@/lib/dustpool/v2/relayer-client'
 import { generateV2Proof, verifyV2ProofLocally } from '@/lib/dustpool/v2/proof'
 import type { V2Keys } from '@/lib/dustpool/v2/types'
 
+// Relayer API returns JSON body with `error` field on failure.
+function extractRelayerError(e: unknown, fallback: string): string {
+  if (!(e instanceof Error)) return fallback
+  const body = (e as { body?: string }).body
+  if (body) {
+    try {
+      const parsed = JSON.parse(body) as { error?: string }
+      if (parsed.error) return parsed.error
+    } catch {}
+  }
+  return e.message || fallback
+}
+
 export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride?: number) {
   const { address, isConnected } = useAccount()
   const wagmiChainId = useChainId()
@@ -129,8 +142,7 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
       }
       await markSpentAndSaveChange(db, inputStored.id, changeStored)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Transfer failed'
-      setError(msg)
+      setError(extractRelayerError(e, 'Transfer failed'))
     } finally {
       setIsPending(false)
       setStatus(null)
