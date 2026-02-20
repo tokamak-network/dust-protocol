@@ -13,3 +13,4 @@ remappings = [
 
 [rpc_endpoints]
 thanos_sepolia = "https://rpc.thanos-sepolia.tokamak.network"
+ethereum_sepolia = "https://sepolia.drpc.org"
