@@ -6,7 +6,7 @@ const PHASES = [
     {
         id: '01',
         title: 'IDENTITY SETUP',
-        sub: 'register .tok name on StealthNameRegistry',
+        sub: 'register .dust name on StealthNameRegistry',
         icon: Key,
     },
     {

@@ -4,7 +4,7 @@
  * Covers the pure helper functions extracted from the route:
  *  - checkRateLimit: cooldown window, key isolation, cleanup
  *  - parseMetaAddressBytes: valid/invalid formats
- *  - stripTokSuffix: various name formats
+ *  - stripDustSuffix: various name formats
  *  - isValidCompressedPublicKey: prefix and length validation
  *  - generateStealthAddress: output shape, uniqueness (different ephemeral key each call)
  *
@@ -40,9 +40,9 @@ function parseMetaAddressBytes(metaBytes: string): {
   return { spendingPublicKey, viewingPublicKey };
 }
 
-function stripTokSuffix(name: string): string {
+function stripDustSuffix(name: string): string {
   const n = name.toLowerCase().trim();
-  return n.endsWith('.tok') ? n.slice(0, -4) : n;
+  return n.endsWith('.dust') ? n.slice(0, -5) : n;
 }
 
 // Minimal rate-limit implementation mirroring the route
@@ -177,35 +177,35 @@ describe('parseMetaAddressBytes', () => {
   });
 });
 
-// ─── stripTokSuffix ──────────────────────────────────────────────────────────
+// ─── stripDustSuffix ──────────────────────────────────────────────────────────
 
-describe('stripTokSuffix', () => {
-  it('strips .tok suffix', () => {
-    expect(stripTokSuffix('alice.tok')).toBe('alice');
+describe('stripDustSuffix', () => {
+  it('strips .dust suffix', () => {
+    expect(stripDustSuffix('alice.dust')).toBe('alice');
   });
 
-  it('strips .TOK suffix (case-insensitive)', () => {
-    expect(stripTokSuffix('alice.TOK')).toBe('alice');
+  it('strips .DUST suffix (case-insensitive)', () => {
+    expect(stripDustSuffix('alice.DUST')).toBe('alice');
   });
 
-  it('strips mixed-case .Tok', () => {
-    expect(stripTokSuffix('Alice.Tok')).toBe('alice');
+  it('strips mixed-case .Dust', () => {
+    expect(stripDustSuffix('Alice.Dust')).toBe('alice');
   });
 
   it('trims whitespace', () => {
-    expect(stripTokSuffix('  bob.tok  ')).toBe('bob');
+    expect(stripDustSuffix('  bob.dust  ')).toBe('bob');
   });
 
   it('leaves names without suffix unchanged', () => {
-    expect(stripTokSuffix('alice')).toBe('alice');
+    expect(stripDustSuffix('alice')).toBe('alice');
   });
 
-  it('does not strip mid-name .tok', () => {
-    expect(stripTokSuffix('a.toki')).toBe('a.toki');
+  it('does not strip mid-name .dust', () => {
+    expect(stripDustSuffix('a.dusty')).toBe('a.dusty');
   });
 
   it('handles empty string', () => {
-    expect(stripTokSuffix('')).toBe('');
+    expect(stripDustSuffix('')).toBe('');
   });
 });
 

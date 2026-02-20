@@ -1,8 +1,8 @@
-// Stealth name registry (.tok names)
+// Stealth name registry (.dust names)
 
 import { ethers } from 'ethers';
 
-export const NAME_SUFFIX = '.tok';
+export const NAME_SUFFIX = '.dust';
 
 const NAME_REGISTRY_ABI = [
   'function registerName(string calldata name, bytes calldata stealthMetaAddress) external',
@@ -137,7 +137,7 @@ async function fetchNameTree(): Promise<TreeCacheEntry | null> {
 }
 
 /**
- * Resolve a .tok name via the Merkle proof tree (privacy mode).
+ * Resolve a .dust name via the Merkle proof tree (privacy mode).
  * Fetches the full tree from /api/name-tree, finds the name locally,
  * and verifies the root is known on the destination chain's NameVerifier.
  */

@@ -1,5 +1,5 @@
 // GET /api/name-proof?name={name}
-// Returns a Merkle inclusion proof for a specific .tok name.
+// Returns a Merkle inclusion proof for a specific .dust name.
 
 import { NextResponse } from 'next/server';
 import { getNameMerkleTree } from '@/lib/naming/merkleTree';
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Missing name parameter' }, { status: 400 });
   }
 
-  const name = rawName.toLowerCase().replace(/\.tok$/, '').trim();
+  const name = rawName.toLowerCase().replace(/\.dust$/, '').trim();
   if (!name || name.length > 32) {
     return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
   }

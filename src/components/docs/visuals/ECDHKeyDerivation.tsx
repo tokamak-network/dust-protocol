@@ -158,7 +158,7 @@ export function ECDHKeyDerivation() {
                         textAnchor="middle"
                         fontFamily="JetBrains Mono"
                     >
-                        alice.tok meta-address
+                        alice.dust meta-address
                     </text>
 
                     {/* Step connector lines (vertical, left side along badges) */}

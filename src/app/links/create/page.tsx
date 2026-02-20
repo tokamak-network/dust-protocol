@@ -499,7 +499,7 @@ export default function CreateLinkPage() {
         {username && name.trim() && (
           <div style={{ padding: "12px 16px", backgroundColor: "rgba(43, 90, 226, 0.04)", borderRadius: radius.sm, textAlign: "center" }}>
             <span style={{ fontSize: "12px", color: colors.accent.indigo }}>
-              Your link: <span style={{ fontWeight: 600 }}>{name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_-]/g, "")}.{username}.tok</span>
+              Your link: <span style={{ fontWeight: 600 }}>{name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_-]/g, "")}.{username}.dust</span>
             </span>
           </div>
         )}

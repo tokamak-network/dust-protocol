@@ -64,8 +64,8 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
 
       if (nameRegistryConfigured && isStealthName(recipient)) {
         setIsResolving(true);
-        // Handle multi-part .tok names: "link.username.tok" → resolve "username", extract linkSlug
-        // Single part: "username.tok" → resolve "username"
+        // Handle multi-part .dust names: "link.username.dust" → resolve "username", extract linkSlug
+        // Single part: "username.dust" → resolve "username"
         let nameToResolve = recipient;
         const normalized = recipient.toLowerCase().trim();
         if (normalized.endsWith(NAME_SUFFIX)) {
@@ -254,7 +254,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                   <p className="text-sm text-[rgba(255,255,255,0.5)] font-mono text-center">
                     to{" "}
                     <span className="font-bold text-white">
-                      {recipient.includes(".tok") ? recipient : `${recipient.slice(0, 14)}...`}
+                      {recipient.includes(".dust") ? recipient : `${recipient.slice(0, 14)}...`}
                     </span>
                   </p>
                 </div>
@@ -353,7 +353,7 @@ export function SendModal({ isOpen, onClose }: SendModalProps) {
                     <p className="text-[15px] text-[rgba(255,255,255,0.5)] font-mono text-center">
                       sent to{" "}
                       <span className="font-bold text-white">
-                        {recipient.includes(".tok") ? recipient : `${recipient.slice(0, 10)}...${recipient.slice(-4)}`}
+                        {recipient.includes(".dust") ? recipient : `${recipient.slice(0, 10)}...${recipient.slice(-4)}`}
                       </span>
                     </p>
                   </div>

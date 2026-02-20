@@ -11,16 +11,16 @@ const faqs = [
     a: "To receive and claim payments: no. Stealth claims are gasless — the DustPaymaster sponsors all claim transactions. To send a payment, you need a small amount of ETH in your regular wallet to cover the send transaction gas (~21,000–50,000 gas).",
   },
   {
-    q: "What does a .tok name cost?",
-    a: "During the testnet phase, .tok name registration is free. Mainnet pricing has not been announced yet.",
+    q: "What does a .dust name cost?",
+    a: "During the testnet phase, .dust name registration is free. Mainnet pricing has not been announced yet.",
   },
   {
     q: "What happens to funds if I lose my PIN?",
     a: "Funds already claimed to your regular wallet are not affected — they are in your standard wallet, controlled by your seed phrase. Unclaimed stealth payments (sitting at stealth addresses) require your PIN to claim. Private pool and swap deposits require their locally-stored deposit notes to withdraw — neither the PIN nor the stealth keys alone are sufficient for ZK withdrawals.",
   },
   {
-    q: "Can two people send to the same .tok name?",
-    a: "Yes, and this is expected. Each payment produces a completely different one-time stealth address — the sender picks a fresh random ephemeral key every time. Two people paying alice.tok at the same time produce two entirely unrelated stealth addresses with no on-chain link.",
+    q: "Can two people send to the same .dust name?",
+    a: "Yes, and this is expected. Each payment produces a completely different one-time stealth address — the sender picks a fresh random ephemeral key every time. Two people paying alice.dust at the same time produce two entirely unrelated stealth addresses with no on-chain link.",
   },
   {
     q: "How long does ZK proof generation take?",
@@ -48,7 +48,7 @@ const faqs = [
   },
   {
     q: "What is ERC-6538?",
-    a: "ERC-6538 is a registry standard that maps wallet addresses to stealth meta-addresses. It allows anyone to look up whether a given wallet address has a registered stealth meta-address, enabling payments without requiring a .tok name.",
+    a: "ERC-6538 is a registry standard that maps wallet addresses to stealth meta-addresses. It allows anyone to look up whether a given wallet address has a registered stealth meta-address, enabling payments without requiring a .dust name.",
   },
   {
     q: "Are there audits?",

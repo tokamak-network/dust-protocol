@@ -15,7 +15,7 @@ export default function PaymentLinksPage() {
       <section className="mb-10">
         <h2 className="text-sm font-mono font-semibold text-white tracking-wider mb-3 uppercase">What Are Payment Links?</h2>
         <p className="text-sm text-[rgba(255,255,255,0.6)] leading-relaxed mb-4">
-          Every <code className="text-xs bg-[rgba(255,255,255,0.06)] px-1.5 rounded-sm">.tok</code> name gets a public
+          Every <code className="text-xs bg-[rgba(255,255,255,0.06)] px-1.5 rounded-sm">.dust</code> name gets a public
           pay page at <code className="text-xs bg-[rgba(255,255,255,0.06)] px-1.5 rounded-sm">dustprotocol.app/pay/yourname</code>.
           You can create sub-links like{" "}
           <code className="text-xs bg-[rgba(255,255,255,0.06)] px-1.5 rounded-sm">/pay/alice/freelance</code> to
@@ -61,7 +61,7 @@ export default function PaymentLinksPage() {
         </p>
         <ul className="space-y-2">
           {[
-            "Your .tok name and description",
+            "Your .dust name and description",
             "An ETH amount field",
             "An optional message (stored in announcement metadata — only you can decrypt it)",
             "A Send button that generates the stealth address client-side and sends ETH",
@@ -80,11 +80,11 @@ export default function PaymentLinksPage() {
       </DocsCallout>
 
       <section className="mt-8">
-        <h2 className="text-sm font-mono font-semibold text-white tracking-wider mb-3 uppercase">Fallback: No .tok Name</h2>
+        <h2 className="text-sm font-mono font-semibold text-white tracking-wider mb-3 uppercase">Fallback: No .dust Name</h2>
         <p className="text-sm text-[rgba(255,255,255,0.6)] leading-relaxed">
           If someone has registered a stealth meta-address on the{" "}
           <code className="text-xs bg-[rgba(255,255,255,0.06)] px-1.5 rounded-sm">ERC-6538</code> registry but has no
-          .tok name, Dust can still route payments to them. The pay page falls back to the ERC-6538 lookup, so any
+          .dust name, Dust can still route payments to them. The pay page falls back to the ERC-6538 lookup, so any
           ERC-5564-compatible stealth address works.
         </p>
       </section>

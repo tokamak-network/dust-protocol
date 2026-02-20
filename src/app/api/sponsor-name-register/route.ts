@@ -125,7 +125,7 @@ export async function POST(req: Request) {
     }
 
     // Validate name
-    const stripped = name.toLowerCase().replace(/\.tok$/, '').trim();
+    const stripped = name.toLowerCase().replace(/\.dust$/, '').trim();
     if (!stripped || stripped.length > 32 || !/^[a-zA-Z0-9_-]+$/.test(stripped)) {
       return NextResponse.json({ error: 'Invalid name' }, { status: 400 });
     }

@@ -55,7 +55,7 @@ export default function LinkPayPage({ params }: { params: { name: string; link: 
   const [sendStep, setSendStep] = useState<"input" | "confirm" | "success">("input");
   const [sendTxHash, setSendTxHash] = useState<string | null>(null);
 
-  const tokName = `${link}.${name}.tok`;
+  const dustName = `${link}.${name}.dust`;
 
   const doResolve = useCallback(async () => {
     if (resolvedMeta || metaResolving || !isConfigured) return;
@@ -145,7 +145,7 @@ export default function LinkPayPage({ params }: { params: { name: string; link: 
                       )}
                       <ShieldIcon size={26} color={isSuccess ? "#22C55E" : colors.accent.indigo} />
                     </div>
-                    <span style={{ fontSize: "22px", fontWeight: 700, color: isSuccess ? "#22C55E" : colors.accent.indigoBright }}>{tokName}</span>
+                    <span style={{ fontSize: "22px", fontWeight: 700, color: isSuccess ? "#22C55E" : colors.accent.indigoBright }}>{dustName}</span>
                     <span style={{ fontSize: "13px", color: colors.text.muted }}>
                       {isSuccess ? "Private payment completed" : "Send a private payment"}
                     </span>
@@ -223,7 +223,7 @@ export default function LinkPayPage({ params }: { params: { name: string; link: 
                           <span style={{ fontSize: "16px", fontWeight: 500, color: colors.text.muted }}>{chainConfig.nativeCurrency.symbol}</span>
                         </div>
                         <span style={{ fontSize: "14px", color: colors.text.muted }}>
-                          sent to <span style={{ color: colors.accent.indigoBright, fontWeight: 600 }}>{tokName}</span>
+                          sent to <span style={{ color: colors.accent.indigoBright, fontWeight: 600 }}>{dustName}</span>
                         </span>
                       </div>
 
@@ -325,7 +325,7 @@ export default function LinkPayPage({ params }: { params: { name: string; link: 
                               <div style={{ height: "1px", backgroundColor: colors.border.default }} />
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                 <span style={{ fontSize: "13px", color: colors.text.muted }}>To</span>
-                                <span style={{ fontSize: "16px", fontWeight: 600, color: colors.accent.indigoBright }}>{tokName}</span>
+                                <span style={{ fontSize: "16px", fontWeight: 600, color: colors.accent.indigoBright }}>{dustName}</span>
                               </div>
                               <div style={{ height: "1px", backgroundColor: colors.border.default }} />
                               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -337,7 +337,7 @@ export default function LinkPayPage({ params }: { params: { name: string; link: 
                           <div style={{ display: "flex", gap: "8px", alignItems: "center", padding: "12px 14px", backgroundColor: "rgba(43, 90, 226, 0.04)", borderRadius: radius.sm, border: "1px solid rgba(43, 90, 226, 0.1)" }}>
                             <LockIcon size={14} color={colors.accent.indigo} />
                             <span style={{ fontSize: "12px", color: colors.text.tertiary }}>
-                              This payment uses a stealth address. It cannot be linked to {tokName}.
+                              This payment uses a stealth address. It cannot be linked to {dustName}.
                             </span>
                           </div>
                           <div style={{ display: "flex", gap: "10px" }}>
@@ -384,7 +384,7 @@ export default function LinkPayPage({ params }: { params: { name: string; link: 
                   ) : (
                     <NoOptInPayment
                       recipientName={name}
-                      displayName={tokName}
+                      displayName={dustName}
                       linkSlug={link}
                     />
                   )}

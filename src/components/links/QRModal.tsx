@@ -20,7 +20,7 @@ export function QRModal({ isOpen, onClose, url, title, displayName, accentColor 
 
   useEffect(() => {
     if (!isOpen || !canvasRef.current) return;
-    // Use actual web URL for QR code (not the .tok display name)
+    // Use actual web URL for QR code (not the .dust display name)
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const fullUrl = url.startsWith("http") ? url : `${origin}${url.startsWith("/") ? url : `/${url}`}`;
     QRCode.toCanvas(canvasRef.current, fullUrl, {

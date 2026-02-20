@@ -118,7 +118,7 @@ export default function Home() {
   }, [isConnected, isOnboarded, isNamesSettled, isHydrated, address, router]);
 
   const handlePaySearch = () => {
-    const name = searchName.trim().toLowerCase().replace(/\.tok$/, "");
+    const name = searchName.trim().toLowerCase().replace(/\.dust$/, "");
     if (!name) return;
     router.push(`/pay/${name}`);
   };
@@ -270,7 +270,7 @@ export default function Home() {
             <div className="flex items-center gap-2 w-full">
               <input
                 className="flex-1 h-14 bg-[rgba(20,20,25,0.6)] border border-white/15 rounded-2xl text-white text-base px-5 backdrop-blur-lg placeholder:text-white/50 focus:border-[#00FF41] focus:outline-none focus:bg-[rgba(20,20,25,0.8)] transition-all"
-                placeholder="username.tok"
+                placeholder="username.dust"
                 value={searchName}
                 onChange={(e) => setSearchName(e.target.value)}
                 onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handlePaySearch(); }}
@@ -309,7 +309,7 @@ export default function Home() {
               <div className="flex items-center gap-2 w-full">
                 <input
                   className="flex-1 h-14 bg-[rgba(0,0,0,0.4)] border border-white/15 rounded-sm text-white text-base px-5 font-mono backdrop-blur-lg placeholder:text-white/50 hover:border-[rgba(0,255,65,0.3)] focus:border-[#00FF41] focus:outline-none focus:bg-[rgba(0,0,0,0.6)] focus:shadow-[0_0_0_1px_rgba(0,255,65,0.2)] transition-all"
-                  placeholder="username.tok"
+                  placeholder="username.dust"
                   value={searchName}
                   onChange={(e) => setSearchName(e.target.value)}
                   onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handlePaySearch(); }}

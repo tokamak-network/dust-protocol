@@ -29,7 +29,7 @@ const DEPLOYER = process.env.SPONSOR_ADDRESS ?? '0x8d56E94a02F06320BDc68FAfE23DE
 
 // The Graph subgraph URL (same as client-side)
 const SUBGRAPH_URL = process.env.NEXT_PUBLIC_SUBGRAPH_URL
-  || 'https://api.studio.thegraph.com/query/1741961/dust-protocol-sepolia/v0.0.1';
+  || 'https://api.studio.thegraph.com/query/1741961/dust-protocol-sepolia/v0.0.2';
 
 /** Query the subgraph for names matching a metaAddress */
 async function querySubgraphNamesByMeta(metaAddress: string): Promise<{ name: string; metaAddress: string } | null> {

@@ -16,9 +16,9 @@ export function PersonalLinkCard({ ownedNames, metaAddress }: PersonalLinkCardPr
   const [showQR, setShowQR] = useState(false);
 
   const displayName = ownedNames.length > 0 ? ownedNames[0].fullName : null;
-  const tokName = ownedNames.length > 0 ? `${ownedNames[0].name}.tok` : null;
+  const dustName = ownedNames.length > 0 ? `${ownedNames[0].name}.dust` : null;
   const payPath = ownedNames.length > 0 ? `/pay/${ownedNames[0].name}` : "";
-  const copyText = tokName || displayName || metaAddress || "";
+  const copyText = dustName || displayName || metaAddress || "";
 
   const handleCopy = async () => {
     const textToCopy = payPath
@@ -46,11 +46,11 @@ export function PersonalLinkCard({ ownedNames, metaAddress }: PersonalLinkCardPr
         </div>
 
         {/* Content */}
-        {tokName ? (
+        {dustName ? (
           <div className="flex justify-between items-end">
             <div>
               <h3 className="text-xl font-bold text-[#00FF41] font-mono mb-1">
-                {tokName}
+                {dustName}
               </h3>
               <span className="text-xs text-[rgba(255,255,255,0.4)] font-mono">
                 {payPath}
@@ -102,13 +102,13 @@ export function PersonalLinkCard({ ownedNames, metaAddress }: PersonalLinkCardPr
         <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-[rgba(255,255,255,0.1)] rounded-br-sm" />
       </motion.div>
 
-      {tokName && (
+      {dustName && (
         <QRModal
           isOpen={showQR}
           onClose={() => setShowQR(false)}
           url={payPath}
           title="Your Payment Link"
-          displayName={tokName}
+          displayName={dustName}
         />
       )}
     </>

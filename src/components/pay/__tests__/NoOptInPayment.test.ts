@@ -61,7 +61,7 @@ describe('buildUrl', () => {
   });
 
   it('URL-encodes special characters in recipient name', () => {
-    expect(buildUrl('alice.tok')).toBe('/api/resolve/alice.tok');
+    expect(buildUrl('alice.dust')).toBe('/api/resolve/alice.dust');
     expect(buildUrl('alice&bob')).toBe('/api/resolve/alice%26bob');
   });
 

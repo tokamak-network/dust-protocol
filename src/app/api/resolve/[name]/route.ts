@@ -95,9 +95,9 @@ function parseMetaAddressBytes(metaBytes: string): { spendingPublicKey: string; 
   return { spendingPublicKey, viewingPublicKey };
 }
 
-function stripTokSuffix(name: string): string {
+function stripDustSuffix(name: string): string {
   const n = name.toLowerCase().trim();
-  return n.endsWith('.tok') ? n.slice(0, -4) : n;
+  return n.endsWith('.dust') ? n.slice(0, -5) : n;
 }
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
@@ -126,9 +126,9 @@ export async function GET(req: Request, { params }: { params: { name: string } }
 
     const provider = getServerProvider(chainId);
 
-    // 1. Resolve name → meta-address bytes (strip .tok suffix, matching names.ts)
+    // 1. Resolve name → meta-address bytes (strip .dust suffix, matching names.ts)
     const registry = new ethers.Contract(config.contracts.nameRegistry, NAME_REGISTRY_ABI, provider);
-    const normalized = stripTokSuffix(name);
+    const normalized = stripDustSuffix(name);
 
     const metaBytes: string | null = await (async () => {
       try {

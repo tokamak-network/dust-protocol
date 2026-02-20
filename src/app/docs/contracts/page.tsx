@@ -20,7 +20,7 @@ const sepoliaContracts = [
   {
     name: "StealthNameRegistry",
     address: "0x4364cd60dF5F4dC82E81346c4E64515C08f19BBc",
-    role: "Maps .tok names to stealth meta-addresses. Supports register, update, transfer, and sub-accounts.",
+    role: "Maps .dust names to stealth meta-addresses. Supports register, update, transfer, and sub-accounts.",
     standard: "Custom",
     explorer: "https://sepolia.etherscan.io/address/0x4364cd60dF5F4dC82E81346c4E64515C08f19BBc",
   },
@@ -241,7 +241,7 @@ export default function ContractsPage() {
           {[
             { name: "ERC5564Announcer.sol", path: "contracts/ERC5564Announcer.sol", desc: "ERC-5564 stealth announcement" },
             { name: "ERC6538Registry.sol", path: "contracts/ERC6538Registry.sol", desc: "ERC-6538 meta-address registry" },
-            { name: "StealthNameRegistry.sol", path: "contracts/StealthNameRegistry.sol", desc: ".tok name registry" },
+            { name: "StealthNameRegistry.sol", path: "contracts/StealthNameRegistry.sol", desc: ".dust name registry" },
             { name: "StealthRelayer.sol", path: "contracts/StealthRelayer.sol", desc: "EIP-712 signed withdrawal relayer (0.5% fee)" },
             { name: "DustPool.sol", path: "contracts/dustpool/src/DustPool.sol", desc: "Privacy pool core contract" },
             { name: "DustSwapHook.sol", path: "contracts/dustswap/src/DustSwapHook.sol", desc: "Uniswap V4 beforeSwap/afterSwap hook" },

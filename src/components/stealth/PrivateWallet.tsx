@@ -121,11 +121,11 @@ export const PrivateWallet = () => {
         setIsResolving(true);
         let nameToResolve = recipient;
         const normalized = recipient.toLowerCase().trim();
-        if (normalized.endsWith('.tok')) {
+        if (normalized.endsWith('.dust')) {
           const withoutSuffix = normalized.slice(0, -4);
           const parts = withoutSuffix.split(".");
           if (parts.length > 1) {
-            nameToResolve = parts[parts.length - 1] + '.tok';
+            nameToResolve = parts[parts.length - 1] + '.dust';
             setResolvedLinkSlug(parts[0]);
           }
         }
@@ -688,7 +688,7 @@ const HomeView = ({ colors, radius, ownedNames, nameRegistryConfigured, nameInpu
         <div className="flex flex-col gap-2.5">
           <div className="flex items-start gap-2.5">
             <span className="text-[12px] min-w-[18px] text-center font-semibold" style={{ color: colors.text.muted }}>1</span>
-            <span className="text-[12px] leading-relaxed" style={{ color: colors.text.tertiary }}>Share your <span className="font-semibold" style={{ color: colors.accent.indigoBright }}>.tok</span> name or address with the sender</span>
+            <span className="text-[12px] leading-relaxed" style={{ color: colors.text.tertiary }}>Share your <span className="font-semibold" style={{ color: colors.accent.indigoBright }}>.dust</span> name or address with the sender</span>
           </div>
           <div className="flex items-start gap-2.5">
             <span className="text-[12px] min-w-[18px] text-center font-semibold" style={{ color: colors.text.muted }}>2</span>
@@ -782,7 +782,7 @@ const SendView = ({ colors, radius, sendStep, recipient, setRecipient, amount, s
             <div className="h-px" style={{ background: colors.border.default }} />
             <div className="flex items-center justify-between">
               <span className="text-[13px]" style={{ color: colors.text.muted }}>To</span>
-              <span className="text-[13px] font-mono text-white">{recipient.includes(".tok") ? recipient : `${recipient.slice(0, 14)}...`}</span>
+              <span className="text-[13px] font-mono text-white">{recipient.includes(".dust") ? recipient : `${recipient.slice(0, 14)}...`}</span>
             </div>
           </div>
         </div>
@@ -817,7 +817,7 @@ const SendView = ({ colors, radius, sendStep, recipient, setRecipient, amount, s
         </div>
         <div className="flex flex-col items-center gap-1.5">
           <span className="text-[18px] font-semibold text-white">Payment Sent</span>
-          <span className="text-[13px] text-center" style={{ color: colors.text.muted }}>{amount} {symbol} sent privately to {recipient.includes(".tok") ? recipient : "recipient"}</span>
+          <span className="text-[13px] text-center" style={{ color: colors.text.muted }}>{amount} {symbol} sent privately to {recipient.includes(".dust") ? recipient : "recipient"}</span>
         </div>
         {sendTxHash && (
           <div className="flex flex-col items-center gap-2.5 w-full max-w-sm">

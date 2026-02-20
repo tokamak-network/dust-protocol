@@ -38,9 +38,9 @@ export default function HowItWorksPage() {
               Neither the wallet signature nor the PIN alone are sufficient — both are required.</>,
           },
           {
-            title: "Register a .tok name",
+            title: "Register a .dust name",
             children: <>Your <strong>stealth meta-address</strong> (a pair of secp256k1 public keys: <code>spendKey</code> and <code>viewKey</code>)
-              is registered on the <code>StealthNameRegistry</code> contract under a name like <code>alice.tok</code>.
+              is registered on the <code>StealthNameRegistry</code> contract under a name like <code>alice.dust</code>.
               This is what senders look up. It contains no balance information and maps to no single address.</>,
           },
         ]} />
@@ -52,7 +52,7 @@ export default function HowItWorksPage() {
         <p className="text-xs text-[rgba(255,255,255,0.35)] font-mono mb-5">Sender-side, no interaction from recipient needed</p>
         <DocsStepList steps={[
           {
-            title: "Sender looks up alice.tok",
+            title: "Sender looks up alice.dust",
             children: <>The sender visits <code>/pay/alice</code> (or uses any UI that queries <code>StealthNameRegistry</code>).
               The contract returns Alice's meta-address: her two public keys.</>,
           },

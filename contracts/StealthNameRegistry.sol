@@ -8,7 +8,7 @@ pragma solidity ^0.8.20;
  */
 contract StealthNameRegistry {
     /// @notice The name suffix (e.g., ".tok")
-    string public constant NAME_SUFFIX = ".tok";
+    string public constant NAME_SUFFIX = ".dust";
 
     /**
      * @notice Emitted when a name is registered

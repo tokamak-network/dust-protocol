@@ -7,8 +7,8 @@ dataSources:
     network: sepolia
     source:
       abi: NameRegistry
-      address: "0x4364cd60dF5F4dC82E81346c4E64515C08f19BBc"
-      startBlock: 10251347
+      address: "0x857e17A85891Ef1C595e51Eb7Cd56c607dB21313"
+      startBlock: 10300634
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7

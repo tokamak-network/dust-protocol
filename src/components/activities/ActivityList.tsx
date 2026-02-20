@@ -375,7 +375,7 @@ function OutgoingRow({ item, expandedTx, setExpandedTx }: {
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-[14px] font-medium text-[rgba(255,255,255,0.92)]">
-              Sent to {payment.to.includes(".tok") ? payment.to : `${payment.to.slice(0, 10)}...`}
+              Sent to {payment.to.includes(".dust") ? payment.to : `${payment.to.slice(0, 10)}...`}
             </span>
             <span className="text-[12px] text-[rgba(255,255,255,0.30)] font-mono">
               {symbol} &middot; {timeStr}

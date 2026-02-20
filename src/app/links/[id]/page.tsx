@@ -59,12 +59,12 @@ export default function LinkDetailPage({ params }: { params: { id: string } }) {
     );
   }
 
-  const tokName = `${link.slug}.${username}.tok`;
+  const dustName = `${link.slug}.${username}.dust`;
   const payPath = `/pay/${username}/${link.slug}`;
   const accentColor = link.emojiBg || "#00FF41";
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(tokName);
+    await navigator.clipboard.writeText(dustName);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -111,7 +111,7 @@ export default function LinkDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Hero — emoji + name + .tok */}
+        {/* Hero — emoji + name + .dust */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px", paddingTop: "4px", paddingBottom: "4px" }}>
           <div style={{
             width: "88px", height: "88px",
@@ -135,7 +135,7 @@ export default function LinkDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* .tok address bar */}
+        {/* .dust address bar */}
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "center",
           padding: "12px 16px",
@@ -152,7 +152,7 @@ export default function LinkDetailPage({ params }: { params: { id: string } }) {
               <LinkIcon size={13} color={accentColor} />
             </div>
             <span style={{ fontSize: "14px", fontWeight: 500, color: colors.text.primary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {tokName}
+              {dustName}
             </span>
           </div>
           <div style={{ display: "flex", gap: "2px" }}>
@@ -183,7 +183,7 @@ export default function LinkDetailPage({ params }: { params: { id: string } }) {
           onClose={() => setShowQR(false)}
           url={payPath}
           title={link.name}
-          displayName={tokName}
+          displayName={dustName}
           accentColor={accentColor}
         />
 

@@ -10,7 +10,7 @@ export default function StealthTransfersPage() {
     <DocsPage
       currentHref="/docs/stealth-transfers"
       title="Stealth Transfers"
-      subtitle="Send ETH privately to any .tok name. Each payment lands at a unique one-time address that only the recipient can detect."
+      subtitle="Send ETH privately to any .dust name. Each payment lands at a unique one-time address that only the recipient can detect."
       badge="CORE FEATURE"
     >
 
@@ -89,13 +89,13 @@ export default function StealthTransfersPage() {
         ]} />
       </section>
 
-      {/* .tok names */}
+      {/* .dust names */}
       <section className="mb-10">
-        <h2 className="text-sm font-mono font-semibold text-white tracking-wider mb-3 uppercase">.tok Names</h2>
+        <h2 className="text-sm font-mono font-semibold text-white tracking-wider mb-3 uppercase">.dust Names</h2>
         <p className="text-sm text-[rgba(255,255,255,0.6)] leading-relaxed mb-4">
           Instead of sharing two raw public keys, users register a readable name on the{" "}
           <code className="text-xs bg-[rgba(255,255,255,0.06)] px-1.5 rounded-sm">StealthNameRegistry</code> contract.
-          Names are up to 32 characters and end with <code className="text-xs bg-[rgba(255,255,255,0.06)] px-1.5 rounded-sm">.tok</code>.
+          Names are up to 32 characters and end with <code className="text-xs bg-[rgba(255,255,255,0.06)] px-1.5 rounded-sm">.dust</code>.
         </p>
 
         <div className="overflow-x-auto mb-4">
@@ -108,15 +108,15 @@ export default function StealthTransfersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgba(255,255,255,0.04)]">
-              <tr><td className="py-2.5 pr-6 text-white">Primary name</td><td className="py-2.5 pr-6 text-[#00FF41]">alice.tok</td><td className="py-2.5 text-[rgba(255,255,255,0.5)]">Main identity</td></tr>
-              <tr><td className="py-2.5 pr-6 text-white">Sub-account</td><td className="py-2.5 pr-6 text-[#00FF41]">work.alice.tok</td><td className="py-2.5 text-[rgba(255,255,255,0.5)]">Segment payment streams</td></tr>
+              <tr><td className="py-2.5 pr-6 text-white">Primary name</td><td className="py-2.5 pr-6 text-[#00FF41]">alice.dust</td><td className="py-2.5 text-[rgba(255,255,255,0.5)]">Main identity</td></tr>
+              <tr><td className="py-2.5 pr-6 text-white">Sub-account</td><td className="py-2.5 pr-6 text-[#00FF41]">work.alice.dust</td><td className="py-2.5 text-[rgba(255,255,255,0.5)]">Segment payment streams</td></tr>
               <tr><td className="py-2.5 pr-6 text-white">Custom link</td><td className="py-2.5 pr-6 text-[#00FF41]">/pay/alice/freelance</td><td className="py-2.5 text-[rgba(255,255,255,0.5)]">Track per-campaign analytics</td></tr>
             </tbody>
           </table>
         </div>
 
         <DocsCallout type="tip" title="Sub-accounts">
-          Sub-accounts (e.g. <code>work.alice.tok</code>) use the same stealth key pair but register separately
+          Sub-accounts (e.g. <code>work.alice.dust</code>) use the same stealth key pair but register separately
           — allowing different payment streams to flow to the same recipient without any on-chain connection.
         </DocsCallout>
       </section>

@@ -30,9 +30,9 @@ export function LinkCard(props: LinkCardProps) {
 
   const isPersonal = props.type === "personal";
   const title = isPersonal ? "Personal" : props.link.name;
-  const tokName = isPersonal
-    ? `${props.name.name}.tok`
-    : `${props.link.slug}.${props.username}.tok`;
+  const dustName = isPersonal
+    ? `${props.name.name}.dust`
+    : `${props.link.slug}.${props.username}.dust`;
   const payPath = isPersonal
     ? `/pay/${props.name.name}`
     : `/pay/${props.username}/${props.link.slug}`;
@@ -44,7 +44,7 @@ export function LinkCard(props: LinkCardProps) {
 
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    await navigator.clipboard.writeText(tokName);
+    await navigator.clipboard.writeText(dustName);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -134,7 +134,7 @@ export function LinkCard(props: LinkCardProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-1 overflow-hidden">
               <LinkIcon size={14} color="rgba(255,255,255,0.30)" />
-              <span className="text-[13px] text-[rgba(255,255,255,0.30)] font-mono truncate">{tokName}</span>
+              <span className="text-[13px] text-[rgba(255,255,255,0.30)] font-mono truncate">{dustName}</span>
             </div>
             <div className="flex items-center gap-0.5">
               <button
@@ -162,7 +162,7 @@ export function LinkCard(props: LinkCardProps) {
         onClose={() => setShowQR(false)}
         url={payPath}
         title={title}
-        displayName={tokName}
+        displayName={dustName}
         accentColor={accentColor}
       />
     </>

@@ -8,7 +8,7 @@ const features = [
   {
     badge: "ERC-5564 / ERC-6538",
     title: "Stealth Transfers",
-    desc: "Send ETH to any .tok name. Funds land in a one-time stealth address that only the recipient can detect and claim — completely invisible on-chain.",
+    desc: "Send ETH to any .dust name. Funds land in a one-time stealth address that only the recipient can detect and claim — completely invisible on-chain.",
     href: "/docs/stealth-transfers",
     color: "green",
   },
@@ -34,9 +34,9 @@ const features = [
     color: "amber",
   },
   {
-    badge: ".tok names",
+    badge: ".dust names",
     title: "Payment Links",
-    desc: "Register a human-readable name like alice.tok and share custom payment links. Track per-link volume and payment count in your dashboard.",
+    desc: "Register a human-readable name like alice.dust and share custom payment links. Track per-link volume and payment count in your dashboard.",
     href: "/docs/payment-links",
     color: "muted",
   },
@@ -133,7 +133,7 @@ export default function OverviewPage() {
         <ol className="space-y-2 text-sm text-[rgba(255,255,255,0.6)] leading-relaxed list-none">
           {[
             "Connect your wallet and complete onboarding (takes ~1 minute).",
-            "Register a .tok name — this is your private payment address.",
+            "Register a .dust name — this is your private payment address.",
             "Share your /pay/yourname link. Anyone can send you ETH without knowing your real address.",
             "When payments arrive, claim them gas-free from your Activities page.",
             "Optionally deposit claimed funds to the Privacy Pool to consolidate without creating a traceable link.",

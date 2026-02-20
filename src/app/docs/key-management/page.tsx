@@ -118,7 +118,7 @@ viewKey          =  ikm[32:64] (mod secp256k1 order)`}
           {[
             {
               scenario: "I forget my PIN",
-              outcome: "You cannot re-derive your stealth keys. However, your wallet address still holds any funds you've claimed to it. You can re-register by creating a new PIN and a new .tok name — you'll lose the old name and any unclaimed stealth payments.",
+              outcome: "You cannot re-derive your stealth keys. However, your wallet address still holds any funds you've claimed to it. You can re-register by creating a new PIN and a new .dust name — you'll lose the old name and any unclaimed stealth payments.",
               severity: "warning",
             },
             {
@@ -128,7 +128,7 @@ viewKey          =  ikm[32:64] (mod secp256k1 order)`}
             },
             {
               scenario: "I clear my browser localStorage",
-              outcome: "Stealth keys can be re-derived (log in again with wallet + PIN). Your .tok name is on-chain — it persists. Deposit notes are lost — DustPool / DustSwap deposits become unrecoverable if not backed up.",
+              outcome: "Stealth keys can be re-derived (log in again with wallet + PIN). Your .dust name is on-chain — it persists. Deposit notes are lost — DustPool / DustSwap deposits become unrecoverable if not backed up.",
               severity: "warning",
             },
             {

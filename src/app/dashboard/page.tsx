@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const [poolDepositProgress, setPoolDepositProgress] = useState({ done: 0, total: 0, message: '' });
   const depositingRef = useRef(false);
 
-  const tokName = ownedNames.length > 0 ? `${ownedNames[0].name}.tok` : null;
+  const dustName = ownedNames.length > 0 ? `${ownedNames[0].name}.dust` : null;
   const payPath = ownedNames.length > 0 ? `/pay/${ownedNames[0].name}` : "";
 
   const unified = useUnifiedBalance({
@@ -206,7 +206,7 @@ export default function DashboardPage() {
 
         {/* Modals */}
         <SendModal isOpen={showSendModal} onClose={() => { setShowSendModal(false); scan(); }} />
-        <ReceiveModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} tokName={tokName} payPath={payPath} />
+        <ReceiveModal isOpen={showReceiveModal} onClose={() => setShowReceiveModal(false)} dustName={dustName} payPath={payPath} />
         <ConsolidateModal
           isOpen={showConsolidateModal}
           onClose={() => setShowConsolidateModal(false)}

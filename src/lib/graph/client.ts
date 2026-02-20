@@ -5,7 +5,7 @@ const SUBGRAPH_URLS: Record<number, string | undefined> = {
   // Falls back to RPC automatically via isGraphAvailable()
   111551119090: process.env.NEXT_PUBLIC_SUBGRAPH_URL_THANOS || undefined,
   11155111: process.env.NEXT_PUBLIC_SUBGRAPH_URL_SEPOLIA
-    || 'https://api.studio.thegraph.com/query/1741961/dust-protocol-sepolia/v0.0.1',
+    || 'https://api.studio.thegraph.com/query/1741961/dust-protocol-sepolia/v0.0.2',
 };
 
 const REQUEST_TIMEOUT_MS = 10_000;

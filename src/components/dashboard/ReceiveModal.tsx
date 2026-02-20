@@ -9,11 +9,11 @@ import { DustLogo } from "@/components/DustLogo";
 interface ReceiveModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tokName: string | null;
+  dustName: string | null;
   payPath: string;
 }
 
-export function ReceiveModal({ isOpen, onClose, tokName, payPath }: ReceiveModalProps) {
+export function ReceiveModal({ isOpen, onClose, dustName, payPath }: ReceiveModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
   const [fullUrl, setFullUrl] = useState("");
@@ -75,7 +75,7 @@ export function ReceiveModal({ isOpen, onClose, tokName, payPath }: ReceiveModal
               </button>
             </div>
 
-            {tokName ? (
+            {dustName ? (
               <div className="flex flex-col gap-6">
                 {/* Title */}
                 <div className="flex flex-col gap-1.5 text-center">
@@ -92,11 +92,11 @@ export function ReceiveModal({ isOpen, onClose, tokName, payPath }: ReceiveModal
                   </div>
                 </div>
 
-                {/* .tok name pill */}
+                {/* .dust name pill */}
                 <div className="flex justify-center">
                   <div className="px-5 py-2.5 bg-[rgba(0,255,65,0.06)] border border-[rgba(0,255,65,0.2)] rounded-full">
                     <p className="text-[15px] font-bold text-[#00FF41] font-mono text-center">
-                      {tokName}
+                      {dustName}
                     </p>
                   </div>
                 </div>

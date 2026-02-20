@@ -77,7 +77,7 @@ const THANOS_SEPOLIA_CONFIG: ChainConfig = {
   contracts: {
     announcer: '0x2C2a59E9e71F2D1A8A2D447E73813B9F89CBb125',
     registry: '0x9C527Cc8CB3F7C73346EFd48179e564358847296',
-    nameRegistry: '0x0129DE641192920AB78eBca2eF4591E2Ac48BA59',
+    nameRegistry: '0xD06389cEEd802817C439E0F803E71b02ceb132b4',
     walletFactory: '0xbc8e75a5374a6533cD3C4A427BF4FA19737675D3',
     legacyWalletFactory: '0x85e7Fe33F594AC819213e63EEEc928Cb53A166Cd',
     accountFactory: '0xfE89381ae27a102336074c90123A003e96512954',
@@ -144,7 +144,7 @@ const ETHEREUM_SEPOLIA_CONFIG: ChainConfig = {
   contracts: {
     announcer: '0x64044FfBefA7f1252DdfA931c939c19F21413aB0',
     registry: '0xb848398167054cCb66264Ec25C35F8CfB1EF1Ca7',
-    nameRegistry: '0x4364cd60dF5F4dC82E81346c4E64515C08f19BBc',
+    nameRegistry: '0x857e17A85891Ef1C595e51Eb7Cd56c607dB21313',
     walletFactory: '0x1c65a6F830359f207e593867B78a303B9D757453',
     legacyWalletFactory: '', // No legacy on Sepolia
     accountFactory: '0xc73fce071129c7dD7f2F930095AfdE7C1b8eA82A',

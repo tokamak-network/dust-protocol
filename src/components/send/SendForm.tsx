@@ -245,7 +245,7 @@ export function SendForm() {
               <div className="flex items-center justify-between">
                 <span className="text-[13px] text-[rgba(255,255,255,0.4)]">To</span>
                 <span className="text-[13px] text-white font-mono">
-                  {recipient.includes(".tok") ? recipient : `${recipient.slice(0, 14)}...`}
+                  {recipient.includes(".dust") ? recipient : `${recipient.slice(0, 14)}...`}
                 </span>
               </div>
             </div>
