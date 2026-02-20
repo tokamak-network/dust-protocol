@@ -75,6 +75,7 @@ export default function Home() {
   const router = useRouter();
   const [searchName, setSearchName] = useState("");
   const [connectAttempted, setConnectAttempted] = useState(false);
+  const [loadingTooLong, setLoadingTooLong] = useState(false);
   const hasPrivy = isPrivyEnabled;
   const hasInjectedWallet = typeof window !== "undefined" && !!window.ethereum;
 
@@ -95,6 +96,13 @@ export default function Home() {
   };
 
   useEffect(() => { cleanupCorruptedStorage(); }, []);
+
+  // Show feedback if name lookup is taking too long
+  useEffect(() => {
+    if (!isConnected || isNamesSettled) { setLoadingTooLong(false); return; }
+    const timer = setTimeout(() => setLoadingTooLong(true), 8000);
+    return () => clearTimeout(timer);
+  }, [isConnected, isNamesSettled]);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -124,7 +132,14 @@ export default function Home() {
           <div className="opacity-60">
             <DustLogo size={40} color="#00FF41" />
           </div>
-          <p className="text-[14px] font-mono text-white/40">Loading...</p>
+          <p className="text-[14px] font-mono text-white/40">
+            {loadingTooLong ? "Checking your account..." : "Loading..."}
+          </p>
+          {loadingTooLong && (
+            <p className="text-[11px] font-mono text-white/25 max-w-[280px] text-center">
+              Verifying your identity on-chain. This may take a moment on slow networks.
+            </p>
+          )}
         </div>
       </div>
     );

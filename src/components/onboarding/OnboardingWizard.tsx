@@ -45,6 +45,18 @@ export function OnboardingWizard() {
     setStep("pin");
   };
 
+  // Retry ERC-6538 registration up to 3 times with backoff.
+  // Returns true if registration succeeded, false otherwise.
+  const tryRegisterMeta = async (attempts = 3): Promise<boolean> => {
+    for (let i = 0; i < attempts; i++) {
+      const txHash = await registerMetaAddress();
+      if (txHash) return true;
+      if (i < attempts - 1) await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+    }
+    console.error('[OnboardingWizard] ERC-6538 registration failed after', attempts, 'attempts');
+    return false;
+  };
+
   const handlePinComplete = async (pin: string) => {
     if (activatingRef.current) return;
     activatingRef.current = true;
@@ -66,7 +78,7 @@ export function OnboardingWizard() {
       if (alreadyHasName) {
         // Wallet already has a name — just re-derive keys and re-register ERC-6538 meta-address.
         // Skip registerName to avoid an unnecessary API call.
-        await registerMetaAddress().catch(() => null);
+        await tryRegisterMeta();
       } else if (isReclaiming) {
         // Reclaim flow: user says they already have an account.
         // Use derived metaAddress to find their name via server-side lookup.
@@ -76,8 +88,8 @@ export function OnboardingWizard() {
           const reclaimData = await reclaimRes.json();
           if (reclaimData.name) {
             setUsername(reclaimData.name);
-            // Re-register ERC-6538 meta-address (fire-and-forget, fix the failed registration)
-            registerMetaAddress().catch(() => null);
+            // Re-register ERC-6538 meta-address in background with retry
+            tryRegisterMeta();
           } else {
             // No name found — this wallet hasn't registered a name before
             throw new Error("No existing account found — please go back and create a new username");
@@ -90,7 +102,7 @@ export function OnboardingWizard() {
         // registerName returns the txHash string, or 'already-registered' for idempotent re-reg.
         const [nameTx] = await Promise.all([
           registerName(username, result.metaAddress),
-          registerMetaAddress().catch(() => null),
+          tryRegisterMeta(),
         ]);
         if (!nameTx) throw new Error("Failed to register name");
       }

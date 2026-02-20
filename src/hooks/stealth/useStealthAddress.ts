@@ -4,13 +4,13 @@ import { ethers } from 'ethers';
 import {
   generateStealthKeyPair, deriveStealthKeyPairFromSignature, deriveStealthKeyPairFromSignatureAndPin,
   formatStealthMetaAddress, parseStealthMetaAddress, lookupStealthMetaAddress,
-  isRegistered as checkIsRegistered, signRegistration,
-  STEALTH_KEY_DERIVATION_MESSAGE,
+  isRegistered as checkIsRegistered,
+  STEALTH_KEY_DERIVATION_MESSAGE, SCHEME_ID,
   type StealthKeyPair, type StealthMetaAddress,
   deriveClaimAddresses, deriveClaimAddressesWithPin, saveClaimAddressesToStorage, loadClaimAddressesFromStorage,
   type DerivedClaimAddress,
 } from '@/lib/stealth';
-import { getProviderWithAccounts, getChainProvider, signMessage as signWithWallet } from '@/lib/providers';
+import { getChainProvider, signMessage as signWithWallet } from '@/lib/providers';
 import { getChainConfig, DEFAULT_CHAIN_ID } from '@/config/chains';
 
 import { storageKey, migrateKey } from '@/lib/storageKey';
@@ -219,6 +219,7 @@ export function useStealthAddress() {
   const registeringRef = useRef(false);
   const registerMetaAddress = useCallback(async (chainId?: number): Promise<string | null> => {
     if (!metaAddress || !isConnected || !address) { setError('No keys or wallet not connected'); return null; }
+    if (!walletClient) { setError('Wallet not ready — please try again'); return null; }
     if (registeringRef.current) return null;
     registeringRef.current = true;
     setError(null);
@@ -234,9 +235,32 @@ export function useStealthAddress() {
       );
       const nonce = await registryContract.nonceOf(address);
 
-      const walletProvider = await getProviderWithAccounts();
-      if (!walletProvider) throw new Error('No wallet provider');
-      const signature = await signRegistration(walletProvider.getSigner(), metaAddress, nonce, cid);
+      // EIP-712 signature via wagmi walletClient (works with Privy embedded wallets)
+      const metaBytes = metaAddress.startsWith('st:')
+        ? ('0x' + (metaAddress.match(/st:[a-z]+:0x([0-9a-fA-F]+)/)?.[1] || '')) as `0x${string}`
+        : (metaAddress.startsWith('0x') ? metaAddress : '0x' + metaAddress) as `0x${string}`;
+
+      const signature = await walletClient.signTypedData({
+        domain: {
+          name: 'ERC6538Registry',
+          version: '1',
+          chainId: cid,
+          verifyingContract: config.contracts.registry as `0x${string}`,
+        },
+        types: {
+          Erc6538RegistryEntry: [
+            { name: 'schemeId', type: 'uint256' },
+            { name: 'stealthMetaAddress', type: 'bytes' },
+            { name: 'nonce', type: 'uint256' },
+          ],
+        },
+        primaryType: 'Erc6538RegistryEntry',
+        message: {
+          schemeId: BigInt(SCHEME_ID.SECP256K1),
+          stealthMetaAddress: metaBytes,
+          nonce: BigInt(nonce.toString()),
+        },
+      });
 
       const res = await fetch('/api/sponsor-register-keys', {
         method: 'POST',
@@ -255,7 +279,7 @@ export function useStealthAddress() {
       setIsLoading(false);
       registeringRef.current = false;
     }
-  }, [metaAddress, isConnected, address]);
+  }, [metaAddress, isConnected, address, walletClient]);
 
   const checkRegistration = useCallback(async (chainId?: number): Promise<boolean> => {
     if (!address || !isConnected) return false;

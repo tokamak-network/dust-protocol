@@ -61,6 +61,27 @@ export async function GET(req: Request) {
     const chains = getSupportedChains();
     const historicalMetas = new Set<string>();
 
+    // Strategy 0: Direct name ownership — check if wallet directly owns names
+    // (catches cases where sponsor-name-register auto-transfer succeeded)
+    for (const chain of chains) {
+      if (!chain.contracts.nameRegistry) continue;
+      try {
+        const provider = getServerProvider(chain.id);
+        const registry = new ethers.Contract(chain.contracts.nameRegistry, NAME_REGISTRY_ABI, provider);
+        const userNames: string[] = await registry.getNamesOwnedBy(address);
+        if (userNames.length > 0) {
+          const resolved: string = await registry.resolveName(userNames[0]);
+          return NextResponse.json({
+            name: userNames[0],
+            metaAddress: resolved || '',
+            source: 'direct-ownership',
+          }, {
+            headers: { 'Cache-Control': 'public, max-age=120' },
+          });
+        }
+      } catch { /* continue to next chain */ }
+    }
+
     // Strategy 1: Direct contract read — stealthMetaAddressOf(wallet, 1)
     // This is the fastest and most reliable check (single RPC call per chain)
     const directReadResults = await Promise.allSettled(
