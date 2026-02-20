@@ -58,3 +58,4 @@ next-env.d.ts
 .claude/hooks/codepilot-hook.py
 CLAUDE.md
 public/circuits/v2/DustV2Transaction.zkey
+.wrangler/
