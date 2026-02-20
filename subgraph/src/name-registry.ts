@@ -108,27 +108,43 @@ export function handleNameRegistered(event: NameRegistered): void {
 }
 
 export function handleNameTransferred(event: NameTransferred): void {
-  // Decode name from transferName(string,address) calldata
+  // event.params.name is keccak256(name) because `string indexed` stores only the hash.
+  // Try calldata decoding first, then fall back to topic hash or contract read.
+  let nameHash: string | null = null
+  let name: Name | null = null
+
+  // Strategy 1: Decode name from transferName(string,address) calldata
   let decodedName = decodeNameFromInput(event.transaction.input, "(string,address)")
+  if (decodedName != null && (decodedName as string).length > 0) {
+    nameHash = computeNameHash(decodedName as string)
+    name = Name.load(nameHash as string)
+  }
 
-  if (decodedName == null) {
-    log.error("handleNameTransferred: could not decode name from tx {}", [
+  // Strategy 2: Use the indexed topic hash directly as entity ID
+  if (name == null) {
+    let topicHash = event.params.name.toHex()
+    name = Name.load(topicHash)
+    if (name != null) {
+      nameHash = topicHash
+    }
+  }
+
+  // Strategy 3: Read actual name from contract's hashToName mapping
+  if (name == null) {
+    let contract = NameRegistry.bind(event.address)
+    let result = contract.try_hashToName(event.params.name)
+    if (!result.reverted && result.value.length > 0) {
+      nameHash = computeNameHash(result.value)
+      name = Name.load(nameHash as string)
+    }
+  }
+
+  if (name == null || nameHash == null) {
+    log.error("handleNameTransferred: could not resolve name from tx {}", [
       event.transaction.hash.toHex()
     ])
     return
   }
-
-  let actualName: string = decodedName as string
-  if (actualName.length == 0) {
-    log.error("handleNameTransferred: decoded empty name from tx {}", [
-      event.transaction.hash.toHex()
-    ])
-    return
-  }
-
-  let nameHash = computeNameHash(actualName)
-  let name = Name.load(nameHash)
-  if (name == null) return
 
   // Update sender user count
   let fromUserId = event.params.previousOwner.toHex()
@@ -155,9 +171,10 @@ export function handleNameTransferred(event: NameTransferred): void {
   name.save()
 
   // Create transfer record
+  let resolvedHash = nameHash as string
   let transferId = event.transaction.hash.toHex() + "-" + event.logIndex.toString()
   let transfer = new NameTransfer(transferId)
-  transfer.name = nameHash
+  transfer.name = resolvedHash
   transfer.from = event.params.previousOwner
   transfer.to = event.params.newOwner
   transfer.timestamp = event.block.timestamp
@@ -166,27 +183,35 @@ export function handleNameTransferred(event: NameTransferred): void {
 }
 
 export function handleMetaAddressUpdated(event: MetaAddressUpdated): void {
-  // Decode name from updateMetaAddress(string,bytes) calldata
+  // Same 3-strategy fallback as handleNameTransferred
+  let name: Name | null = null
+
+  // Strategy 1: Decode name from updateMetaAddress(string,bytes) calldata
   let decodedName = decodeNameFromInput(event.transaction.input, "(string,bytes)")
+  if (decodedName != null && (decodedName as string).length > 0) {
+    name = Name.load(computeNameHash(decodedName as string))
+  }
 
-  if (decodedName == null) {
-    log.error("handleMetaAddressUpdated: could not decode name from tx {}", [
+  // Strategy 2: Use the indexed topic hash directly as entity ID
+  if (name == null) {
+    name = Name.load(event.params.name.toHex())
+  }
+
+  // Strategy 3: Read actual name from contract's hashToName mapping
+  if (name == null) {
+    let contract = NameRegistry.bind(event.address)
+    let result = contract.try_hashToName(event.params.name)
+    if (!result.reverted && result.value.length > 0) {
+      name = Name.load(computeNameHash(result.value))
+    }
+  }
+
+  if (name == null) {
+    log.error("handleMetaAddressUpdated: could not resolve name from tx {}", [
       event.transaction.hash.toHex()
     ])
     return
   }
-
-  let actualName: string = decodedName as string
-  if (actualName.length == 0) {
-    log.error("handleMetaAddressUpdated: decoded empty name from tx {}", [
-      event.transaction.hash.toHex()
-    ])
-    return
-  }
-
-  let nameHash = computeNameHash(actualName)
-  let name = Name.load(nameHash)
-  if (name == null) return
 
   name.metaAddress = event.params.newMetaAddress
   name.updatedAt = event.block.timestamp
