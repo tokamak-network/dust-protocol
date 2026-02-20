@@ -92,10 +92,10 @@ export function ActivityList({
               key={f}
               onClick={() => setFilter(f)}
               className={[
-                "px-4 py-2 rounded-full text-[13px] font-mono capitalize transition-all duration-150",
+                "px-4 py-2 rounded-sm text-[11px] font-mono capitalize tracking-wider transition-all duration-150",
                 filter === f
-                  ? "bg-gradient-to-br from-[#00FF41] via-[#00FF41] to-[#00FF41] text-white font-semibold shadow-[0_2px_8px_rgba(0,255,65,0.3),0_0_20px_rgba(0,255,65,0.1)]"
-                  : "bg-transparent border border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.30)] hover:bg-[rgba(255,255,255,0.04)]",
+                  ? "bg-[#00FF41] text-black font-bold"
+                  : "border border-white/[0.08] text-white/30 hover:text-white/60 hover:bg-white/[0.04]",
               ].join(" ")}
             >
               {f}
@@ -106,7 +106,7 @@ export function ActivityList({
         <div className="flex gap-2">
           {/* Export CSV button */}
           <button
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-full border border-[rgba(255,255,255,0.08)] text-[13px] font-mono text-[rgba(255,255,255,0.65)] hover:bg-[rgba(255,255,255,0.04)] transition-all duration-150"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-sm border border-white/[0.08] text-[11px] font-mono text-white/50 hover:text-white/70 hover:bg-white/[0.04] transition-all duration-150"
             onClick={() => {
               if (filtered.length === 0) return;
               const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
@@ -139,7 +139,7 @@ export function ActivityList({
 
           {/* Scan button */}
           <button
-            className="p-2 rounded-full border border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.04)] transition-all duration-150"
+            className="p-2 rounded-sm border border-white/[0.08] hover:bg-white/[0.04] transition-all duration-150"
             onClick={() => scan()}
           >
             {isScanning ? (
@@ -155,8 +155,8 @@ export function ActivityList({
       </div>
 
       {/* Sponsored gas banner */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[rgba(0,255,65,0.05)] rounded-md" style={{ border: "1.5px solid rgba(0,255,65,0.12)" }}>
-        <div className="w-8 h-8 rounded-full bg-[rgba(0,255,65,0.1)] flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-[rgba(0,255,65,0.04)] rounded-sm border border-[rgba(0,255,65,0.1)]">
+        <div className="w-8 h-8 rounded-sm bg-[rgba(0,255,65,0.08)] flex items-center justify-center shrink-0">
           <ZapIcon size={16} color="#00FF41" />
         </div>
         <div className="flex flex-col gap-0.5">
@@ -176,10 +176,10 @@ export function ActivityList({
               key={addr.address}
               onClick={() => selectAddress(idx)}
               className={[
-                "px-3 py-1.5 rounded-full text-[11px] font-mono font-medium transition-all duration-150",
+                "px-3 py-1.5 rounded-sm text-[11px] font-mono font-medium transition-all duration-150",
                 selectedIndex === idx
-                  ? "bg-[#00FF41] border border-[#00FF41] text-[#06080F]"
-                  : "bg-transparent border border-[rgba(255,255,255,0.08)] text-[rgba(255,255,255,0.30)]",
+                  ? "bg-[#00FF41] border border-[#00FF41] text-black"
+                  : "border border-white/[0.08] text-white/30 hover:text-white/50",
               ].join(" ")}
             >
               {addr.label || `Wallet ${idx + 1}`}
@@ -190,8 +190,8 @@ export function ActivityList({
 
       {/* Claimed tx success */}
       {claimedTx && (
-        <div className="flex items-center gap-3.5 p-4 px-5 bg-[rgba(255,255,255,0.03)] backdrop-blur-md rounded-2xl border-2 border-[#00FF41]">
-          <div className="w-10 h-10 rounded-full bg-[rgba(0,255,65,0.08)] flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-3.5 p-4 px-5 bg-white/[0.03] rounded-sm border border-[#00FF41]/30">
+          <div className="w-10 h-10 rounded-sm bg-[rgba(0,255,65,0.08)] flex items-center justify-center shrink-0">
             <CheckCircleIcon size={20} color="#00FF41" />
           </div>
           <div className="flex flex-col gap-0.5 flex-1 min-w-0">
@@ -203,7 +203,7 @@ export function ActivityList({
             </span>
           </div>
           <a href={`${explorerBase}/tx/${claimedTx}`} target="_blank" rel="noopener noreferrer">
-            <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] hover:border-[#00FF41] transition-all duration-150 cursor-pointer">
+            <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-sm border border-[rgba(255,255,255,0.08)] hover:border-[#00FF41] transition-all duration-150 cursor-pointer">
               <ArrowUpRightIcon size={12} color="#00FF41" />
               <span className="text-[12px] text-[#00FF41] font-medium font-mono">Explorer</span>
             </button>
@@ -213,7 +213,7 @@ export function ActivityList({
 
       {/* Activity list */}
       {filtered.length === 0 ? (
-        <div className="p-12 text-center bg-[rgba(255,255,255,0.02)] backdrop-blur-sm rounded-xl border border-[rgba(255,255,255,0.06)]">
+        <div className="p-12 text-center bg-[rgba(255,255,255,0.02)] backdrop-blur-sm rounded-sm border border-[rgba(255,255,255,0.06)]">
           <div className="flex flex-col items-center gap-3">
             <span className="text-[15px] font-medium text-[rgba(255,255,255,0.92)]">No transactions yet</span>
             <span className="text-[13px] text-[rgba(255,255,255,0.30)] font-mono">
@@ -255,9 +255,11 @@ export function ActivityList({
       )}
 
       {scanError && (
-        <div className="flex items-center gap-2 p-3 px-4 bg-[rgba(229,62,62,0.04)] rounded-sm">
+        <div className="flex items-center gap-2 p-3 px-4 bg-[rgba(229,62,62,0.04)] rounded-sm border border-[#EF4444]/10">
           <AlertCircleIcon size={14} color="#EF4444" />
-          <span className="text-[12px] text-[#EF4444] font-mono">{scanError}</span>
+          <span className="text-[11px] text-[#EF4444]/70 font-mono truncate">
+            {scanError.length > 120 ? `${scanError.slice(0, 120)}...` : scanError}
+          </span>
         </div>
       )}
     </div>
@@ -286,12 +288,12 @@ function IncomingRow({ item, payments, expandedTx, setExpandedTx, handleClaim, c
         className={[
           "flex items-center justify-between px-5 py-4 bg-[rgba(255,255,255,0.03)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] cursor-pointer transition-all duration-150",
           "hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.1)]",
-          isExpanded ? "rounded-tl-2xl rounded-tr-2xl border-b-0" : "rounded-2xl",
+          isExpanded ? "rounded-tl-2xl rounded-tr-2xl border-b-0" : "rounded-sm",
         ].join(" ")}
         onClick={() => setExpandedTx(isExpanded ? null : payment.announcement.txHash)}
       >
         <div className="flex items-center gap-3.5">
-          <div className="w-[42px] h-[42px] rounded-full bg-[rgba(0,255,65,0.08)] flex items-center justify-center shrink-0">
+          <div className="w-[42px] h-[42px] rounded-sm bg-[rgba(0,255,65,0.08)] flex items-center justify-center shrink-0">
             <ArrowDownLeftIcon size={20} color="#00FF41" />
           </div>
           <div className="flex flex-col gap-0.5">
@@ -365,12 +367,12 @@ function OutgoingRow({ item, expandedTx, setExpandedTx }: {
         className={[
           "flex items-center justify-between px-5 py-4 bg-[rgba(255,255,255,0.03)] backdrop-blur-md border border-[rgba(255,255,255,0.06)] cursor-pointer transition-all duration-150",
           "hover:bg-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.1)]",
-          isExpanded ? "rounded-tl-2xl rounded-tr-2xl border-b-0" : "rounded-2xl",
+          isExpanded ? "rounded-tl-2xl rounded-tr-2xl border-b-0" : "rounded-sm",
         ].join(" ")}
         onClick={() => setExpandedTx(isExpanded ? null : payment.txHash)}
       >
         <div className="flex items-center gap-3.5">
-          <div className="w-[42px] h-[42px] rounded-full bg-[rgba(229,62,62,0.08)] flex items-center justify-center shrink-0">
+          <div className="w-[42px] h-[42px] rounded-sm bg-[rgba(229,62,62,0.08)] flex items-center justify-center shrink-0">
             <SendIcon size={20} color="#EF4444" />
           </div>
           <div className="flex flex-col gap-0.5">
