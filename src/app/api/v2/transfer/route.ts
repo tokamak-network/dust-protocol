@@ -117,14 +117,17 @@ export async function POST(req: Request) {
       },
     )
 
-    await tx.wait()
+    const receipt = await tx.wait()
 
-    console.log(`[V2/transfer] Success: nullifier=${nullifier0.slice(0, 18)}... tx=${tx.hash}`)
+    console.log(`[V2/transfer] Success: nullifier=${nullifier0.slice(0, 18)}... tx=${receipt.transactionHash}`)
 
     // Resync tree to capture output commitments
     await syncAndPostRoot(chainId)
 
-    return NextResponse.json({ success: true }, { headers: NO_STORE })
+    return NextResponse.json(
+      { success: true, txHash: receipt.transactionHash },
+      { headers: NO_STORE },
+    )
   } catch (e) {
     console.error('[V2/transfer] Error:', e)
     const raw = e instanceof Error ? e.message : ''

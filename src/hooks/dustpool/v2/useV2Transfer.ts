@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, type RefObject } from 'react'
-import { useAccount, useChainId } from 'wagmi'
+import { useAccount, useChainId, usePublicClient } from 'wagmi'
 import { zeroAddress, type Address } from 'viem'
 import { computeAssetId } from '@/lib/dustpool/v2/commitment'
 import { buildTransferInputs } from '@/lib/dustpool/v2/proof-inputs'
@@ -11,6 +11,8 @@ import type { StoredNoteV2 } from '@/lib/dustpool/v2/storage'
 import { createRelayerClient } from '@/lib/dustpool/v2/relayer-client'
 import { generateV2Proof, verifyV2ProofLocally } from '@/lib/dustpool/v2/proof'
 import type { V2Keys } from '@/lib/dustpool/v2/types'
+
+const RECEIPT_TIMEOUT_MS = 30_000
 
 // Relayer API returns JSON body with `error` field on failure.
 function extractRelayerError(e: unknown, fallback: string): string {
@@ -29,9 +31,11 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
   const { address, isConnected } = useAccount()
   const wagmiChainId = useChainId()
   const chainId = chainIdOverride ?? wagmiChainId
+  const publicClient = usePublicClient()
 
   const [isPending, setIsPending] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const transferringRef = useRef(false)
 
@@ -49,6 +53,7 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
     transferringRef.current = true
     setIsPending(true)
     setError(null)
+    setTxHash(null)
 
     try {
       const db = await openV2Database()
@@ -99,7 +104,7 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
           throw new Error('Relayer rejected the transfer')
         }
 
-        return { proofInputs }
+        return { proofInputs, result }
       }
 
       let submission: Awaited<ReturnType<typeof generateAndSubmit>>
@@ -116,7 +121,21 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
         }
       }
 
+      setTxHash(submission.result.txHash)
       const proofInputs = submission.proofInputs
+
+      // Verify the transfer tx actually succeeded on-chain before marking spent
+      if (!publicClient) {
+        throw new Error('Public client not available — cannot verify transaction')
+      }
+      setStatus('Confirming on-chain...')
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: submission.result.txHash as `0x${string}`,
+        timeout: RECEIPT_TIMEOUT_MS,
+      })
+      if (receipt.status === 'reverted') {
+        throw new Error(`Transfer transaction reverted (tx: ${submission.result.txHash})`)
+      }
 
       // Atomically mark spent + save change in one IndexedDB transaction
       if (inputNote.note.amount < amount) {
@@ -148,7 +167,7 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
       setStatus(null)
       transferringRef.current = false
     }
-  }, [isConnected, address, chainId])
+  }, [isConnected, address, chainId, publicClient])
 
-  return { transfer, isPending, status, error }
+  return { transfer, isPending, status, txHash, error }
 }

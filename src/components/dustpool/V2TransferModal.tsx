@@ -27,7 +27,7 @@ export function V2TransferModal({
   chainId,
   shieldedBalance,
 }: V2TransferModalProps) {
-  const { transfer, isPending, error } = useV2Transfer(keysRef, chainId);
+  const { transfer, isPending, status, error } = useV2Transfer(keysRef, chainId);
 
   const [amount, setAmount] = useState("");
   const [recipientPubKey, setRecipientPubKey] = useState("");
@@ -183,8 +183,8 @@ export function V2TransferModal({
               {isPending && (
                 <div className="flex flex-col items-center gap-4 py-6">
                   <div className="w-8 h-8 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm font-semibold text-white font-mono">Generating ZK proof...</p>
-                  <p className="text-xs text-[rgba(255,255,255,0.4)] text-center font-mono">Building proof and submitting to relayer</p>
+                  <p className="text-sm font-semibold text-white font-mono">{status || 'Generating ZK proof...'}</p>
+                  <p className="text-xs text-[rgba(255,255,255,0.4)] text-center font-mono">This may take a moment</p>
                 </div>
               )}
 

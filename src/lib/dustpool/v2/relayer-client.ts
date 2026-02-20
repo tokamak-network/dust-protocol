@@ -26,6 +26,7 @@ interface WithdrawalResult {
 
 interface TransferResult {
   success: boolean
+  txHash: string
 }
 
 interface DepositStatus {
@@ -53,6 +54,7 @@ interface WithdrawalResponse {
 
 interface TransferResponse {
   success: boolean
+  txHash: string
 }
 
 interface DepositStatusResponse {
@@ -193,7 +195,7 @@ export function createRelayerClient(config?: Partial<RelayerConfig>) {
         method: 'POST',
         body: JSON.stringify({ proof: proofCalldata, publicSignals, targetChainId }),
       })
-      return { success: data.success }
+      return { success: data.success, txHash: data.txHash }
     },
 
     /**
