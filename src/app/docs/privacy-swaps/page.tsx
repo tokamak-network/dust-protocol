@@ -3,9 +3,22 @@ import { DocsCallout } from "@/components/docs/DocsCallout";
 import { DocsStepList } from "@/components/docs/DocsStepList";
 import { DocsBadge } from "@/components/docs/DocsBadge";
 import { AtomicSwapHook } from "@/components/docs/visuals/AtomicSwapHook";
+import { docsMetadata } from "@/lib/seo/metadata";
+import { techArticleJsonLd } from "@/lib/seo/jsonLd";
+
+/*
+ * XSS-safe: all values below are hardcoded string literals defined in this file.
+ * safeJsonLd() in jsonLd.ts escapes '<' as \u003c. No user input flows into this data.
+ */
+const articleLd = techArticleJsonLd("Privacy Swaps — Anonymous Token Exchange via Uniswap V4", "Swap tokens without leaving a traceable on-chain fingerprint. ZK proof verification and the Uniswap V4 swap execute atomically in one transaction.", "/docs/privacy-swaps");
+
+export const metadata = docsMetadata("Privacy Swaps — Anonymous Token Exchange via Uniswap V4", "Swap tokens without leaving a traceable on-chain fingerprint. ZK proof verification and the Uniswap V4 swap execute atomically in one transaction.", "/docs/privacy-swaps");
 
 export default function PrivacySwapsPage() {
   return (
+    <>
+    {/* Safe: hardcoded string literals only — see articleLd declaration above */}
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleLd }} />
     <DocsPage
       currentHref="/docs/privacy-swaps"
       title="Privacy Swaps"
@@ -160,5 +173,6 @@ export default function PrivacySwapsPage() {
         </div>
       </section>
     </DocsPage>
+    </>
   );
 }

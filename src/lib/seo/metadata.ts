@@ -1,0 +1,113 @@
+import type { Metadata } from "next";
+
+export const SITE_URL = "https://dustprotocol.app";
+export const SITE_NAME = "Dust Protocol";
+export const TWITTER_HANDLE = "@DustProtocolApp";
+
+export const DEFAULT_OG_IMAGE = `${SITE_URL}/opengraph-image`;
+
+export const ROOT_METADATA: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Dust Protocol — Private Transfers & Stealth Addresses on Ethereum",
+    template: "%s | Dust Protocol",
+  },
+  description:
+    "Send and receive crypto privately using stealth addresses (ERC-5564) and zero-knowledge proofs. Non-custodial privacy for Ethereum payments, swaps, and DeFi. Gasless claims, .dust usernames, and private token swaps via Uniswap V4.",
+  keywords: [
+    "stealth address",
+    "stealth address Ethereum",
+    "private crypto transfer",
+    "send crypto privately",
+    "anonymous crypto payments",
+    "ERC-5564",
+    "ERC-6538",
+    "zero knowledge proof",
+    "ZK proof Ethereum",
+    "privacy pool",
+    "privacy pool crypto",
+    "private token swap",
+    "anonymous token swap",
+    "private DEX swap",
+    "Ethereum privacy",
+    "Ethereum privacy protocol",
+    "private DeFi",
+    "ZK-UTXO",
+    "Dust Protocol",
+    "stealth wallet",
+    "gasless crypto claim",
+    "ERC-4337 stealth",
+    "Uniswap V4 privacy",
+    "Poseidon hash",
+    "Groth16 proof",
+    "FFLONK proof",
+    "private Ethereum payment",
+    "untraceable crypto transfer",
+    "blockchain privacy tool",
+    "non-custodial privacy",
+    "EIP-7702",
+    ".dust name",
+    "crypto payment link",
+    "stealth meta-address",
+  ],
+  authors: [{ name: "Dust Protocol", url: SITE_URL }],
+  creator: "Dust Protocol",
+  publisher: "Dust Protocol",
+  category: "Cryptocurrency",
+  classification: "Privacy Protocol",
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_US",
+    images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: "Dust Protocol — Private Transfers & Stealth Addresses on Ethereum" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: TWITTER_HANDLE,
+    creator: TWITTER_HANDLE,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "/",
+    types: {
+      "application/rss+xml": "/docs/feed.xml",
+    },
+  },
+  other: {
+    "google-site-verification": "REPLACE_WITH_VERIFICATION_CODE",
+  },
+};
+
+export function docsMetadata(
+  title: string,
+  description: string,
+  path: string,
+): Metadata {
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      title: `${title} | ${SITE_NAME}`,
+      description,
+      url: path,
+      type: "article",
+      images: [{ url: `${SITE_URL}/docs/opengraph-image`, width: 1200, height: 630, alt: `${title} — Dust Protocol` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | ${SITE_NAME}`,
+      description,
+    },
+  };
+}

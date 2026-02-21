@@ -2,6 +2,9 @@ import { DocsPage } from "@/components/docs/DocsPage";
 import { DocsCallout } from "@/components/docs/DocsCallout";
 import { DocsBadge } from "@/components/docs/DocsBadge";
 import { AccountTypeSwitcher } from "@/components/docs/visuals/AccountTypeSwitcher";
+import { docsMetadata } from "@/lib/seo/metadata";
+
+export const metadata = docsMetadata("Account Types & EIP-7702 — Gasless Stealth Claims", "How Dust works with EOA, CREATE2, ERC-4337, and EIP-7702 account types. Each claim mechanism adapts to your wallet type for gasless stealth fund recovery.", "/docs/eip-7702");
 
 export default function Eip7702Page() {
   return (

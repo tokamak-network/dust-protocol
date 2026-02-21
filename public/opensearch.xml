@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+  <ShortName>Dust Protocol</ShortName>
+  <Description>Pay any .dust username privately — send crypto to stealth addresses on Ethereum</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="16" height="16" type="image/svg+xml">https://dustprotocol.app/icon.svg</Image>
+  <Url type="text/html" template="https://dustprotocol.app/pay/{searchTerms}"/>
+  <SearchForm>https://dustprotocol.app</SearchForm>
+</OpenSearchDescription>

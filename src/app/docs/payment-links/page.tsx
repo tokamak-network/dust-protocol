@@ -2,6 +2,9 @@ import { DocsPage } from "@/components/docs/DocsPage";
 import { DocsCallout } from "@/components/docs/DocsCallout";
 import { DocsStepList } from "@/components/docs/DocsStepList";
 import { PaymentLinkCard } from "@/components/docs/visuals/PaymentLinkCard";
+import { docsMetadata } from "@/lib/seo/metadata";
+
+export const metadata = docsMetadata("Payment Links — Pay Anyone by .dust Username", "Create shareable payment URLs for your .dust name. Each link tracks analytics while all ETH lands at unique stealth addresses only you can claim.", "/docs/payment-links");
 
 export default function PaymentLinksPage() {
   return (

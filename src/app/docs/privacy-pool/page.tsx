@@ -3,9 +3,23 @@ import { DocsCallout } from "@/components/docs/DocsCallout";
 import { DocsStepList } from "@/components/docs/DocsStepList";
 import { DocsBadge } from "@/components/docs/DocsBadge";
 import { MerkleTreeMixer } from "@/components/docs/visuals/MerkleTreeMixer";
+import { docsMetadata } from "@/lib/seo/metadata";
+import { techArticleJsonLd } from "@/lib/seo/jsonLd";
+
+/**
+ * XSS-safe: all values below are hardcoded string literals defined in this file.
+ * safeJsonLd() in jsonLd.ts escapes any '<' characters as \u003c to prevent injection.
+ * No user input flows into this JSON-LD — only compile-time constants.
+ */
+const articleLd = techArticleJsonLd("Privacy Pool — ZK Proof Withdrawals", "Consolidate stealth payments without creating traceable on-chain links. Deposit to a shared Merkle tree, withdraw with a zero-knowledge proof.", "/docs/privacy-pool");
+
+export const metadata = docsMetadata("Privacy Pool — ZK Proof Withdrawals", "Consolidate stealth payments without creating traceable on-chain links. Deposit to a shared Merkle tree, withdraw with a zero-knowledge proof.", "/docs/privacy-pool");
 
 export default function PrivacyPoolPage() {
   return (
+    <>
+    {/* Safe: hardcoded string literals only — see articleLd declaration above */}
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleLd }} />
     <DocsPage
       currentHref="/docs/privacy-pool"
       title="Privacy Pool"
@@ -155,5 +169,6 @@ export default function PrivacyPoolPage() {
         </div>
       </section>
     </DocsPage>
+    </>
   );
 }

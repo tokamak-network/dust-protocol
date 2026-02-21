@@ -3,9 +3,31 @@ import { DocsCallout } from "@/components/docs/DocsCallout";
 import { DocsStepList } from "@/components/docs/DocsStepList";
 import { DocsBadge } from "@/components/docs/DocsBadge";
 import { EndToEndTimeline } from "@/components/docs/visuals/EndToEndTimeline";
+import { docsMetadata } from "@/lib/seo/metadata";
+import { howToJsonLd } from "@/lib/seo/jsonLd";
+
+// XSS-safe: all values are hardcoded string literals; safeJsonLd escapes < as \u003c
+const howToData = howToJsonLd(
+  "How to Send Private Crypto Payments with Dust Protocol",
+  "Complete walkthrough: connect wallet, set PIN, register .dust name, receive stealth payments, claim gas-free, consolidate via privacy pool, and swap tokens anonymously.",
+  [
+    { name: "Connect your wallet", text: "Connect with any EVM wallet (MetaMask, WalletConnect, Coinbase Wallet, or Privy social login). The wallet is used only to sign a message." },
+    { name: "Set a PIN", text: "Choose a numeric PIN. Dust derives your private stealth keys using PBKDF2(wallet_signature + PIN, salt, 100,000 iterations). Neither alone is sufficient." },
+    { name: "Register a .dust name", text: "Your stealth meta-address (spendKey + viewKey) is registered on the StealthNameRegistry contract under a name like alice.dust." },
+    { name: "Receive a stealth payment", text: "The sender looks up your .dust name, derives a one-time stealth address via ECDH, and sends ETH directly to it." },
+    { name: "Claim gas-free via ERC-4337", text: "Click Claim. Your stealth key signs a UserOperation locally. The DustPaymaster sponsors gas. A StealthAccount is deployed and drains atomically." },
+    { name: "Consolidate in Privacy Pool", text: "Deposit claimed funds to DustPool with a Poseidon commitment. Withdraw later with a ZK proof to break the on-chain link." },
+    { name: "Swap tokens privately", text: "Deposit to DustSwapPool, wait 50 blocks, generate a ZK proof, and submit an atomic swap via Uniswap V4 hook." },
+  ],
+);
+
+export const metadata = docsMetadata("How Dust Protocol Works — Private Payments End to End", "Complete walkthrough of the Dust Protocol lifecycle from wallet connection and PIN setup to stealth transfers, privacy pool deposits, and ZK withdrawals.", "/docs/how-it-works");
 
 export default function HowItWorksPage() {
   return (
+    <>
+    {/* XSS-safe: howToData is built from hardcoded string literals in this file; safeJsonLd escapes < as \u003c */}
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: howToData }} />
     <DocsPage
       currentHref="/docs/how-it-works"
       title="How It Works"
@@ -187,5 +209,6 @@ export default function HowItWorksPage() {
         </div>
       </section>
     </DocsPage>
+    </>
   );
 }

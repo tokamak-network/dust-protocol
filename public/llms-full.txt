@@ -1,0 +1,564 @@
+# Dust Protocol — Complete Documentation
+
+> Privacy protocol for Ethereum using stealth addresses (ERC-5564), ZK-UTXO privacy pools, and private swaps via Uniswap V4.
+
+## Overview
+
+**Dust Protocol** — Private payments and private swaps for EVM chains. Funds dissolve into the blockchain — no on-chain link between sender and recipient.
+
+### What is Dust?
+
+Dust Protocol is an on-chain privacy layer built on top of standard EVM infrastructure. It lets users send, receive, and swap tokens without creating a public ledger trail — the fundamental privacy problem that affects every public blockchain today.
+
+When you receive ETH normally, the entire world can see your address balance, income history, and spending patterns. Dust eliminates this by routing all payments through one-time stealth addresses — each payment lands at a fresh address that only the recipient can derive.
+
+The Privacy Pool and Privacy Swaps layers go further: even the act of consolidating multiple stealth payments or swapping tokens leaves no traceable fingerprint, thanks to in-browser zero-knowledge proofs.
+
+### Supported Networks
+
+- **Ethereum Sepolia** (testnet)
+- **Thanos Sepolia** (Tokamak Network)
+
+> Testnet Only: Dust Protocol is currently deployed on testnets. Do not send mainnet funds. Contract addresses may change during the testing phase.
+
+### Core Features
+
+**Stealth Transfers** (ERC-5564 / ERC-6538): Send ETH to any .dust name. Funds land in a one-time stealth address that only the recipient can detect and claim — completely invisible on-chain.
+
+**Privacy Pool** (ZK / Groth16): Deposit multiple stealth wallets into a shared pool. Withdraw to any address with a zero-knowledge proof — no on-chain link between deposit and withdrawal.
+
+**Privacy Swaps** (Uniswap V4): Swap tokens without revealing which deposit you're spending. ZK proof is passed as hookData to a Uniswap V4 hook — verification and swap are atomic.
+
+**Gasless Claims** (ERC-4337): Stealth wallets are claimed gas-free. Your stealth key signs a user operation locally; a sponsored paymaster covers the fee so you never expose the key.
+
+**Payment Links** (.dust names): Register a human-readable name like alice.dust and share custom payment links. Track per-link volume and payment count in your dashboard.
+
+**Flexible Account Types** (EIP-7702): Works with standard EOAs, ERC-4337 smart accounts, CREATE2 wallets, and EOA-as-smart-account via EIP-7702 — no wallet migration required.
+
+### Quick Start
+
+1. Connect your wallet and complete onboarding (takes ~1 minute).
+2. Register a .dust name — this is your private payment address.
+3. Share your /pay/yourname link. Anyone can send you ETH without knowing your real address.
+4. When payments arrive, claim them gas-free from your Activities page.
+5. Optionally deposit claimed funds to the Privacy Pool to consolidate without creating a traceable link.
+
+---
+
+## Stealth Transfers
+
+Send ETH privately to any .dust name. Each payment lands at a unique one-time address that only the recipient can detect.
+
+### The Problem
+
+On any public EVM chain, every transaction is permanently visible. When someone pays you at your regular wallet address, anyone can: see your total balance, trace every prior payment, learn your income, and profile your spending habits. Sharing your address is a privacy risk.
+
+Stealth transfers solve this by making each payment land at a fresh, unlinkable, one-time address — while still being discoverable by the recipient through a secret only they hold.
+
+### How Stealth Transfers Work
+
+**Sender has:** Recipient's stealth meta-address — their two public keys (spendKey, viewKey) fetched from `StealthNameRegistry`.
+
+**Recipient has:** Their stealth private keys — derived from their wallet signature + PIN via PBKDF2. Never stored, always recomputed locally.
+
+**Step 1: Sender picks a random scalar r.** A fresh random number `r` is generated in the browser for every payment. This is the ephemeral private key — it produces a unique payment every time, even if the same sender pays the same recipient repeatedly.
+
+**Step 2: Compute shared secret via ECDH.** Using elliptic curve Diffie-Hellman on secp256k1: `sharedSecret = r * viewKey`. Only someone who knows either `r` (the sender's ephemeral secret) or `viewKey` (the recipient's private view key) can compute this value.
+
+**Step 3: Derive the stealth address.** `stealthAddress = spendKey + hash(sharedSecret) * G`. This is a normal Ethereum address. Nothing on-chain identifies it as belonging to any particular person. The sender computes `R = r * G` (the ephemeral public key) to publish as a hint.
+
+**Step 4: Send ETH + publish announcement.** ETH is transferred directly to `stealthAddress`. Simultaneously, the sender calls `ERC5564Announcer.announce(schemeId, stealthAddress, R, metadata)`. This emits a public event — it's the broadcast hint that all recipient scanners read.
+
+**Step 5: Recipient's scanner detects the payment.** The recipient's browser scanner fetches all recent announcements. For each one, it computes `sharedSecret = viewKey * R` and checks if the derived stealth address matches. When it does, the payment is detected and shown in Activities.
+
+**Step 6: Gasless claim via ERC-4337.** The recipient clicks Claim. The browser derives the stealth private key `(spendKey + hash(sharedSecret))` and signs a UserOperation. A DustPaymaster-sponsored relayer submits it — a `StealthAccount` is deployed at the stealth address and immediately drains its balance to the recipient's chosen claim address. Gas is zero for the recipient.
+
+### .dust Names
+
+Instead of sharing two raw public keys, users register a readable name on the `StealthNameRegistry` contract. Names are up to 32 characters and end with `.dust`.
+
+| Name type | Example | Use case |
+|-----------|---------|----------|
+| Primary name | alice.dust | Main identity |
+| Sub-account | work.alice.dust | Segment payment streams |
+| Custom link | /pay/alice/freelance | Track per-campaign analytics |
+
+Sub-accounts (e.g. `work.alice.dust`) use the same stealth key pair but register separately — allowing different payment streams to flow to the same recipient without any on-chain connection.
+
+### Security Model
+
+- **spendKey**: The private key that controls stealth funds. Derived from wallet signature + PIN. Never leaves the browser.
+- **viewKey**: Used only for scanning. Allows detecting incoming payments without spending authority. The public part (viewKey * G) is on-chain.
+- **Ephemeral key r**: Generated fresh per payment by the sender. Discarded after the announcement. Creates unlinkability.
+- **Announcements**: Published on-chain but contain no decryptable private information. Only viewKey holders can match them to stealth addresses.
+
+### Standards
+
+ERC-5564, ERC-6538, ERC-4337, secp256k1 ECDH, PBKDF2-SHA512
+
+---
+
+## Privacy Pool
+
+Consolidate multiple stealth payments into a single address without creating a traceable on-chain link between deposits and withdrawals.
+
+### The Fan-In Problem
+
+Stealth transfers give every payment a unique, unlinkable address. But once you claim those payments, all roads lead to your real wallet. An observer watching the claim address sees 10 inbound transactions from 10 different stealth addresses — and immediately knows those wallets belong to you.
+
+The Privacy Pool (`DustPool`) solves this. You deposit from multiple stealth wallets, mix them with other users' deposits in a shared Merkle tree, then withdraw to any address using a zero-knowledge proof. The proof only reveals that someone in the pool has a valid commitment — not which one is yours.
+
+### How the Privacy Pool Works
+
+**Step 1: Generate a commitment.** Before depositing, your browser generates two random secrets: a `nullifier` and a `secret`. It computes a Poseidon commitment: `C = Poseidon(Poseidon(nullifier, secret), amount)`. Only you know the nullifier and secret. The commitment `C` is what goes on-chain.
+
+**Step 2: Deposit ETH + commitment.** Your stealth wallet calls `DustPool.deposit(commitment)` with the exact ETH amount. The commitment is inserted as a leaf in an on-chain Poseidon Merkle tree (depth 20, ~1 million capacity). The Merkle root updates atomically with the deposit.
+
+**Step 3: Wait for more deposits (anonymity set grows).** The longer you wait, the more other users deposit into the same tree — increasing the anonymity set. The pool only reveals which root was used, not which of the ~1M possible leaves is the one being withdrawn.
+
+**Step 4: Generate a Groth16 ZK proof (in-browser).** When you're ready to withdraw, the browser runs snarkjs with the WASM circuit and `.zkey` proving key to generate a Groth16 proof. This takes ~1-2 seconds on modern hardware. The proof has four public inputs: `root`, `nullifierHash`, `recipient`, `amount`. The nullifier and secret remain private inputs and are never sent anywhere.
+
+**Step 5: Submit proof — contract verifies and pays out.** The proof is sent to `DustPool.withdraw(proof, root, nullifierHash, recipient, amount)`. The contract: (1) verifies the Groth16 proof on-chain, (2) checks the `root` exists in its root history, (3) checks `nullifierHash` has not been spent before, (4) marks the nullifier spent, (5) transfers `amount` ETH to `recipient`. No logs connect any deposit leaf to this withdrawal.
+
+### Circuit Details
+
+| Property | Value |
+|----------|-------|
+| Proof system | Groth16 (BN254 curve) |
+| Hash function | Poseidon (ZK-friendly, ~5 constraints per hash) |
+| Circuit size | ~5,900 constraints |
+| Merkle tree depth | 20 (2^20 = 1,048,576 leaves) |
+| Proving environment | In-browser via snarkjs + WASM |
+| Proof generation time | ~1-2 seconds |
+| Gas for verification | ~250,000 gas |
+| Double-spend prevention | nullifierHash stored on-chain after first withdrawal |
+
+### Anonymity Set
+
+The anonymity set is the number of deposits in the Merkle tree at the time of withdrawal. A larger set means a withdrawal could correspond to any of more possible deposits, reducing the probability of correct guessing.
+
+**Best Practice:** Wait until the pool has accumulated a reasonable number of deposits before withdrawing. The dashboard shows the current tree size. Withdrawing immediately after depositing offers minimal privacy benefit.
+
+**Root History:** The contract maintains a history of past Merkle roots. You can prove membership against any root that was valid when you deposited — you don't need to re-deposit if new deposits change the root.
+
+### Security Notes
+
+**Keep your deposit note safe.** The nullifier and secret are stored in your browser's localStorage. If you clear browser data, you lose the note and cannot generate a withdrawal proof. Export and back up your notes from the Wallet page.
+
+**Fixed denominations are recommended** to prevent amount-based correlation. If all withdrawals look identical in size, amount cannot be used to link deposit to withdrawal.
+
+**The proving key is public.** Anyone can verify the proofs on-chain. The security comes from the hardness of the discrete log problem — the nullifier and secret cannot be extracted from the commitment.
+
+---
+
+## Privacy Swaps
+
+Swap tokens without leaving a traceable on-chain fingerprint. ZK proof verification and the swap are atomic — a single transaction.
+
+### DEX Fingerprinting
+
+Even after privately receiving ETH through stealth transfers, swapping reveals a pattern. The amount you deposit to a DEX and the timing form a unique fingerprint. An on-chain analyst can cluster multiple stealth wallets as belonging to the same user just by watching who swaps similar amounts at similar times.
+
+Privacy Swaps (`DustSwap`) solve this with fixed denominations and a Uniswap V4 hook that validates a ZK proof atomically inside the swap transaction — so the on-chain record never links a specific deposit to a specific swap output.
+
+### How Privacy Swaps Work
+
+**Step 1: Choose a fixed-denomination pool.** DustSwap offers two pools with fixed deposit amounts: DustSwapPoolETH (fixed ETH denomination) and DustSwapPoolUSDC (fixed USDC denomination). Fixed denominations prevent amount-based correlation — every deposit and withdrawal looks identical in size.
+
+**Step 2: Deposit and receive a swap note.** Your browser generates a Poseidon commitment `C = Poseidon(nullifier, secret)` and calls `DustSwapPoolETH.deposit(commitment)`. The commitment is inserted into an on-chain Merkle tree. Your swap note (nullifier + secret + commitment) is stored locally in your browser — treat it like a bearer instrument.
+
+**Step 3: Wait at least 50 blocks.** The `DustSwapHook` enforces a `minWaitBlocks = 50` delay between deposit and swap. This prevents timing correlation — an observer cannot match a swap to a deposit that happened in the same block or immediately before.
+
+**Step 4: Specify a stealth recipient address.** Before proving, choose a fresh stealth address where you want the swap output to land. This address is encoded as a public input in the ZK proof — the contract will route output tokens directly there. It can be any address you control privately.
+
+**Step 5: Generate a PrivateSwap Groth16 proof (in-browser).** The browser runs snarkjs with the `PrivateSwap.circom` circuit. Public inputs: `root, nullifierHash, recipient, minBlockNumber`. Private inputs: `nullifier, secret, merkleProof[]`. The proof asserts that you know a valid commitment in the tree without revealing which leaf it is.
+
+**Step 6: Atomic swap via Uniswap V4 hook.** A relayer submits the swap through `DustSwapRouter`, passing the ZK proof as `hookData` to Uniswap V4. **beforeSwap hook**: proof verified on-chain, nullifier marked spent, block timing enforced. **afterSwap hook**: output tokens taken from the V4 PoolManager and transferred directly to the `recipient` stealth address. Everything is atomic — there is no intermediate transaction that could reveal the link.
+
+### Architecture
+
+```
+User browser
+  |-- generates commitment --> DustSwapPoolETH.deposit()
+                                   |-- inserts leaf into Merkle tree
+
+  ...(50+ blocks later)...
+
+  |-- generates ZK proof --> DustSwapRouter.swap(proof as hookData)
+                                   |-- Uniswap V4 PoolManager
+                                        |-- beforeSwap --> DustSwapHook.verify(proof)
+                                        |                   DustSwapPoolETH.releaseForSwap()
+                                        |                   mark nullifier spent
+                                        |-- swap executes (ETH -> USDC or USDC -> ETH)
+                                        |-- afterSwap --> DustSwapHook routes output
+                                                          to stealth recipient address
+```
+
+### Key Properties
+
+- **Fixed denominations**: All deposits in a pool are the same size. An observer cannot use amount to link deposit to output.
+- **Atomic proof + swap**: ZK verification and the Uniswap V4 swap happen in one transaction. There is no two-step process that creates a timing link.
+- **Output to stealth address**: Swap output tokens go directly to a recipient address encoded in the proof — not to your main wallet.
+- **50-block minimum wait**: Enforced by the hook. Prevents temporal correlation between deposit and swap.
+- **Gas optimization: 51% reduction**: O(1) root lookup, hardcoded Poseidon zero hashes, and optimized storage packing save ~247,000 gas per swap.
+
+> Warning: Your swap deposit note (nullifier + secret) is stored only in your browser. If you clear localStorage or switch devices, you lose the ability to generate a withdrawal proof. Use the Wallet page to export and back up your notes.
+
+---
+
+## How It Works
+
+A complete walkthrough of the Dust Protocol lifecycle — from wallet connection to private withdrawal.
+
+### Phase 1 — Identity Setup
+
+One-time, done during onboarding.
+
+**Step 1: Connect your wallet.** Connect with any EVM wallet (MetaMask, WalletConnect, Coinbase Wallet, Privy social login, etc.). The wallet is used only to sign a message — not to hold privacy funds directly.
+
+**Step 2: Set a PIN.** You choose a numeric PIN. Dust derives your private stealth keys using `PBKDF2(wallet_signature + PIN, salt, 100,000 iterations)`. The PIN never leaves your browser. Neither the wallet signature nor the PIN alone are sufficient — both are required.
+
+**Step 3: Register a .dust name.** Your stealth meta-address (a pair of secp256k1 public keys: `spendKey` and `viewKey`) is registered on the `StealthNameRegistry` contract under a name like `alice.dust`. This is what senders look up. It contains no balance information and maps to no single address.
+
+### Phase 2 — Receiving a Payment
+
+Sender-side, no interaction from recipient needed.
+
+**Step 1: Sender looks up alice.dust.** The sender visits `/pay/alice` (or uses any UI that queries `StealthNameRegistry`). The contract returns Alice's meta-address: her two public keys.
+
+**Step 2: Stealth address is derived (ECDH).** The sender picks a random scalar `r`, computes a shared secret via Elliptic Curve Diffie-Hellman: `sharedSecret = r * viewKey`. A fresh one-time stealth address is derived: `stealthAddress = spendKey + hash(sharedSecret) * G`. This address is unique every time — the same sender paying Alice twice produces two completely different addresses.
+
+**Step 3: ETH is sent to the stealth address.** The sender broadcasts a normal ETH transfer to `stealthAddress`. Simultaneously, an announcement `(ephemeralPubKey R, stealthAddress)` is emitted on the `ERC5564Announcer` contract — it's the encrypted hint Alice's scanner uses.
+
+### Phase 3 — Detecting & Claiming
+
+Recipient-side, runs automatically in the browser.
+
+**Step 1: Scanner polls announcements.** Every 30 seconds, the in-browser scanner fetches new announcements from `ERC5564Announcer`. For each announcement it recomputes `sharedSecret = viewKey * R` and checks whether the derived address matches the announced `stealthAddress`.
+
+**Step 2: Stealth private key is derived.** When a match is found, Alice derives the stealth private key: `stealthPrivKey = spendKey + hash(sharedSecret)`. This key controls the funds. It never leaves the browser — it is computed in memory and used only to sign.
+
+**Step 3: Gasless claim via ERC-4337.** Alice clicks Claim. The stealth key signs a UserOperation locally. A sponsored relayer submits it to the `EntryPoint` contract. The `DustPaymaster` covers gas. A `StealthAccount` is deployed at a CREATE2 address and immediately drains its balance to Alice's designated claim address — all in one atomic transaction.
+
+### Phase 4 — Consolidation (Privacy Pool)
+
+Optional — breaks the fan-in correlation.
+
+If you receive 10 stealth payments and claim all of them to the same address, an on-chain observer can see 10 claim transactions landing at one wallet. The Privacy Pool breaks this link.
+
+**Step 1: Deposit to DustPool.** Each stealth wallet generates a Poseidon commitment `C = Poseidon(Poseidon(nullifier, secret), amount)` and deposits ETH + commitment to the `DustPool` contract. The commitment is inserted into an on-chain Poseidon Merkle tree.
+
+**Step 2: Generate a ZK proof (in-browser).** When ready to withdraw, the browser runs snarkjs to generate a Groth16 proof of Merkle tree membership. Public inputs are: `root, nullifierHash, recipient, amount`. The proof takes ~1-2 seconds and proves you own a valid commitment without revealing which one.
+
+**Step 3: Contract verifies and releases.** The `DustPool` contract verifies the Groth16 proof, marks the `nullifierHash` as spent (preventing double-withdrawal), and sends the funds to your chosen `recipient` address. No on-chain data links the deposit to the withdrawal.
+
+### Phase 5 — Private Swaps
+
+Optional — swap tokens without a traceable on-chain signature.
+
+**Step 1: Deposit to DustSwapPool.** Deposit a fixed-denomination amount of ETH or USDC to the `DustSwapPoolETH` or `DustSwapPoolUSDC` contract and receive a locally-stored deposit note containing your nullifier and secret.
+
+**Step 2: Generate a PrivateSwap ZK proof.** The browser generates a Groth16 proof (`PrivateSwap.circom`) that proves Merkle membership in the swap pool. The proof encodes `recipient` — a stealth address where output tokens should land. A 50-block minimum wait enforces temporal privacy.
+
+**Step 3: Atomic proof-verified swap via Uniswap V4.** The relayer submits the swap through `DustSwapRouter`. The Uniswap V4 `DustSwapHook`'s `beforeSwap` verifies the proof and marks the nullifier spent. The `afterSwap` callback routes the output tokens directly to the stealth recipient address. Proof verification and the token swap are a single atomic transaction.
+
+### Standards Used
+
+| Standard | Role in Dust |
+|----------|-------------|
+| ERC-5564 | Stealth address announcement standard |
+| ERC-6538 | Stealth meta-address registry |
+| ERC-4337 | Account abstraction — gasless stealth claims |
+| EIP-7702 | EOA-as-smart-account support |
+| Groth16 / snarkjs | In-browser ZK proof generation (pool & swaps) |
+| Poseidon hash | ZK-friendly hash in commitments and Merkle trees |
+| Uniswap V4 hooks | Atomic ZK-verified private swaps |
+
+---
+
+## Key Management
+
+How Dust derives, stores, and protects your stealth keys — and what you should back up.
+
+### Key Derivation
+
+Dust derives two secp256k1 private keys — a spend key and a view key — purely in the browser. They are never sent to any server.
+
+```
+walletSignature  =  sign("Dust Protocol stealth keys", wallet)
+salt             =  "dust-stealth-v1"
+ikm              =  PBKDF2-SHA512(
+                      password = walletSignature + PIN,
+                      salt     = salt,
+                      iters    = 100_000,
+                      dkLen    = 64 bytes
+                    )
+spendKey         =  ikm[0:32]  (mod secp256k1 order)
+viewKey          =  ikm[32:64] (mod secp256k1 order)
+```
+
+Because the derivation uses both the wallet signature and the PIN, neither alone is sufficient to reproduce the keys. An attacker who compromises your wallet cannot derive stealth keys without knowing your PIN, and vice versa.
+
+### The Two Keys
+
+**Spend Key** (HIGH SENSITIVITY): Controls the ability to claim funds from stealth addresses. Used to derive the per-payment stealth private key when a payment is detected. Never leaves the browser. The public part (`spendKey * G`) is registered on-chain as half of your meta-address.
+
+**View Key** (MEDIUM SENSITIVITY): Used to detect incoming payments by scanning announcements. Cannot spend funds. The public part is registered on-chain. The private part is used only in the scanner and never leaves the browser.
+
+### What Is Stored Locally
+
+| Item | Where | Sensitivity |
+|------|-------|-------------|
+| PIN hash (bcrypt) | localStorage | Medium — reveals PIN if brute-forced |
+| Scan cursor (last scanned block) | localStorage | Low — public information |
+| Detected stealth addresses + balances cache | localStorage | Low — public information |
+| DustPool deposit notes (nullifier + secret) | localStorage | HIGH — losing this = losing funds |
+| DustSwap deposit notes (nullifier + secret) | localStorage | HIGH — losing this = losing funds |
+| Payment link definitions | localStorage | Low |
+| Claim addresses (HD-derived) | localStorage | Low — derivable from keys |
+
+> Warning: Pool and swap deposit notes (nullifier + secret) are the only way to generate a withdrawal proof. They exist only in your browser's localStorage. Export them from the Wallet page and store them securely. If you lose them, your deposited funds cannot be recovered.
+
+### What If I Lose Something?
+
+**I forget my PIN:** You cannot re-derive your stealth keys. However, your wallet address still holds any funds you've claimed to it. You can re-register by creating a new PIN and a new .dust name — you'll lose the old name and any unclaimed stealth payments.
+
+**I lose access to my wallet (seed phrase):** You cannot re-derive your stealth keys (wallet signature required). Same outcome as forgetting your PIN. Claimed funds are whatever your seed phrase controls — they are not in the stealth system.
+
+**I clear my browser localStorage:** Stealth keys can be re-derived (log in again with wallet + PIN). Your .dust name is on-chain — it persists. Deposit notes are lost — DustPool / DustSwap deposits become unrecoverable if not backed up.
+
+**Someone sees my localStorage:** They see deposit notes and cached scan data. They cannot derive stealth keys from localStorage alone (keys are never stored — only re-derived on demand). Deposit notes are bearer instruments — treat localStorage like a physical notepad.
+
+### Security Best Practices
+
+- Use a strong, unique PIN — it is the second factor protecting your stealth keys.
+- Export deposit notes from the Wallet page and store them offline or in a password manager.
+- Do not share the private view key — it allows others to see all your incoming payments.
+- The spend key is never stored — it is re-derived each session. This is a feature, not a bug.
+- Settings > Danger Zone lets you clear all keys and start fresh if your PIN is compromised.
+
+---
+
+## Payment Links
+
+Shareable URLs that receive private payments. Each link tracks its own analytics while all ETH lands at your stealth address.
+
+### What Are Payment Links?
+
+Every `.dust` name gets a public pay page at `dustprotocol.app/pay/yourname`. You can create sub-links like `/pay/alice/freelance` to segment your income — one for a client, one for invoices, one for tips — while everything routes to the same stealth wallet.
+
+Each link tracks payment count and total volume independently. The analytics come from on-chain announcement metadata — each payment includes the link slug so scanning can attribute it.
+
+### Creating a Payment Link
+
+**Step 1: Go to the Links page.** Navigate to LINKS in the navbar to see existing links and create new ones.
+
+**Step 2: Set a slug.** The slug is the URL segment after your name — e.g. `freelance` in `/pay/alice/freelance`. You can add an internal label to help identify links on your dashboard.
+
+**Step 3: Share anywhere.** Copy the full URL and share it on Twitter, email, invoices. Anyone clicking it can send ETH to your stealth address — they don't need a Dust account.
+
+### The Pay Page
+
+The page at `dustprotocol.app/pay/[name]` is fully public. Senders only need to connect their wallet to send. They see:
+
+- Your .dust name and description
+- An ETH amount field
+- An optional message (stored in announcement metadata — only you can decrypt it)
+- A Send button that generates the stealth address client-side and sends ETH
+
+**Privacy for senders:** Senders don't need a Dust account. The pay page handles all cryptography client-side. The only on-chain record is the ETH transfer and announcement event — neither reveals the sender's relationship to the recipient.
+
+### Fallback: No .dust Name
+
+If someone has registered a stealth meta-address on the ERC-6538 registry but has no .dust name, Dust can still route payments to them. The pay page falls back to the ERC-6538 lookup, so any ERC-5564-compatible stealth address works.
+
+---
+
+## Account Types & EIP-7702
+
+Dust works with multiple EVM account models. Understand which type your wallet uses and how each claims stealth funds.
+
+### EVM Account Types
+
+Ethereum supports several account models. Dust abstracts over all of them — the claim mechanism adapts to whichever type your wallet is, or whichever type the stealth address is deployed as.
+
+**Standard EOA** (Externally Owned Account): A regular Ethereum private key account. Dust derives a per-stealth-address private key and uses it directly to sign and broadcast a transfer transaction. Requires ETH for gas — typically handled by the DustPaymaster sponsorship. Universally compatible; needs relayer for gas.
+
+**ERC-4337 Smart Account** (Account Abstraction): Default for stealth claims in Dust. A `StealthAccount` contract is deployed at the stealth address via CREATE2. The stealth private key signs a UserOperation — the EntryPoint contract deploys and drains the account atomically. Gas is covered by the `DustPaymaster`, so the claim is completely free for the recipient. Gasless, atomic deploy + drain, default for Dust.
+
+**CREATE2 Wallet** (Counterfactual): A minimal smart wallet deployed at a deterministic address using CREATE2. The address is pre-computable from the stealth key without deploying first — funds can be sent before the wallet exists on-chain, and deployment + drain happen in one sponsored transaction. Deterministic address; requires sponsor.
+
+**EIP-7702 — EOA as Smart Account**: EIP-7702 (included in Ethereum's Pectra upgrade) allows an EOA to temporarily adopt the bytecode of a smart contract within a single transaction. This means a regular wallet can execute smart-account logic (like ERC-4337 UserOps or batch calls) without being permanently converted to a contract.
+
+In Dust, EIP-7702 allows stealth addresses that are plain EOAs to claim funds with smart-account capabilities in one transaction — enabling advanced features like:
+- Batch claims from multiple stealth addresses in one tx
+- Social recovery of a stealth key (sign with guardian)
+- Auto-routing output to Privacy Pool deposit in one step
+
+No permanent migration; requires Pectra-enabled network.
+
+**Which type does Dust use by default?** Dust uses ERC-4337 smart accounts for all stealth claims by default. EIP-7702 support is integrated for wallets and networks that support it, enabling additional capabilities without any action from the user.
+
+### Comparison
+
+| Account Type | Gasless | Smart Logic | Deploy Needed | EIP |
+|-------------|---------|-------------|---------------|-----|
+| EOA | Via relayer | No | No | — |
+| ERC-4337 | Yes (Paymaster) | Yes | Yes (atomic) | ERC-4337 |
+| CREATE2 | Via sponsor | Limited | Yes (atomic) | — |
+| EIP-7702 | Yes (Paymaster) | Yes (ephemeral) | No | EIP-7702 |
+
+---
+
+## Smart Contracts
+
+Deployed contract addresses for all Dust Protocol components on supported testnets.
+
+> Warning: These are testnet deployments. Contract addresses will change for mainnet. Do not send mainnet funds.
+
+### Ethereum Sepolia (Chain ID: 11155111)
+
+**ERC5564Announcer** (ERC-5564)
+`0x64044FfBefA7f1252DdfA931c939c19F21413aB0`
+Emits Announcement events when ETH is sent to a stealth address. The discovery mechanism for all incoming payments.
+
+**ERC6538Registry** (ERC-6538)
+`0xb848398167054cCb66264Ec25C35F8CfB1EF1Ca7`
+Maps wallet addresses to stealth meta-addresses. Used for no-opt-in payments to any address that has registered.
+
+**StealthNameRegistry** (Custom)
+`0x857e17A85891Ef1C595e51Eb7Cd56c607dB21313`
+Maps .dust names to stealth meta-addresses. Supports register, update, transfer, and sub-accounts.
+
+**EntryPoint** (ERC-4337)
+`0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789`
+ERC-4337 EntryPoint v0.6. Processes UserOperations for gasless stealth claims.
+
+**DustPaymaster** (ERC-4337)
+`0x20C28cbF9bc462Fb361C8DAB0C0375011b81BEb2`
+Sponsors gas for stealth claim UserOperations. Recipients claim with zero ETH in their stealth wallet.
+
+**AccountFactory** (ERC-4337)
+`0xc73fce071129c7dD7f2F930095AfdE7C1b8eA82A`
+Deploys StealthAccount contracts at CREATE2 addresses during claims.
+
+**DustPool** (Custom ZK)
+`0xc95a359E66822d032A6ADA81ec410935F3a88bcD`
+Privacy pool. Accepts Poseidon commitments + ETH deposits. Verifies Groth16 proofs for ZK withdrawals.
+
+**DustPoolVerifier** (Groth16)
+`0x17f52f01ffcB6d3C376b2b789314808981cebb16`
+On-chain Groth16 proof verifier (BN254) for DustPool withdrawals.
+
+**DustSwapPoolETH** (Custom ZK)
+`0x52FAc2AC445b6a5b7351cb809DCB0194CEa223D0`
+Fixed-denomination ETH deposit pool for privacy swaps. Commits go into Merkle tree.
+
+**DustSwapPoolUSDC** (Custom ZK)
+`0xc788576786381d41B8F5180D0B92A15497CF72B3`
+Fixed-denomination USDC deposit pool for privacy swaps.
+
+**DustSwapHook** (Uniswap V4)
+`0x09b6a164917F8ab6e8b552E47bD3957cAe6d80C4`
+Uniswap V4 hook. beforeSwap: validates ZK proof, marks nullifier spent. afterSwap: routes output to stealth address.
+
+**DustSwapVerifier** (Groth16)
+`0x1677C9c4E575C910B9bCaF398D615B9F3775d0f1`
+On-chain Groth16 verifier for DustSwap PrivateSwap circuit proofs.
+
+**DustSwapRouter** (Custom)
+`0x82faD70Aa95480F719Da4B81E17607EF3A631F42`
+Entry point for privacy swap execution. Submits swaps to Uniswap V4 PoolManager with ZK hookData.
+
+**Uniswap V4 PoolManager** (Uniswap V4)
+`0x93805603e0167574dFe2F50ABdA8f42C85002FD8`
+Core Uniswap V4 contract. Manages liquidity pools and executes swaps that pass through DustSwapHook.
+
+**SubAccount7702** (EIP-7702)
+`0xdf34D138d1E0beC7127c32E9Aa1273E8B4DE7dFF`
+EIP-7702 sub-account delegation target. Enables EOA-as-smart-account functionality for advanced claims.
+
+### Thanos Sepolia (Chain ID: 111551119090)
+
+Thanos Sepolia has core stealth transfer and pool contracts. DustSwap (privacy swaps + Uniswap V4) is currently deployed on Ethereum Sepolia only.
+
+**ERC5564Announcer**
+`0x2C2a59E9e71F2D1A8A2D447E73813B9F89CBb125`
+
+**ERC6538Registry**
+`0x9C527Cc8CB3F7C73346EFd48179e564358847296`
+
+**StealthNameRegistry**
+`0xD06389cEEd802817C439E0F803E71b02ceb132b4`
+
+**DustPool**
+`0x16b8c82e3480b1c5B8dbDf38aD61a828a281e2c3`
+
+**EntryPoint**
+`0x5c058Eb93CDee95d72398E5441d989ef6453D038`
+
+**DustPaymaster**
+`0x9e2eb36F7161C066351DC9E418E7a0620EE5d095`
+
+### Source Code
+
+| Contract | Path | Description |
+|----------|------|-------------|
+| ERC5564Announcer.sol | contracts/ERC5564Announcer.sol | ERC-5564 stealth announcement |
+| ERC6538Registry.sol | contracts/ERC6538Registry.sol | ERC-6538 meta-address registry |
+| StealthNameRegistry.sol | contracts/StealthNameRegistry.sol | .dust name registry |
+| StealthRelayer.sol | contracts/StealthRelayer.sol | EIP-712 signed withdrawal relayer (0.5% fee) |
+| DustPool.sol | contracts/dustpool/src/DustPool.sol | Privacy pool core contract |
+| DustSwapHook.sol | contracts/dustswap/src/DustSwapHook.sol | Uniswap V4 beforeSwap/afterSwap hook |
+| DustSwapRouter.sol | contracts/dustswap/src/DustSwapRouter.sol | Privacy swap entry point |
+
+---
+
+## FAQ
+
+Frequently asked questions about privacy, gas, supported tokens, and how Dust Protocol works.
+
+**Is Dust Protocol fully private?**
+Dust gives you strong on-chain privacy for payments and swaps, but it is not a silver bullet. Privacy depends on correct usage: using the Privacy Pool with a large anonymity set, waiting the recommended time before withdrawing, and not reusing claim addresses. Network-level metadata (IP address, timing) is outside what Dust can protect.
+
+**Do I need ETH to use Dust?**
+To receive and claim payments: no. Stealth claims are gasless — the DustPaymaster sponsors all claim transactions. To send a payment, you need a small amount of ETH in your regular wallet to cover the send transaction gas (~21,000-50,000 gas).
+
+**What does a .dust name cost?**
+During the testnet phase, .dust name registration is free. Mainnet pricing has not been announced yet.
+
+**What happens to funds if I lose my PIN?**
+Funds already claimed to your regular wallet are not affected — they are in your standard wallet, controlled by your seed phrase. Unclaimed stealth payments (sitting at stealth addresses) require your PIN to claim. Private pool and swap deposits require their locally-stored deposit notes to withdraw — neither the PIN nor the stealth keys alone are sufficient for ZK withdrawals.
+
+**Can two people send to the same .dust name?**
+Yes, and this is expected. Each payment produces a completely different one-time stealth address — the sender picks a fresh random ephemeral key every time. Two people paying alice.dust at the same time produce two entirely unrelated stealth addresses with no on-chain link.
+
+**How long does ZK proof generation take?**
+DustPool and DustSwap proofs are Groth16 (BN254) and take approximately 1-2 seconds in a modern browser using snarkjs + WASM. The large proving key file (~50MB) is downloaded once and cached by the browser.
+
+**Is the ZK proof generated on my device?**
+Yes. All proof generation happens entirely in your browser using WebAssembly. The proving key and circuit WASM are public files hosted alongside the app. No private inputs (nullifier, secret, stealth key) are ever sent to any server.
+
+**What is the anonymity set for DustPool withdrawals?**
+The anonymity set is the number of deposits in the Merkle tree at the time you generate your withdrawal proof. A proof references a specific root — the set is everyone who deposited before that root was valid. The dashboard shows the current tree size. Waiting for more deposits before withdrawing increases your privacy.
+
+**Can I use Dust on mobile?**
+Yes. The app is fully responsive. ZK proof generation works on mobile browsers (Chrome/Safari on iOS and Android). Proof generation may take 3-5 seconds on lower-end devices due to the WASM computation.
+
+**Why are privacy swaps only available on Ethereum Sepolia?**
+DustSwap requires Uniswap V4, which is currently only deployed on Ethereum Sepolia in our configuration. Thanos Sepolia has stealth transfers and the Privacy Pool. DustSwap support for Thanos will be added when a V4 deployment is available.
+
+**What is ERC-5564?**
+ERC-5564 is an Ethereum standard that defines the format for announcing stealth address payments on-chain. It specifies how the ephemeral public key and the stealth address are published so any recipient scanner can try to detect payments meant for them.
+
+**What is ERC-6538?**
+ERC-6538 is a registry standard that maps wallet addresses to stealth meta-addresses. It allows anyone to look up whether a given wallet address has a registered stealth meta-address, enabling payments without requiring a .dust name.
+
+**Are there audits?**
+Dust Protocol is in active testnet development. The contracts have not been audited. Do not use mainnet funds. Audit engagements will be announced before any mainnet deployment.
+
+**Is the code open source?**
+The contract code is available in the project repository. The full source for the circuits, contracts, and app is accessible for review. See the Smart Contracts page for source file paths.
+
+**How do I back up my deposit notes?**
+Go to Wallet in the navbar. There is an export option for your DustPool and DustSwap deposit notes. Store the exported JSON in a password manager or encrypted storage. Do not share it — these notes are bearer instruments: anyone who has them can generate a withdrawal proof.

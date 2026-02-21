@@ -3,6 +3,14 @@ import { DocsBadge } from "@/components/docs/DocsBadge";
 import { DocsCallout } from "@/components/docs/DocsCallout";
 import Link from "next/link";
 import { PrivacyFlow } from "@/components/docs/visuals/PrivacyFlow";
+import { docsMetadata } from "@/lib/seo/metadata";
+import { techArticleJsonLd } from "@/lib/seo/jsonLd";
+
+/*
+ * XSS-safe: all values below are hardcoded string literals defined in this file.
+ * safeJsonLd() in jsonLd.ts escapes '<' as \u003c. No user input flows into this data.
+ */
+const articleLd = techArticleJsonLd("Overview — Privacy Protocol for Ethereum", "Dust Protocol provides stealth addresses (ERC-5564), ZK privacy pools, private token swaps, and gasless claims. Non-custodial privacy for Ethereum.", "/docs/overview");
 
 const features = [
   {
@@ -49,8 +57,13 @@ const features = [
   },
 ] as const;
 
+export const metadata = docsMetadata("Overview — Privacy Protocol for Ethereum", "Dust Protocol provides stealth addresses (ERC-5564), ZK privacy pools, private token swaps, and gasless claims. Non-custodial privacy for Ethereum.", "/docs/overview");
+
 export default function OverviewPage() {
+  /* articleLd contains only hardcoded string literals from this file, escaped by safeJsonLd */
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleLd }} />
     <DocsPage
       currentHref="/docs/overview"
       title="Dust Protocol"
@@ -156,5 +169,6 @@ export default function OverviewPage() {
         </div>
       </section>
     </DocsPage>
+    </>
   );
 }

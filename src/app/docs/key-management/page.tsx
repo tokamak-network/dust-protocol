@@ -2,6 +2,9 @@ import { DocsPage } from "@/components/docs/DocsPage";
 import { DocsCallout } from "@/components/docs/DocsCallout";
 import { DocsBadge } from "@/components/docs/DocsBadge";
 import { KeyManagement } from "@/components/docs/visuals/KeyManagement";
+import { docsMetadata } from "@/lib/seo/metadata";
+
+export const metadata = docsMetadata("Key Management — Stealth Key Derivation & Security", "How Dust derives stealth keys using PBKDF2 with 100K iterations. Keys stay in browser memory, never persisted to localStorage or sent to servers.", "/docs/key-management");
 
 export default function KeyManagementPage() {
   return (

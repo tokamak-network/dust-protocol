@@ -1,63 +1,12 @@
-"use client";
+import { docsMetadata } from "@/lib/seo/metadata";
+import SwapPageClient from "./SwapPageClient";
 
-import { SwapCard } from "@/components/swap/SwapCard";
-import { PoolStats } from "@/components/swap/PoolStats";
-import { PoolComposition } from "@/components/swap/PoolComposition";
-import { usePoolStats } from "@/hooks/swap/usePoolStats";
+export const metadata = docsMetadata(
+  "Private Token Swaps — Anonymous DeFi Swaps with ZK Proofs",
+  "Swap tokens privately on Ethereum using zero-knowledge proofs and Uniswap V4 hooks. No slippage, no on-chain fingerprinting. Powered by Dust Protocol stealth swap technology.",
+  "/swap",
+);
 
 export default function SwapPage() {
-  const {
-    currentPrice,
-    ethReserve,
-    usdcReserve,
-    totalValueLocked,
-    isLoading,
-    tick,
-  } = usePoolStats();
-
-  const poolStatsProps = {
-    currentPrice,
-    ethReserve,
-    usdcReserve,
-    totalValueLocked,
-    isLoading,
-    poolTick: tick !== undefined ? tick : undefined,
-  };
-
-  return (
-    <div className="w-full flex flex-col items-center gap-2 px-6 pb-12 pt-8">
-      {/* Header */}
-      <div className="text-center mb-4">
-        <h1 className="text-3xl md:text-4xl font-bold tracking-widest text-white font-mono mb-2">
-          STEALTH_SWAP
-        </h1>
-        <p className="text-sm text-[rgba(255,255,255,0.4)] font-mono tracking-wide">
-          Private, slippage-free token swaps via ZK proofs
-        </p>
-      </div>
-
-      {/* Main Row: Stats | Card | Composition — desktop */}
-      <div className="flex items-stretch justify-center gap-5 w-full max-w-[1100px]">
-        <div className="hidden md:flex">
-          <PoolStats {...poolStatsProps} />
-        </div>
-        <SwapCard />
-        <div className="hidden md:flex">
-          <PoolComposition
-            ethReserve={ethReserve.toString()}
-            usdcReserve={usdcReserve.toString()}
-          />
-        </div>
-      </div>
-
-      {/* Mobile: Stats and Composition below card */}
-      <div className="flex flex-col items-center gap-3 md:hidden w-full">
-        <PoolStats {...poolStatsProps} />
-        <PoolComposition
-          ethReserve={ethReserve.toString()}
-          usdcReserve={usdcReserve.toString()}
-        />
-      </div>
-    </div>
-  );
+  return <SwapPageClient />;
 }

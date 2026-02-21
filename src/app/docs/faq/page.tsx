@@ -1,5 +1,7 @@
 import { DocsPage } from "@/components/docs/DocsPage";
 import { DocsCallout } from "@/components/docs/DocsCallout";
+import { docsMetadata } from "@/lib/seo/metadata";
+import { faqPageJsonLd } from "@/lib/seo/jsonLd";
 
 const faqs = [
   {
@@ -64,36 +66,44 @@ const faqs = [
   },
 ];
 
-export default function FaqPage() {
-  return (
-    <DocsPage
-      currentHref="/docs/faq"
-      title="FAQ"
-      subtitle="Frequently asked questions about privacy, gas, supported tokens, and how Dust Protocol works."
-      badge="TECHNICAL REFERENCE"
-    >
-      <DocsCallout type="info" title="Can't find your answer?">
-        If your question isn't covered here, check the other docs pages or reach out via the community channels.
-      </DocsCallout>
+export const metadata = docsMetadata("FAQ — Stealth Addresses, Privacy Pools & ZK Proofs", "Frequently asked questions about Dust Protocol privacy, gas costs, ZK proof generation, supported tokens, .dust names, and security.", "/docs/faq");
 
-      <div className="mt-8 space-y-1">
-        {faqs.map((item, i) => (
-          <details
-            key={i}
-            className="group border border-[rgba(255,255,255,0.06)] rounded-sm overflow-hidden open:border-[rgba(0,255,65,0.1)]"
-          >
-            <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none hover:bg-[rgba(255,255,255,0.02)] transition-colors">
-              <span className="text-[13px] font-mono text-white">{item.q}</span>
-              <span className="shrink-0 text-[rgba(255,255,255,0.3)] group-open:text-[#00FF41] font-mono text-lg leading-none transition-colors select-none">
-                +
-              </span>
-            </summary>
-            <div className="px-5 pb-5 pt-2 border-t border-[rgba(255,255,255,0.05)]">
-              <p className="text-sm text-[rgba(255,255,255,0.6)] leading-relaxed">{item.a}</p>
-            </div>
-          </details>
-        ))}
-      </div>
-    </DocsPage>
+export default function FaqPage() {
+  const faqJsonLd = faqPageJsonLd(faqs.map(f => ({ question: f.q, answer: f.a })));
+
+  return (
+    <>
+      {/* All values are hardcoded string literals from jsonLd.ts — safeJsonLd escapes < as \u003c */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: faqJsonLd }} />
+      <DocsPage
+        currentHref="/docs/faq"
+        title="FAQ"
+        subtitle="Frequently asked questions about privacy, gas, supported tokens, and how Dust Protocol works."
+        badge="TECHNICAL REFERENCE"
+      >
+        <DocsCallout type="info" title="Can't find your answer?">
+          If your question isn't covered here, check the other docs pages or reach out via the community channels.
+        </DocsCallout>
+
+        <div className="mt-8 space-y-1">
+          {faqs.map((item, i) => (
+            <details
+              key={i}
+              className="group border border-[rgba(255,255,255,0.06)] rounded-sm overflow-hidden open:border-[rgba(0,255,65,0.1)]"
+            >
+              <summary className="flex items-center justify-between gap-4 px-5 py-4 cursor-pointer list-none hover:bg-[rgba(255,255,255,0.02)] transition-colors">
+                <span className="text-[13px] font-mono text-white">{item.q}</span>
+                <span className="shrink-0 text-[rgba(255,255,255,0.3)] group-open:text-[#00FF41] font-mono text-lg leading-none transition-colors select-none">
+                  +
+                </span>
+              </summary>
+              <div className="px-5 pb-5 pt-2 border-t border-[rgba(255,255,255,0.05)]">
+                <p className="text-sm text-[rgba(255,255,255,0.6)] leading-relaxed">{item.a}</p>
+              </div>
+            </details>
+          ))}
+        </div>
+      </DocsPage>
+    </>
   );
 }

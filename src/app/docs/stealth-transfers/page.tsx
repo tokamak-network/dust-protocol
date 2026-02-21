@@ -4,9 +4,19 @@ import { DocsStepList } from "@/components/docs/DocsStepList";
 import { DocsBadge } from "@/components/docs/DocsBadge";
 import Link from "next/link";
 import { ECDHKeyDerivation } from "@/components/docs/visuals/ECDHKeyDerivation";
+import { docsMetadata } from "@/lib/seo/metadata";
+import { techArticleJsonLd } from "@/lib/seo/jsonLd";
+
+/* XSS-safe: all values below are hardcoded string literals; safeJsonLd() escapes < as \u003c */
+const articleLd = techArticleJsonLd("Stealth Transfers — Private Payments with ERC-5564", "Send ETH privately to any .dust name. Each payment lands at a unique one-time stealth address derived via ECDH that only the recipient can detect.", "/docs/stealth-transfers");
+
+export const metadata = docsMetadata("Stealth Transfers — Private Payments with ERC-5564", "Send ETH privately to any .dust name. Each payment lands at a unique one-time stealth address derived via ECDH that only the recipient can detect.", "/docs/stealth-transfers");
 
 export default function StealthTransfersPage() {
   return (
+    <>
+    {/* XSS-safe: articleLd is built from hardcoded string literals; safeJsonLd escapes < as \u003c */}
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleLd }} />
     <DocsPage
       currentHref="/docs/stealth-transfers"
       title="Stealth Transfers"
@@ -154,5 +164,6 @@ export default function StealthTransfersPage() {
         </p>
       </section>
     </DocsPage>
+    </>
   );
 }

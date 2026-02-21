@@ -1,6 +1,7 @@
 import { DocsPage } from "@/components/docs/DocsPage";
 import { DocsCallout } from "@/components/docs/DocsCallout";
 import { DocsBadge } from "@/components/docs/DocsBadge";
+import { docsMetadata } from "@/lib/seo/metadata";
 
 const sepoliaContracts = [
   {
@@ -142,6 +143,8 @@ const thanosContracts = [
     explorer: "https://explorer.thanos-sepolia.tokamak.network/address/0x9e2eb36F7161C066351DC9E418E7a0620EE5d095",
   },
 ];
+
+export const metadata = docsMetadata("Smart Contracts — Deployed Addresses & Standards", "All Dust Protocol smart contract addresses on Ethereum Sepolia and Thanos Sepolia. Includes ERC-5564 Announcer, ERC-6538 Registry, DustPool, and DustPaymaster.", "/docs/contracts");
 
 export default function ContractsPage() {
   return (
