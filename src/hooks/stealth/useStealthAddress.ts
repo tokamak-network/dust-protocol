@@ -11,6 +11,7 @@ import {
   type DerivedClaimAddress,
 } from '@/lib/stealth';
 import { getChainProvider, signMessage as signWithWallet } from '@/lib/providers';
+import { hasPinStored, getStoredPin, decryptPin } from '@/lib/stealth/pin';
 import { getChainConfig, DEFAULT_CHAIN_ID } from '@/config/chains';
 
 import { storageKey } from '@/lib/storageKey';
@@ -53,6 +54,10 @@ export function useStealthAddress() {
   const [selectedClaimIndex, setSelectedClaimIndex] = useState(0);
   const signatureRef = useRef<string | null>(null);
 
+  // Auto-restore: silently re-derive keys on page load using stored encrypted PIN
+  const [autoRestoreFailed, setAutoRestoreFailed] = useState(false);
+  const autoRestoringRef = useRef(false);
+
   // Derived values — safe because stealthKeys are fully validated before being set
   const metaAddress = hasStealthKeys && stealthKeysRef.current ? formatStealthMetaAddress(stealthKeysRef.current, 'thanos') : null;
   const parsedMetaAddress: StealthMetaAddress | null = (() => {
@@ -74,6 +79,7 @@ export function useStealthAddress() {
     setClaimAddresses([]);
     setSelectedClaimIndex(0);
     signatureRef.current = null;
+    setAutoRestoreFailed(false);
 
     // Purge any legacy persisted private keys from localStorage
     localStorage.removeItem(stealthKeysKey(address));
@@ -309,12 +315,66 @@ export function useStealthAddress() {
     setClaimAddresses(prev => prev.map((a, i) => ({ ...a, balance: balances[i] })));
   }, [claimAddresses, fetchBalance]);
 
+  // Auto-restore: sign message silently → decrypt stored PIN → re-derive keys
+  // Privy embedded wallets sign without popup; external wallets show one signature request
+  const autoRestoreKeys = useCallback(async (): Promise<boolean> => {
+    if (!isConnected || !address || !walletClient) return false;
+    if (stealthKeysRef.current) return true;
+    if (!hasPinStored(address)) return false;
+    if (autoRestoringRef.current || derivingRef.current) return false;
+    autoRestoringRef.current = true;
+
+    try {
+      const sig = await signWithWallet(STEALTH_KEY_DERIVATION_MESSAGE, walletClient);
+      signatureRef.current = sig;
+
+      const stored = getStoredPin(address);
+      if (!stored) { setAutoRestoreFailed(true); return false; }
+      const pin = await decryptPin(stored, sig);
+
+      const newKeys = await deriveStealthKeyPairFromSignatureAndPin(sig, pin, address);
+      if (!areKeysValid(newKeys)) { setAutoRestoreFailed(true); return false; }
+
+      stealthKeysRef.current = newKeys;
+      setHasStealthKeys(true);
+
+      const savedClaims = loadClaimAddressesFromStorage(address);
+      const derived = await deriveClaimAddressesWithPin(sig, pin, 3, address);
+      const withLabels: ClaimAddressWithBalance[] = derived.map(a => ({
+        ...a,
+        label: savedClaims.find(s => s.address.toLowerCase() === a.address.toLowerCase())?.label || getLabel(a.index),
+      }));
+      const withLabelsStripped = withLabels.map(a => ({ ...a, privateKey: '' })) as ClaimAddressWithBalance[];
+      setClaimAddresses(withLabelsStripped);
+      saveClaimAddressesToStorage(address, withLabelsStripped);
+
+      Promise.all(withLabels.map(a => fetchBalance(a.address))).then(balances => {
+        setClaimAddresses(prev => prev.map((a, i) => ({ ...a, balance: balances[i] })));
+      });
+
+      return true;
+    } catch {
+      setAutoRestoreFailed(true);
+      return false;
+    } finally {
+      autoRestoringRef.current = false;
+    }
+  }, [isConnected, address, walletClient, fetchBalance]);
+
+  // Trigger auto-restore after hydration when wallet is ready
+  useEffect(() => {
+    if (!walletClient || !address || !isConnected || !isHydrated) return;
+    if (stealthKeysRef.current) return;
+    if (!hasPinStored(address)) return;
+    if (autoRestoreFailed) return;
+    autoRestoreKeys();
+  }, [walletClient, address, isConnected, isHydrated, autoRestoreKeys, autoRestoreFailed]);
 
   return {
     stealthKeys: stealthKeysRef.current, metaAddress, parsedMetaAddress,
     generateKeys, deriveKeysFromWallet, clearKeys, importKeys, exportKeys,
     registerMetaAddress, isRegistered, checkRegistration, lookupAddress,
-    isLoading, isSigningMessage, isHydrated, error,
+    isLoading, isSigningMessage, isHydrated, error, autoRestoreFailed,
     // Claim addresses (unified)
     claimAddresses, selectedClaimAddress, selectedClaimIndex, claimAddressesInitialized,
     selectClaimAddress, refreshClaimBalances,

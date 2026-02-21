@@ -43,6 +43,7 @@ interface AuthState {
   isKeyLoading: boolean;
   isSigningMessage: boolean;
   keyError: string | null;
+  autoRestoreFailed: boolean;
   // Claim addresses
   claimAddresses: Array<{ address: string; label?: string; balance?: string; privateKey: string; path: string; index: number }>;
   selectedClaimAddress: { address: string; label?: string; balance?: string; privateKey: string; path: string; index: number } | null;
@@ -147,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isKeyLoading: stealthAddr.isLoading,
     isSigningMessage: stealthAddr.isSigningMessage,
     keyError: stealthAddr.error,
+    autoRestoreFailed: stealthAddr.autoRestoreFailed,
     claimAddresses: stealthAddr.claimAddresses,
     selectedClaimAddress: stealthAddr.selectedClaimAddress,
     selectedClaimIndex: stealthAddr.selectedClaimIndex,

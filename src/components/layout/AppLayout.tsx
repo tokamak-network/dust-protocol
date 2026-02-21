@@ -1,14 +1,32 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "./Navbar";
+import { PinGate } from "@/components/auth/PinGate";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isConnected, isOnboarded, isHydrated, address } = useAuth();
+  const { isConnected, isOnboarded, isHydrated, address, hasPin,
+          stealthKeys, autoRestoreFailed } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [pinUnlocked, setPinUnlocked] = useState(false);
+
+  useEffect(() => {
+    setPinUnlocked(false);
+  }, [address]);
+
+  // Auto-restore succeeded — mark as unlocked
+  useEffect(() => {
+    if (stealthKeys) {
+      setPinUnlocked(true);
+    }
+  }, [stealthKeys]);
+
+  const handlePinUnlocked = useCallback(() => {
+    setPinUnlocked(true);
+  }, []);
 
   useEffect(() => {
     if (pathname === "/" || pathname.startsWith("/pay/") || pathname === "/onboarding" || pathname.startsWith("/docs")) return;
@@ -22,7 +40,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Docs are public — render with navbar, no auth required
   if (pathname.startsWith("/docs")) {
     return (
       <div className="min-h-screen bg-[#06080F] text-white">
@@ -42,11 +59,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // PinGate only shows as fallback when auto-restore fails (e.g. user rejected signature, wallet mismatch)
+  const needsPinUnlock = hasPin && !pinUnlocked && !stealthKeys && autoRestoreFailed;
+  // Brief spinner while auto-restore is in progress (silent for Privy, one popup for MetaMask)
+  const isAutoRestoring = hasPin && !stealthKeys && !autoRestoreFailed && !pinUnlocked;
+
   return (
     <div className="min-h-screen bg-[#06080F] text-white">
       <Navbar />
       <main className="pt-14">
-        {children}
+        {isAutoRestoring ? (
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-6 h-6 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin" />
+              <span className="text-[13px] font-mono text-white/40">Restoring keys...</span>
+            </div>
+          </div>
+        ) : needsPinUnlock ? (
+          <PinGate onUnlocked={handlePinUnlocked} />
+        ) : children}
       </main>
     </div>
   );
