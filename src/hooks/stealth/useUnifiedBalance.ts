@@ -69,9 +69,13 @@ export function useUnifiedBalance({
     [unclaimedPayments]
   );
 
+  // Claimed total = sum of originalAmount for auto-claimed payments
+  // (auto-claim sends to connected wallet, not to derived claim addresses)
   const claimTotal = useMemo(
-    () => claimAddresses.reduce((sum, a) => sum + parseFloat(a.balance || '0'), 0),
-    [claimAddresses]
+    () => payments
+      .filter(p => p.claimed && !p.keyMismatch)
+      .reduce((sum, p) => sum + parseFloat(p.originalAmount || p.balance || '0'), 0),
+    [payments]
   );
 
   return {

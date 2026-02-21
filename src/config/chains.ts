@@ -115,13 +115,16 @@ const THANOS_SEPOLIA_CONFIG: ChainConfig = {
 
 // ─── Ethereum Sepolia ──────────────────────────────────────────────────────────
 
-// Alchemy RPC with verified-working fallbacks (tested 2026-02-16)
-// Old fallbacks were mostly broken (PublicNode, rpc.sepolia.org, rpc2.sepolia.org, Blockpi all dead/rate limited)
+// Priority-ordered RPC endpoints — FallbackProvider tries in order, rotates on failure
+// Archive RPCs listed first so historical balance queries succeed
 const SEPOLIA_RPC_URLS = [
-  process.env.NEXT_PUBLIC_ALCHEMY_SEPOLIA_RPC, // Primary: Alchemy (paid, 330 req/s if key set)
-  'https://sepolia.drpc.org', // Fallback 1: dRPC (fastest public, ~100ms, full eth_getLogs support)
-  'https://1rpc.io/sepolia', // Fallback 2: 1RPC (reliable, privacy-focused, 20K eth_getLogs limit)
-  'https://gateway.tenderly.co/public/sepolia', // Fallback 3: Tenderly (reliable, ~250ms, 50K eth_getLogs limit)
+  process.env.NEXT_PUBLIC_ALCHEMY_SEPOLIA_RPC,       // Alchemy (archive, 330 req/s, paid)
+  'https://sepolia.drpc.org',                         // dRPC (archive, ~100ms, ~100 RPS free)
+  'https://rpc.ankr.com/eth_sepolia',                 // Ankr (archive, 30-100 RPS, no key)
+  'https://1rpc.io/sepolia',                          // 1RPC (privacy-focused, 20K eth_getLogs)
+  'https://gateway.tenderly.co/public/sepolia',       // Tenderly (archive, ~250ms, 50K eth_getLogs)
+  process.env.NEXT_PUBLIC_INFURA_SEPOLIA_RPC,         // Infura (archive, ~20 RPS free, if key set)
+  'https://ethereum-sepolia-rpc.publicnode.com',      // PublicNode (last resort, non-archive)
 ].filter(Boolean) as string[];
 
 const ethereumSepolia = defineChain({

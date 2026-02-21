@@ -35,14 +35,32 @@ class ServerJsonRpcProvider extends ethers.providers.JsonRpcProvider {
 }
 
 // Server-side provider cache — avoids recreating providers on every API request
-const serverProviderCache = new Map<number, ethers.providers.JsonRpcProvider>();
+const serverProviderCache = new Map<number, ethers.providers.BaseProvider>();
 
-export function getServerProvider(chainId?: number): ethers.providers.JsonRpcProvider {
+/**
+ * Server-side provider with automatic failover across configured RPCs.
+ * Each child provider uses native fetch (cache: 'no-store') to bypass Next.js.
+ */
+export function getServerProvider(chainId?: number): ethers.providers.BaseProvider {
   const id = chainId ?? DEFAULT_CHAIN_ID;
   let provider = serverProviderCache.get(id);
   if (!provider) {
     const config = getChainConfig(id);
-    provider = new ServerJsonRpcProvider(config.rpcUrl, { name: config.name, chainId: config.id });
+    const urls = config.rpcUrls;
+    const network = { name: config.name, chainId: config.id };
+    if (urls.length <= 1) {
+      provider = new ServerJsonRpcProvider(urls[0], network);
+    } else {
+      provider = new ethers.providers.FallbackProvider(
+        urls.map((url, i) => ({
+          provider: new ServerJsonRpcProvider(url, network),
+          priority: i + 1,
+          weight: 1,
+          stallTimeout: 2000,
+        })),
+        1
+      );
+    }
     serverProviderCache.set(id, provider);
   }
   return provider;

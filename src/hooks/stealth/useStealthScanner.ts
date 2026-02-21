@@ -17,7 +17,7 @@ import {
 } from '@/lib/dustpool';
 import { getChainConfig, DEFAULT_CHAIN_ID, MIN_CLAIMABLE_BALANCE } from '@/config/chains';
 import { getTokensForChain } from '@/config/tokens';
-import { getChainProvider, getChainBatchProvider } from '@/lib/providers';
+import { getChainProvider, getChainBatchProvider, rotateBatchProvider } from '@/lib/providers';
 
 const ERC20_BALANCE_ABI = [
   'function balanceOf(address) view returns (uint256)',
@@ -826,12 +826,17 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
         results.map(async (r) => {
           try {
             const addr = r.announcement.stealthAddress;
-            const [bal, historicalBal] = await Promise.all([
-              batchProvider.getBalance(addr),
-              batchProvider.getBalance(addr, r.announcement.blockNumber),
-            ]);
+            const bal = await batchProvider.getBalance(addr);
             const balance = ethers.utils.formatEther(bal);
-            const originalAmount = ethers.utils.formatEther(historicalBal);
+
+            // Historical balance requires archive RPC — best-effort
+            let originalAmount = balance;
+            try {
+              const historicalBal = await batchProvider.getBalance(addr, r.announcement.blockNumber);
+              originalAmount = ethers.utils.formatEther(historicalBal);
+            } catch {
+              // Non-archive RPC: fall back to current balance
+            }
 
             // Fetch ERC-20 token balances
             let tokenBalances: TokenBalance[] | undefined;
@@ -885,6 +890,11 @@ export function useStealthScanner(stealthKeys: StealthKeyPair | null, options?: 
 
       // H2: Check if this scan was superseded after balance queries completed
       if (currentScanIdRef.current !== scanId) return;
+
+      // If all balance queries failed, rotate batch provider to next RPC
+      if (results.length > 0 && enriched.every(p => !p.originalAmount && p.balance === '0')) {
+        rotateBatchProvider(chainId);
+      }
 
       // Store keys in ref, strip from state
       enriched.forEach(p => {

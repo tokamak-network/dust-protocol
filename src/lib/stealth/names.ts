@@ -77,7 +77,7 @@ import { getChainConfig, DEFAULT_CHAIN_ID, getSupportedChains } from '@/config/c
 
 import { getChainProvider } from '@/lib/providers';
 
-function getReadOnlyProvider(chainId?: number): ethers.providers.JsonRpcProvider {
+function getReadOnlyProvider(chainId?: number): ethers.providers.BaseProvider {
   return getChainProvider(chainId ?? DEFAULT_CHAIN_ID);
 }
 
