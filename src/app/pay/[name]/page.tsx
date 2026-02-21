@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from "@/lib/seo/metadata";
+import { SITE_URL, SITE_NAME } from "@/lib/seo/metadata";
 import PayPageClient from "./PayPageClient";
 
 interface PayPageProps {
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: PayPageProps): Promise<Metada
       title: `Pay ${displayName} | ${SITE_NAME}`,
       description: `Send private crypto to ${displayName}. Each payment creates a unique stealth address — unlinkable, non-custodial, gasless claims.`,
       url: `/pay/${name}`,
-      images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: `Pay ${displayName} privately with Dust Protocol` }],
+      images: [{ url: `${SITE_URL}/opengraph-image`, width: 1200, height: 630, alt: `Pay ${displayName} privately with Dust Protocol` }],
     },
     twitter: {
       card: "summary_large_image",
