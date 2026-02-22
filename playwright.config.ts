@@ -30,5 +30,9 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      // Disable Privy so tests use standalone wagmi with injected() connector
+      NEXT_PUBLIC_PRIVY_APP_ID: "",
+    },
   },
 });
