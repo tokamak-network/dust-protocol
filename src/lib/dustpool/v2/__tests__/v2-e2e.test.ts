@@ -82,7 +82,8 @@ class TestTree {
 
 // ── Test fixtures ───────────────────────────────────────────────────────────
 
-const CHAIN_ID = 11155111
+const TEST_CHAIN_ID = 11155111
+const CHAIN_ID = TEST_CHAIN_ID
 const RECIPIENT = '0x1234567890123456789012345678901234567890'
 const ETH_ADDRESS = '0x0000000000000000000000000000000000000000'
 
@@ -120,24 +121,24 @@ describe('E2E: deposit → full withdraw', () => {
   })
 
   it('deposit inputs have correct publicAmount', async () => {
-    const inputs = await buildDepositInputs(deposited.note, keys)
+    const inputs = await buildDepositInputs(deposited.note, keys, TEST_CHAIN_ID)
     expect(inputs.publicAmount).toBe(1_000_000n)
     expect(inputs.recipient).toBe(0n)
   })
 
   it('withdraw inputs use field-negative publicAmount', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.publicAmount).toBe(BN254_FIELD_SIZE - 1_000_000n)
   })
 
   it('computed Merkle root matches tree root', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
     const treeRoot = await tree.getRoot()
     expect(inputs.merkleRoot).toBe(treeRoot)
   })
 
   it('nullifier is deterministic and non-zero', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
     const expectedNullifier = await computeNullifier(keys.nullifierKey, deposited.commitment, deposited.leafIndex)
 
     expect(inputs.nullifier0).toBe(expectedNullifier)
@@ -146,7 +147,7 @@ describe('E2E: deposit → full withdraw', () => {
   })
 
   it('balance conservation: inAmount + publicAmount == outAmount (mod field)', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
 
     // sum(in) + publicAmount ≡ sum(out)  (mod FIELD_SIZE)
     const sumIn = inputs.inAmount[0] + inputs.inAmount[1]
@@ -159,7 +160,7 @@ describe('E2E: deposit → full withdraw', () => {
   })
 
   it('full withdrawal produces dummy change note (amount=0)', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 1_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.outAmount[0]).toBe(0n) // change = 0 → dummy
   })
 })
@@ -176,18 +177,18 @@ describe('E2E: deposit → partial withdraw', () => {
   })
 
   it('change note has correct amount (input - withdrawn)', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 3_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 3_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.outAmount[0]).toBe(2_000_000n)
   })
 
   it('change note preserves owner and asset', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 3_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 3_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.outOwner[0]).toBe(ownerPubKey)
     expect(inputs.outAsset[0]).toBe(assetId)
   })
 
   it('balance conservation with change', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 3_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 3_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
 
     const sumIn = inputs.inAmount[0] + inputs.inAmount[1]
     const sumOut = inputs.outAmount[0] + inputs.outAmount[1]
@@ -197,7 +198,7 @@ describe('E2E: deposit → partial withdraw', () => {
   })
 
   it('Merkle root still valid after multiple deposits', async () => {
-    const inputs = await buildWithdrawInputs(deposited, 3_000_000n, RECIPIENT, keys, merkleProof)
+    const inputs = await buildWithdrawInputs(deposited, 3_000_000n, RECIPIENT, keys, merkleProof, TEST_CHAIN_ID)
     const treeRoot = await tree.getRoot()
     expect(inputs.merkleRoot).toBe(treeRoot)
   })
@@ -217,29 +218,29 @@ describe('E2E: deposit → transfer', () => {
   })
 
   it('publicAmount is 0 for transfers', async () => {
-    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof)
+    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.publicAmount).toBe(0n)
   })
 
   it('recipient is 0 (no external withdrawal)', async () => {
-    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof)
+    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.recipient).toBe(0n)
   })
 
   it('output 0 goes to recipient with correct amount', async () => {
-    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof)
+    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.outAmount[0]).toBe(6_000_000n)
     expect(inputs.outOwner[0]).toBe(recipientPubKey)
   })
 
   it('output 1 is change back to sender', async () => {
-    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof)
+    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.outAmount[1]).toBe(4_000_000n)
     expect(inputs.outOwner[1]).toBe(ownerPubKey)
   })
 
   it('balance conservation: sum(in) == sum(out) when publicAmount=0', async () => {
-    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof)
+    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof, TEST_CHAIN_ID)
 
     const sumIn = inputs.inAmount[0] + inputs.inAmount[1]
     const sumOut = inputs.outAmount[0] + inputs.outAmount[1]
@@ -247,13 +248,13 @@ describe('E2E: deposit → transfer', () => {
   })
 
   it('Merkle root valid for transfer', async () => {
-    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof)
+    const inputs = await buildTransferInputs(deposited, recipientPubKey, 6_000_000n, keys, merkleProof, TEST_CHAIN_ID)
     const treeRoot = await tree.getRoot()
     expect(inputs.merkleRoot).toBe(treeRoot)
   })
 
   it('full transfer (no change) produces dummy change note', async () => {
-    const inputs = await buildTransferInputs(deposited, recipientPubKey, 10_000_000n, keys, merkleProof)
+    const inputs = await buildTransferInputs(deposited, recipientPubKey, 10_000_000n, keys, merkleProof, TEST_CHAIN_ID)
     expect(inputs.outAmount[0]).toBe(10_000_000n)
     expect(inputs.outAmount[1]).toBe(0n) // dummy
   })
@@ -297,7 +298,7 @@ describe('E2E: nullifier uniqueness', () => {
 describe('E2E: output commitment consistency', () => {
   it('deposit output commitment matches recomputed commitment', async () => {
     const note = createNote(ownerPubKey, 500n, assetId, CHAIN_ID)
-    const inputs = await buildDepositInputs(note, keys)
+    const inputs = await buildDepositInputs(note, keys, TEST_CHAIN_ID)
     const expected = await computeNoteCommitment(note)
     expect(inputs.outputCommitment0).toBe(expected)
   })
@@ -305,7 +306,7 @@ describe('E2E: output commitment consistency', () => {
   it('withdraw change commitment is a valid Poseidon hash', async () => {
     const deposited = await depositNote(2000n)
     const proof = await tree.getProof(deposited.leafIndex)
-    const inputs = await buildWithdrawInputs(deposited, 1000n, RECIPIENT, keys, proof)
+    const inputs = await buildWithdrawInputs(deposited, 1000n, RECIPIENT, keys, proof, TEST_CHAIN_ID)
 
     expect(inputs.outputCommitment0).toBeGreaterThan(0n)
     expect(inputs.outputCommitment0).toBeLessThan(BN254_FIELD_SIZE)
@@ -315,7 +316,7 @@ describe('E2E: output commitment consistency', () => {
     const deposited = await depositNote(3000n)
     const proof = await tree.getProof(deposited.leafIndex)
     const recipientPubKey = await computeOwnerPubKey(77777n)
-    const inputs = await buildTransferInputs(deposited, recipientPubKey, 1500n, keys, proof)
+    const inputs = await buildTransferInputs(deposited, recipientPubKey, 1500n, keys, proof, TEST_CHAIN_ID)
 
     expect(inputs.outputCommitment0).not.toBe(inputs.outputCommitment1)
     expect(inputs.outputCommitment0).toBeGreaterThan(0n)
@@ -343,7 +344,7 @@ describe('E2E: multi-deposit tree integrity', () => {
     // All proofs should resolve to the same root
     for (const n of notes) {
       const proof = await localTree.getProof(n.leafIndex)
-      const inputs = await buildWithdrawInputs(n, n.note.amount, RECIPIENT, keys, proof)
+      const inputs = await buildWithdrawInputs(n, n.note.amount, RECIPIENT, keys, proof, TEST_CHAIN_ID)
       expect(inputs.merkleRoot).toBe(treeRoot)
     }
   })

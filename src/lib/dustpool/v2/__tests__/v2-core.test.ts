@@ -196,6 +196,8 @@ describe('computeNullifier', () => {
 
 // ── Proof input builders ────────────────────────────────────────────────────
 
+const TEST_CHAIN_ID = 11155111
+
 const MOCK_KEYS: V2Keys = {
   spendingKey: 12345n,
   nullifierKey: 67890n,
@@ -228,7 +230,7 @@ describe('buildDepositInputs', () => {
     const assetId = await computeAssetId(1, '0x0000000000000000000000000000000000000000')
     const note = createNote(ownerPubKey, 1000n, assetId, 1)
 
-    const inputs = await buildDepositInputs(note, MOCK_KEYS)
+    const inputs = await buildDepositInputs(note, MOCK_KEYS, TEST_CHAIN_ID)
 
     expect(inputs.publicAmount).toBe(1000n)
     expect(inputs.recipient).toBe(0n)
@@ -242,7 +244,7 @@ describe('buildDepositInputs', () => {
     const assetId = await computeAssetId(1, '0x0000000000000000000000000000000000000000')
     const note = createNote(ownerPubKey, 500n, assetId, 1)
 
-    const inputs = await buildDepositInputs(note, MOCK_KEYS)
+    const inputs = await buildDepositInputs(note, MOCK_KEYS, TEST_CHAIN_ID)
     const expectedCommitment = await computeNoteCommitment(note)
 
     expect(inputs.outputCommitment0).toBe(expectedCommitment)
@@ -253,7 +255,7 @@ describe('buildDepositInputs', () => {
     const assetId = await computeAssetId(1, '0x0000000000000000000000000000000000000000')
     const note = createNote(ownerPubKey, 1000n, assetId, 1)
 
-    const inputs = await buildDepositInputs(note, MOCK_KEYS)
+    const inputs = await buildDepositInputs(note, MOCK_KEYS, TEST_CHAIN_ID)
 
     expect(inputs.inAmount[0]).toBe(0n)
     expect(inputs.inAmount[1]).toBe(0n)
@@ -269,7 +271,8 @@ describe('buildWithdrawInputs', () => {
       700n,
       '0x1234567890123456789012345678901234567890',
       MOCK_KEYS,
-      dummyMerkleProof()
+      dummyMerkleProof(),
+      TEST_CHAIN_ID
     )
 
     // field-negative: FIELD_SIZE - amount
@@ -284,7 +287,8 @@ describe('buildWithdrawInputs', () => {
       600n,
       '0x1234567890123456789012345678901234567890',
       MOCK_KEYS,
-      dummyMerkleProof()
+      dummyMerkleProof(),
+      TEST_CHAIN_ID
     )
 
     // Change = 1000 - 600 = 400
@@ -300,7 +304,8 @@ describe('buildWithdrawInputs', () => {
       1000n,
       recipient,
       MOCK_KEYS,
-      dummyMerkleProof()
+      dummyMerkleProof(),
+      TEST_CHAIN_ID
     )
 
     expect(inputs.recipient).toBe(BigInt(recipient))
@@ -314,7 +319,8 @@ describe('buildWithdrawInputs', () => {
       2000n,
       '0x1234567890123456789012345678901234567890',
       MOCK_KEYS,
-      dummyMerkleProof()
+      dummyMerkleProof(),
+      TEST_CHAIN_ID
     )
 
     expect(inputs.inAmount[0]).toBe(2000n)
@@ -331,7 +337,8 @@ describe('buildTransferInputs', () => {
       999n, // recipient public key
       500n,
       MOCK_KEYS,
-      dummyMerkleProof()
+      dummyMerkleProof(),
+      TEST_CHAIN_ID
     )
 
     expect(inputs.publicAmount).toBe(0n)
@@ -346,7 +353,8 @@ describe('buildTransferInputs', () => {
       recipientPubKey,
       600n,
       MOCK_KEYS,
-      dummyMerkleProof()
+      dummyMerkleProof(),
+      TEST_CHAIN_ID
     )
 
     // Output 0 = recipient note
@@ -365,7 +373,8 @@ describe('buildTransferInputs', () => {
       42n,
       1000n,
       MOCK_KEYS,
-      dummyMerkleProof()
+      dummyMerkleProof(),
+      TEST_CHAIN_ID
     )
 
     expect(inputs.recipient).toBe(0n)
@@ -379,7 +388,8 @@ describe('buildTransferInputs', () => {
       42n,
       700n,
       MOCK_KEYS,
-      dummyMerkleProof()
+      dummyMerkleProof(),
+      TEST_CHAIN_ID
     )
 
     const sumIn = inputs.inAmount[0] + inputs.inAmount[1] + inputs.publicAmount

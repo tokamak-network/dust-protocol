@@ -43,6 +43,8 @@ contract DustPoolV2 {
 
     IFFLONKVerifier public immutable VERIFIER;
     address public owner;
+    address public pendingOwner;
+    bool public paused;
 
     // Root history — circular buffer
     mapping(uint256 => bytes32) public roots;
@@ -84,6 +86,9 @@ contract DustPoolV2 {
     );
     event RootUpdated(bytes32 newRoot, uint256 index, address relayer);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event Paused(address account);
+    event Unpaused(address account);
 
     error ZeroCommitment();
     error ZeroValue();
@@ -100,7 +105,9 @@ contract DustPoolV2 {
     error InsufficientPoolBalance();
     error NotRelayer();
     error NotOwner();
+    error NotPendingOwner();
     error ReentrantCall();
+    error ContractPaused();
 
     modifier onlyRelayer() {
         if (!relayers[msg.sender]) revert NotRelayer();
@@ -119,6 +126,11 @@ contract DustPoolV2 {
         _status = _NOT_ENTERED;
     }
 
+    modifier whenNotPaused() {
+        if (paused) revert ContractPaused();
+        _;
+    }
+
     constructor(address _verifier) {
         VERIFIER = IFFLONKVerifier(_verifier);
         owner = msg.sender;
@@ -126,7 +138,7 @@ contract DustPoolV2 {
 
     /// @notice Deposit native tokens into the pool
     /// @param commitment Poseidon commitment for the UTXO
-    function deposit(bytes32 commitment) external payable {
+    function deposit(bytes32 commitment) external payable whenNotPaused {
         if (commitment == bytes32(0)) revert ZeroCommitment();
         if (msg.value == 0) revert ZeroValue();
         if (msg.value > MAX_DEPOSIT_AMOUNT) revert DepositTooLarge();
@@ -146,7 +158,7 @@ contract DustPoolV2 {
     /// @param commitment Poseidon commitment for the UTXO
     /// @param token ERC20 token address
     /// @param amount Token amount to deposit
-    function depositERC20(bytes32 commitment, address token, uint256 amount) external nonReentrant {
+    function depositERC20(bytes32 commitment, address token, uint256 amount) external nonReentrant whenNotPaused {
         if (commitment == bytes32(0)) revert ZeroCommitment();
         if (amount == 0) revert ZeroValue();
         if (amount > MAX_DEPOSIT_AMOUNT) revert DepositTooLarge();
@@ -188,7 +200,7 @@ contract DustPoolV2 {
         uint256 publicAsset,
         address recipient,
         address tokenAddress
-    ) external onlyRelayer nonReentrant {
+    ) external onlyRelayer nonReentrant whenNotPaused {
         if (recipient == address(0)) revert ZeroRecipient();
         if (!isKnownRoot(merkleRoot)) revert UnknownRoot();
 
@@ -208,8 +220,8 @@ contract DustPoolV2 {
         if (proof.length != 768) revert InvalidProofLength();
 
         // Public signals match circuit order:
-        // [merkleRoot, nullifier0, nullifier1, outCommitment0, outCommitment1, publicAmount, publicAsset, recipient]
-        uint256[8] memory pubSignals;
+        // [merkleRoot, nullifier0, nullifier1, outCommitment0, outCommitment1, publicAmount, publicAsset, recipient, chainId]
+        uint256[9] memory pubSignals;
         pubSignals[0] = uint256(merkleRoot);
         pubSignals[1] = uint256(nullifier0);
         pubSignals[2] = uint256(nullifier1);
@@ -218,6 +230,7 @@ contract DustPoolV2 {
         pubSignals[5] = publicAmount;
         pubSignals[6] = publicAsset;
         pubSignals[7] = uint256(uint160(recipient));
+        pubSignals[8] = block.chainid;
 
         bytes32[24] memory proofData;
         for (uint256 i = 0; i < 24; i++) {
@@ -299,12 +312,32 @@ contract DustPoolV2 {
         relayers[relayer] = allowed;
     }
 
-    /// @notice Transfer contract ownership
-    /// @param newOwner New owner address
+    /// @notice Start ownership transfer (2-step)
+    /// @param newOwner New owner address (must call acceptOwnership())
     function transferOwnership(address newOwner) external onlyOwner {
         if (newOwner == address(0)) revert ZeroRecipient();
-        emit OwnershipTransferred(owner, newOwner);
-        owner = newOwner;
+        pendingOwner = newOwner;
+        emit OwnershipTransferStarted(owner, newOwner);
+    }
+
+    /// @notice Accept ownership transfer (must be called by pendingOwner)
+    function acceptOwnership() external {
+        if (msg.sender != pendingOwner) revert NotPendingOwner();
+        emit OwnershipTransferred(owner, msg.sender);
+        owner = msg.sender;
+        pendingOwner = address(0);
+    }
+
+    /// @notice Pause all deposits and withdrawals
+    function pause() external onlyOwner {
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    /// @notice Unpause the contract
+    function unpause() external onlyOwner {
+        paused = false;
+        emit Unpaused(msg.sender);
     }
 
     receive() external payable {}

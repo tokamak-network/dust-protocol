@@ -43,6 +43,8 @@ export interface ProofInputs {
   publicAmount: bigint
   publicAsset: bigint
   recipient: bigint
+  /** Chain ID — prevents cross-chain proof replay */
+  chainId: bigint
 
   // ── Private — input notes ───────────────────────────────────────────────
   inOwner: [bigint, bigint]

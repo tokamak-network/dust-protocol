@@ -40,7 +40,8 @@ function addressToBigInt(address: string): bigint {
  */
 export async function buildDepositInputs(
   note: NoteV2,
-  keys: V2Keys
+  keys: V2Keys,
+  chainId: number
 ): Promise<ProofInputs> {
   const dummy = createDummyNote()
   const dummyProof = dummyMerkleProof()
@@ -63,6 +64,7 @@ export async function buildDepositInputs(
     publicAmount: note.amount,
     publicAsset: note.asset,
     recipient: 0n, // No recipient for deposits
+    chainId: BigInt(chainId),
 
     // Private — input notes (both dummy)
     inOwner: [dummy.owner, dummy.owner],
@@ -103,6 +105,7 @@ export async function buildWithdrawInputs(
   recipient: string,
   keys: V2Keys,
   merkleProof: { pathElements: bigint[]; pathIndices: number[] },
+  chainId: number,
   changeNote?: NoteV2
 ): Promise<ProofInputs> {
   if (amount > inputNote.note.amount) {
@@ -164,6 +167,7 @@ export async function buildWithdrawInputs(
     publicAmount: negativeAmount,
     publicAsset: inputNote.note.asset,
     recipient: addressToBigInt(recipient),
+    chainId: BigInt(chainId),
 
     // Private — input notes
     inOwner: [inputNote.note.owner, dummy.owner],
@@ -202,7 +206,8 @@ export async function buildTransferInputs(
   recipientOwner: bigint,
   amount: bigint,
   keys: V2Keys,
-  merkleProof: { pathElements: bigint[]; pathIndices: number[] }
+  merkleProof: { pathElements: bigint[]; pathIndices: number[] },
+  chainId: number
 ): Promise<ProofInputs> {
   if (amount > inputNote.note.amount) {
     throw new Error(
@@ -267,6 +272,7 @@ export async function buildTransferInputs(
     publicAmount: 0n,
     publicAsset: inputNote.note.asset,
     recipient: 0n, // No external recipient for transfers (stays in pool)
+    chainId: BigInt(chainId),
 
     // Private — input notes
     inOwner: [inputNote.note.owner, dummy.owner],

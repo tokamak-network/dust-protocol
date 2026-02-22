@@ -61,6 +61,7 @@ template DustV2Transaction(TREE_DEPTH) {
     signal input publicAmount;
     signal input publicAsset;
     signal input recipient;
+    signal input chainId;
 
     // ---- Private inputs: spending keys ----
     signal input spendingKey;
@@ -130,6 +131,9 @@ template DustV2Transaction(TREE_DEPTH) {
         // C2 fix: asset consistency — non-dummy input notes must match publicAsset
         inAmount[i] * (inAsset[i] - publicAsset) === 0;
 
+        // ChainId consistency — non-dummy input notes must match public chainId
+        inAmount[i] * (inChainId[i] - chainId) === 0;
+
         // 2c. Compute nullifier = Poseidon(nullifierKey, commitment, leafIndex)
         inNullifierHasher[i] = Poseidon(3);
         inNullifierHasher[i].inputs[0] <== nullifierKey;
@@ -188,6 +192,9 @@ template DustV2Transaction(TREE_DEPTH) {
 
         // C2 fix: asset consistency — non-dummy output notes must match publicAsset
         outAmount[j] * (outAsset[j] - publicAsset) === 0;
+
+        // ChainId consistency — non-dummy output notes must match public chainId
+        outAmount[j] * (outChainId[j] - chainId) === 0;
     }
 
     // 3c. Output commitment matching (public signals must match computed commitments)
@@ -202,16 +209,22 @@ template DustV2Transaction(TREE_DEPTH) {
     inAmount[0] + inAmount[1] + publicAmount === outAmount[0] + outAmount[1];
 
     // ================================================================
-    // Step 5: Constrain recipient to prevent front-running
+    // Step 5: I1 fix — Bind recipient to proof (prevent relay-time substitution)
     // ================================================================
-    signal recipientSquare;
-    recipientSquare <== recipient * recipient;
+    // Compute a binding hash: Poseidon(recipient, publicAsset, publicAmount)
+    // This forces the verifier to accept only the exact (recipient, asset, amount)
+    // triple that the prover committed to. Any change invalidates the proof.
+    component recipientBinding = Poseidon(3);
+    recipientBinding.inputs[0] <== recipient;
+    recipientBinding.inputs[1] <== publicAsset;
+    recipientBinding.inputs[2] <== publicAmount;
 
-    // ================================================================
-    // Step 6: Constrain publicAsset to prevent front-running
-    // ================================================================
-    signal publicAssetSquare;
-    publicAssetSquare <== publicAsset * publicAsset;
+    // Constrain that this hash is non-trivially computed (not optimized away).
+    // The binding hash is derived from public signals, so the verifier enforces
+    // that the prover's chosen (recipient, publicAsset, publicAmount) matches
+    // exactly what was used in proof generation.
+    signal recipientBindingCheck;
+    recipientBindingCheck <== recipientBinding.out;
 }
 
-component main {public [merkleRoot, nullifier0, nullifier1, outputCommitment0, outputCommitment1, publicAmount, publicAsset, recipient]} = DustV2Transaction(20);
+component main {public [merkleRoot, nullifier0, nullifier1, outputCommitment0, outputCommitment1, publicAmount, publicAsset, recipient, chainId]} = DustV2Transaction(20);

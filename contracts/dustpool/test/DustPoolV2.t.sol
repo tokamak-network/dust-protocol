@@ -12,7 +12,7 @@ contract MockFFLONKVerifier is IFFLONKVerifier {
         shouldPass = _pass;
     }
 
-    function verifyProof(bytes32[24] calldata, uint256[8] calldata) external view returns (bool) {
+    function verifyProof(bytes32[24] calldata, uint256[9] calldata) external view returns (bool) {
         return shouldPass;
     }
 }
@@ -368,11 +368,19 @@ contract DustPoolV2Test is Test {
         pool.setRelayer(alice, true);
     }
 
-    // ========== Transfer Ownership ==========
+    // ========== Transfer Ownership (2-step) ==========
 
     function testTransferOwnership() public {
         vm.prank(deployer);
         pool.transferOwnership(alice);
+
+        // Owner not changed yet — 2-step pattern
+        assertEq(pool.owner(), deployer);
+        assertEq(pool.pendingOwner(), alice);
+
+        // Accept ownership
+        vm.prank(alice);
+        pool.acceptOwnership();
         assertEq(pool.owner(), alice);
 
         // Old owner can no longer call onlyOwner
@@ -736,11 +744,18 @@ contract DustPoolV2Test is Test {
     function testTransferOwnershipEvent() public {
         vm.prank(deployer);
         vm.expectEmit(true, true, false, true);
-        emit OwnershipTransferred(deployer, alice);
+        emit OwnershipTransferStarted(deployer, alice);
         pool.transferOwnership(alice);
+
+        // OwnershipTransferred emits on acceptOwnership
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit OwnershipTransferred(deployer, alice);
+        pool.acceptOwnership();
     }
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
 
     // ========== L2 (audit): Zero address ownership transfer ==========
 
@@ -748,5 +763,147 @@ contract DustPoolV2Test is Test {
         vm.prank(deployer);
         vm.expectRevert(DustPoolV2.ZeroRecipient.selector);
         pool.transferOwnership(address(0));
+    }
+
+    // ========== Pausable ==========
+
+    event Paused(address account);
+    event Unpaused(address account);
+
+    function test_pause_onlyOwner() public {
+        vm.prank(alice);
+        vm.expectRevert(DustPoolV2.NotOwner.selector);
+        pool.pause();
+    }
+
+    function test_unpause_onlyOwner() public {
+        vm.prank(deployer);
+        pool.pause();
+
+        vm.prank(alice);
+        vm.expectRevert(DustPoolV2.NotOwner.selector);
+        pool.unpause();
+    }
+
+    function test_deposit_reverts_when_paused() public {
+        vm.prank(deployer);
+        pool.pause();
+
+        vm.prank(alice);
+        vm.expectRevert(DustPoolV2.ContractPaused.selector);
+        pool.deposit{value: 1 ether}(bytes32(uint256(0xdead)));
+    }
+
+    function test_depositERC20_reverts_when_paused() public {
+        vm.prank(deployer);
+        pool.pause();
+
+        mockToken.mint(alice, 1e18);
+        vm.prank(alice);
+        mockToken.approve(address(pool), 1e18);
+
+        vm.prank(alice);
+        vm.expectRevert(DustPoolV2.ContractPaused.selector);
+        pool.depositERC20(bytes32(uint256(0xbeef)), address(mockToken), 1e18);
+    }
+
+    function test_withdraw_reverts_when_paused() public {
+        bytes32 root = bytes32(uint256(0xf00));
+        vm.prank(relayer);
+        pool.updateRoot(root);
+
+        vm.prank(deployer);
+        pool.pause();
+
+        vm.prank(relayer);
+        vm.expectRevert(DustPoolV2.ContractPaused.selector);
+        pool.withdraw(
+            _dummyProof(),
+            root,
+            bytes32(uint256(0xf01)),
+            bytes32(0),
+            bytes32(0),
+            bytes32(0),
+            0,
+            0,
+            bob,
+            address(0)
+        );
+    }
+
+    function test_unpause_allows_operations() public {
+        vm.prank(deployer);
+        pool.pause();
+
+        vm.prank(deployer);
+        pool.unpause();
+
+        vm.prank(alice);
+        pool.deposit{value: 1 ether}(bytes32(uint256(0xfeed)));
+        assertEq(pool.depositQueueTail(), 1);
+    }
+
+    function test_pause_emits_event() public {
+        vm.prank(deployer);
+        vm.expectEmit(false, false, false, true);
+        emit Paused(deployer);
+        pool.pause();
+    }
+
+    function test_unpause_emits_event() public {
+        vm.prank(deployer);
+        pool.pause();
+
+        vm.prank(deployer);
+        vm.expectEmit(false, false, false, true);
+        emit Unpaused(deployer);
+        pool.unpause();
+    }
+
+    // ========== Ownable2Step ==========
+
+    function test_transferOwnership_sets_pendingOwner() public {
+        vm.prank(deployer);
+        pool.transferOwnership(alice);
+
+        // Ownership NOT transferred yet
+        assertEq(pool.owner(), deployer);
+        assertEq(pool.pendingOwner(), alice);
+    }
+
+    function test_acceptOwnership_completes_transfer() public {
+        vm.prank(deployer);
+        pool.transferOwnership(alice);
+
+        vm.prank(alice);
+        pool.acceptOwnership();
+
+        assertEq(pool.owner(), alice);
+    }
+
+    function test_acceptOwnership_reverts_non_pending() public {
+        vm.prank(deployer);
+        pool.transferOwnership(alice);
+
+        vm.prank(bob);
+        vm.expectRevert(DustPoolV2.NotPendingOwner.selector);
+        pool.acceptOwnership();
+    }
+
+    function test_transferOwnership_emits_started_event() public {
+        vm.prank(deployer);
+        vm.expectEmit(true, true, false, true);
+        emit OwnershipTransferStarted(deployer, alice);
+        pool.transferOwnership(alice);
+    }
+
+    function test_acceptOwnership_clears_pendingOwner() public {
+        vm.prank(deployer);
+        pool.transferOwnership(alice);
+
+        vm.prank(alice);
+        pool.acceptOwnership();
+
+        assertEq(pool.pendingOwner(), address(0));
     }
 }

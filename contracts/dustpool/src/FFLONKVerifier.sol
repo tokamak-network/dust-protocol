@@ -48,8 +48,8 @@ contract FflonkVerifier {
     uint256 constant w8_7 = 8613538655231327379234925296132678673308827349856085326283699237864372525723;
 
     // Verifier preprocessed input C_0(x)·[1]_1
-    uint256 constant C0x  = 13944127730124653847354988810260559998920913690761246401508862387545241815781;
-    uint256 constant C0y  = 303234345536463031552883451604643450924216693829872839609294981026460000631;
+    uint256 constant C0x  = 15388230416042757297913456229638165726194942582334504347967980095244473210667;
+    uint256 constant C0y  = 15223776950515993593427814107353681296918003287967251658550823462736656790309;
 
     // Verifier preprocessed input x·[1]_2
     uint256 constant X2x1 = 21831381940315734285607113342023901060522397560371972897001948545212302161822;
@@ -169,11 +169,13 @@ contract FflonkVerifier {
     
     uint16 constant pEval_l8 = 2112;
     
+    uint16 constant pEval_l9 = 2144;
     
-    uint16 constant lastMem = 2144;
+    
+    uint16 constant lastMem = 2176;
      
 
-    function verifyProof(bytes32[24] calldata proof, uint256[8] calldata pubSignals) public view returns (bool) {
+    function verifyProof(bytes32[24] calldata proof, uint256[9] calldata pubSignals) public view returns (bool) {
         assembly {
             // Computes the inverse of an array of values
             // See https://vitalik.ca/general/2018/07/21/starks_part_3.html in section where explain fields operations
@@ -296,6 +298,10 @@ contract FflonkVerifier {
                 acc := mulmod(acc, mload(add(pMem, pEval_l8)), q)
                 mstore(pAux, acc)
 
+                pAux := add(pAux, 32)
+                acc := mulmod(acc, mload(add(pMem, pEval_l9)), q)
+                mstore(pAux, acc)
+
 
                 let inv := calldataload(pEval_inv)
 
@@ -307,6 +313,10 @@ contract FflonkVerifier {
 
                 acc := inv
 
+                pAux := sub(pAux, 32)
+                inv := mulmod(acc, mload(pAux), q)
+                acc := mulmod(acc, mload(add(pMem, pEval_l9)), q)
+                mstore(add(pMem, pEval_l9), inv)
                 pAux := sub(pAux, 32)
                 inv := mulmod(acc, mload(pAux), q)
                 acc := mulmod(acc, mload(add(pMem, pEval_l8)), q)
@@ -475,37 +485,39 @@ contract FflonkVerifier {
 
             function computeChallenges(pMem, pPublic) {
                 // Compute challenge.beta & challenge.gamma
-                mstore(add(pMem, 2144 ), C0x)
-                mstore(add(pMem, 2176 ), C0y)
+                mstore(add(pMem, 2176 ), C0x)
+                mstore(add(pMem, 2208 ), C0y)
 
-                mstore(add(pMem, 2208), calldataload(pPublic))
+                mstore(add(pMem, 2240), calldataload(pPublic))
                 
-                mstore(add(pMem, 2240 ), calldataload(add(pPublic, 32)))
+                mstore(add(pMem, 2272 ), calldataload(add(pPublic, 32)))
                 
-                mstore(add(pMem, 2272 ), calldataload(add(pPublic, 64)))
+                mstore(add(pMem, 2304 ), calldataload(add(pPublic, 64)))
                 
-                mstore(add(pMem, 2304 ), calldataload(add(pPublic, 96)))
+                mstore(add(pMem, 2336 ), calldataload(add(pPublic, 96)))
                 
-                mstore(add(pMem, 2336 ), calldataload(add(pPublic, 128)))
+                mstore(add(pMem, 2368 ), calldataload(add(pPublic, 128)))
                 
-                mstore(add(pMem, 2368 ), calldataload(add(pPublic, 160)))
+                mstore(add(pMem, 2400 ), calldataload(add(pPublic, 160)))
                 
-                mstore(add(pMem, 2400 ), calldataload(add(pPublic, 192)))
+                mstore(add(pMem, 2432 ), calldataload(add(pPublic, 192)))
                 
-                mstore(add(pMem, 2432 ), calldataload(add(pPublic, 224)))
+                mstore(add(pMem, 2464 ), calldataload(add(pPublic, 224)))
+                
+                mstore(add(pMem, 2496 ), calldataload(add(pPublic, 256)))
                 
                 
 
-                mstore(add(pMem, 2464 ),  calldataload(pC1))
-                mstore(add(pMem, 2496 ),  calldataload(add(pC1, 32)))
+                mstore(add(pMem, 2528 ),  calldataload(pC1))
+                mstore(add(pMem, 2560 ),  calldataload(add(pC1, 32)))
 
-                mstore(add(pMem, pBeta),  mod(keccak256(add(pMem, lastMem), 384), q))
+                mstore(add(pMem, pBeta),  mod(keccak256(add(pMem, lastMem), 416), q))
                 mstore(add(pMem, pGamma), mod(keccak256(add(pMem, pBeta), 32), q))
 
                 // Get xiSeed & xiSeed2
                 mstore(add(pMem, lastMem), mload(add(pMem, pGamma)))
-                mstore(add(pMem, 2176), calldataload(pC2))
-                mstore(add(pMem, 2208), calldataload(add(pC2, 32)))
+                mstore(add(pMem, 2208), calldataload(pC2))
+                mstore(add(pMem, 2240), calldataload(add(pC2, 32)))
                 let xiSeed := mod(keccak256(add(pMem, lastMem), 96), q)
 
                 mstore(add(pMem, pXiSeed), xiSeed)
@@ -580,13 +592,13 @@ contract FflonkVerifier {
                 // Compute challenge.alpha
                 mstore(add(pMem, lastMem), xiSeed)
 
-                calldatacopy(add(pMem, 2176), pEval_ql, 480)
+                calldatacopy(add(pMem, 2208), pEval_ql, 480)
                 mstore(add(pMem, pAlpha), mod(keccak256(add(pMem, lastMem), 512), q))
 
                 // Compute challenge.y
                 mstore(add(pMem, lastMem), mload(add(pMem, pAlpha)))
-                mstore(add(pMem, 2176 ),  calldataload(pW1))
-                mstore(add(pMem, 2208 ),  calldataload(add(pW1, 32)))
+                mstore(add(pMem, 2208 ),  calldataload(pW1))
+                mstore(add(pMem, 2240 ),  calldataload(add(pW1, 32)))
                 mstore(add(pMem, pY), mod(keccak256(add(pMem, lastMem), 96), q))
             }
 
@@ -780,6 +792,10 @@ contract FflonkVerifier {
                 
                 mstore(add(pMem, pEval_l8), mulmod(n, mod(add(sub(xi, w), q), q), q))
                 
+                w := mulmod(w, w1, q)
+                
+                mstore(add(pMem, pEval_l9), mulmod(n, mod(add(sub(xi, w), q), q), q))
+                
 
                 // Execute Montgomery batched inversions of the previous prepared values
                 inverseArray(pMem)            }
@@ -819,6 +835,10 @@ contract FflonkVerifier {
                     
                     mstore(add(pMem, pEval_l8), mulmod(w, mulmod(mload(add(pMem, pEval_l8)), zh, q), q))
                     
+                    w := mulmod(w, w1, q)
+                    
+                    mstore(add(pMem, pEval_l9), mulmod(w, mulmod(mload(add(pMem, pEval_l9)), zh, q), q))
+                    
             }
 
             // Compute public input polynomial evaluation PI(xi)
@@ -839,6 +859,8 @@ contract FflonkVerifier {
                 pi := mod(add(sub(pi, mulmod(mload(add(pMem, pEval_l7)), calldataload(add(pPub, 192)), q)), q), q)
                 
                 pi := mod(add(sub(pi, mulmod(mload(add(pMem, pEval_l8)), calldataload(add(pPub, 224)), q)), q), q)
+                
+                pi := mod(add(sub(pi, mulmod(mload(add(pMem, pEval_l9)), calldataload(add(pPub, 256)), q)), q), q)
                 
                 mstore(add(pMem, pPi), pi)
             }

@@ -122,6 +122,7 @@ function formatCircuitInputs(
     publicAmount: inputs.publicAmount.toString(),
     publicAsset: inputs.publicAsset.toString(),
     recipient: inputs.recipient.toString(),
+    chainId: inputs.chainId.toString(),
 
     spendingKey: inputs.spendingKey.toString(),
     nullifierKey: inputs.nullifierKey.toString(),
@@ -199,9 +200,9 @@ async function generateOnMainThread(
     ZKEY_PATH
   )
 
-  if (publicSignals.length !== 8) {
+  if (publicSignals.length !== 9) {
     throw new Error(
-      `Proof generation produced ${publicSignals.length} public signals, expected 8`
+      `Proof generation produced ${publicSignals.length} public signals, expected 9`
     )
   }
 
