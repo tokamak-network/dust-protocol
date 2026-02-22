@@ -98,7 +98,7 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
 
   return (
     <>
-      <div className="w-full max-w-[620px]">
+      <div className="w-full max-w-[620px]" data-testid="v2-pool-card">
         <div className="bg-[rgba(255,255,255,0.02)] border border-[rgba(0,255,65,0.08)] rounded-sm backdrop-blur-sm relative overflow-hidden">
           <CornerAccents />
           <div className="p-6 sm:p-8">
@@ -132,6 +132,7 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
             {/* PIN verification */}
             {!hasKeys && !showPinInput && (
               <button
+                data-testid="pin-unlock-button"
                 onClick={() => setShowPinInput(true)}
                 className="mb-5 w-full p-3 rounded-sm bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.15)] hover:border-[rgba(245,158,11,0.3)] hover:bg-[rgba(245,158,11,0.1)] transition-all cursor-pointer text-left"
               >
@@ -152,6 +153,7 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
                 </div>
                 <div className="flex gap-2">
                   <input
+                    data-testid="pin-input"
                     type="password"
                     inputMode="numeric"
                     maxLength={6}
@@ -163,6 +165,7 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
                     className="flex-1 px-3 py-2 rounded-sm bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] text-white font-mono text-sm text-center tracking-[0.3em] focus:outline-none focus:border-amber-400/50 transition-all placeholder-[rgba(255,255,255,0.15)]"
                   />
                   <button
+                    data-testid="pin-submit"
                     onClick={handlePinSubmit}
                     disabled={pinInput.length !== 6 || isDeriving}
                     className="px-4 py-2 rounded-sm bg-[rgba(245,158,11,0.12)] border border-[rgba(245,158,11,0.3)] hover:bg-[rgba(245,158,11,0.2)] text-xs font-bold text-amber-400 font-mono disabled:opacity-30 disabled:cursor-not-allowed transition-all"
@@ -191,6 +194,7 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
             {/* Action Buttons */}
             <div className="grid grid-cols-3 gap-3">
               <button
+                data-testid="v2-deposit-btn"
                 onClick={() => setActiveModal("deposit")}
                 disabled={!hasKeys}
                 className="py-3 px-3 rounded-sm bg-[rgba(0,255,65,0.08)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.14)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.12)] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[rgba(0,255,65,0.08)] disabled:hover:border-[rgba(0,255,65,0.2)] disabled:hover:shadow-none"
@@ -198,6 +202,7 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
                 DEPOSIT
               </button>
               <button
+                data-testid="v2-withdraw-btn"
                 onClick={() => setActiveModal("withdraw")}
                 disabled={!hasKeys || totalEthBalance === 0n}
                 className="py-3 px-3 rounded-sm border border-[rgba(255,255,255,0.1)] hover:border-[#00FF41] hover:bg-[rgba(0,255,65,0.06)] hover:shadow-[0_0_15px_rgba(0,255,65,0.08)] transition-all text-sm font-bold text-white hover:text-[#00FF41] font-mono tracking-wider disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[rgba(255,255,255,0.1)] disabled:hover:bg-transparent disabled:hover:text-white disabled:hover:shadow-none"
@@ -205,6 +210,7 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
                 WITHDRAW
               </button>
               <button
+                data-testid="v2-transfer-btn"
                 onClick={() => setActiveModal("transfer")}
                 disabled={!hasKeys || totalEthBalance === 0n}
                 className="py-3 px-3 rounded-sm border border-[rgba(255,255,255,0.1)] hover:border-[#00FF41] hover:bg-[rgba(0,255,65,0.06)] hover:shadow-[0_0_15px_rgba(0,255,65,0.08)] transition-all text-sm font-bold text-white hover:text-[#00FF41] font-mono tracking-wider disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:border-[rgba(255,255,255,0.1)] disabled:hover:bg-transparent disabled:hover:text-white disabled:hover:shadow-none"

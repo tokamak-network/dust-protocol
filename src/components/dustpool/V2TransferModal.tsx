@@ -106,7 +106,7 @@ export function V2TransferModal({
                 </span>
               </div>
               {!isPending && (
-                <button onClick={handleClose} className="text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">
+                <button onClick={handleClose} data-testid="modal-close" className="text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">
                   <XIcon size={20} />
                 </button>
               )}
@@ -134,6 +134,7 @@ export function V2TransferModal({
                       </span>
                     </div>
                     <input
+                      data-testid="transfer-amount"
                       type="text"
                       inputMode="decimal"
                       value={amount}
@@ -154,6 +155,7 @@ export function V2TransferModal({
                       Recipient Public Key
                     </label>
                     <input
+                      data-testid="transfer-recipient"
                       type="text"
                       placeholder="0x... (recipient's V2 owner key)"
                       value={recipientPubKey}
@@ -170,6 +172,7 @@ export function V2TransferModal({
 
                   {/* Transfer button */}
                   <button
+                    data-testid="transfer-submit"
                     onClick={handleTransfer}
                     disabled={!canTransfer}
                     className="w-full py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"

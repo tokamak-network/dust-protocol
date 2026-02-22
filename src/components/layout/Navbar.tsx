@@ -13,6 +13,27 @@ import { MenuIcon, XIcon, ChevronDownIcon, CopyIcon, LogOutIcon, CheckIcon } fro
 import { isPrivyEnabled } from "@/config/privy";
 import { useLogin, usePrivy, useLogout } from "@privy-io/react-auth";
 
+const noop = () => {};
+const noopAsync = async () => {};
+
+// Safe Privy hook wrappers — return stubs when PrivyProvider is absent (E2E test mode).
+// isPrivyEnabled is a module-level constant so the branch is stable across renders.
+function useLoginSafe() {
+  if (!isPrivyEnabled) return { login: noop };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useLogin();
+}
+function usePrivySafe() {
+  if (!isPrivyEnabled) return { authenticated: false, ready: true };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return usePrivy();
+}
+function useLogoutSafe() {
+  if (!isPrivyEnabled) return { logout: noopAsync };
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  return useLogout();
+}
+
 const chains = getSupportedChains();
 
 const navItems = [
@@ -36,9 +57,9 @@ export function Navbar() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { connect } = useConnect();
-  const { login: privyLogin } = useLogin();
-  const { authenticated: privyAuthenticated, ready: privyReady } = usePrivy();
-  const { logout: privyLogout } = useLogout();
+  const { login: privyLogin } = useLoginSafe();
+  const { authenticated: privyAuthenticated, ready: privyReady } = usePrivySafe();
+  const { logout: privyLogout } = useLogoutSafe();
   const { activeChainId, setActiveChain } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);

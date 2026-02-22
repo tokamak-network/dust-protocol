@@ -118,7 +118,7 @@ export function V2WithdrawModal({
                 </span>
               </div>
               {!isPending && (
-                <button onClick={handleClose} className="text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">
+                <button onClick={handleClose} data-testid="modal-close" className="text-[rgba(255,255,255,0.4)] hover:text-white transition-colors">
                   <XIcon size={20} />
                 </button>
               )}
@@ -155,6 +155,7 @@ export function V2WithdrawModal({
                       </button>
                     </div>
                     <input
+                      data-testid="withdraw-amount"
                       type="text"
                       inputMode="decimal"
                       value={amount}
@@ -198,6 +199,7 @@ export function V2WithdrawModal({
                       Recipient Address
                     </label>
                     <input
+                      data-testid="withdraw-recipient"
                       type="text"
                       placeholder="0x..."
                       value={recipient}
@@ -221,6 +223,7 @@ export function V2WithdrawModal({
 
                   {/* Withdraw button */}
                   <button
+                    data-testid="withdraw-submit"
                     onClick={handleWithdraw}
                     disabled={!canWithdraw}
                     className="w-full py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] hover:shadow-[0_0_15px_rgba(0,255,65,0.15)] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider disabled:opacity-40 disabled:cursor-not-allowed"
