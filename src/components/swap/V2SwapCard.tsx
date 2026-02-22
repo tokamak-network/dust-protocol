@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { useV2Balance, useV2Keys } from "@/hooks/dustpool/v2";
 import { getDustPoolV2Config } from "@/lib/dustpool/v2/contracts";
+import { computeOwnerPubKey } from "@/lib/dustpool/v2/commitment";
 import { V2DepositModal } from "@/components/dustpool/V2DepositModal";
 import { V2WithdrawModal } from "@/components/dustpool/V2WithdrawModal";
 import { V2TransferModal } from "@/components/dustpool/V2TransferModal";
@@ -27,6 +28,22 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [pinInput, setPinInput] = useState("");
   const [showPinInput, setShowPinInput] = useState(false);
+  const [v2PubKey, setV2PubKey] = useState<string | null>(null);
+  const [pubKeyCopied, setPubKeyCopied] = useState(false);
+
+  useEffect(() => {
+    if (!hasKeys || !keysRef.current) {
+      setV2PubKey(null);
+      return;
+    }
+    const spendingKey = keysRef.current.spendingKey;
+    computeOwnerPubKey(spendingKey).then(pk => {
+      setV2PubKey(`0x${pk.toString(16)}`);
+    }).catch((e) => {
+      console.error('[V2SwapCard] Failed to derive pubkey:', e);
+      setV2PubKey(null);
+    });
+  }, [hasKeys]);
 
   const v2Config = getDustPoolV2Config(chainId);
   const unspentCount = notes.filter(n => !n.spent).length;
@@ -183,11 +200,34 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
               </div>
             )}
 
-            {/* Unlocked indicator */}
+            {/* Unlocked indicator + V2 public key */}
             {hasKeys && (
-              <div className="mb-5 flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41]" />
-                <span className="text-[10px] text-[#00FF41] font-mono">V2 keys active</span>
+              <div className="mb-5 flex flex-col gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#00FF41]" />
+                  <span className="text-[10px] text-[#00FF41] font-mono">V2 keys active</span>
+                </div>
+                {v2PubKey && (
+                  <div className="flex items-center gap-2 p-2 rounded-sm bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
+                    <span className="text-[9px] text-[rgba(255,255,255,0.4)] font-mono shrink-0">YOUR V2 KEY</span>
+                    <span className="text-[10px] text-[rgba(255,255,255,0.6)] font-mono truncate">
+                      {v2PubKey.slice(0, 10)}...{v2PubKey.slice(-6)}
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(v2PubKey).then(() => {
+                          setPubKeyCopied(true);
+                          setTimeout(() => setPubKeyCopied(false), 2000);
+                        }).catch(() => {
+                          // Clipboard API unavailable (permission denied, insecure context)
+                        });
+                      }}
+                      className="shrink-0 px-2 py-0.5 rounded-sm text-[9px] font-mono font-bold transition-all bg-[rgba(0,255,65,0.08)] border border-[rgba(0,255,65,0.15)] hover:bg-[rgba(0,255,65,0.15)] text-[#00FF41]"
+                    >
+                      {pubKeyCopied ? "COPIED" : "COPY"}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

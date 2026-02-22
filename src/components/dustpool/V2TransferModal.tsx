@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type RefObject } from "react";
+import { useState, useEffect, useCallback, type RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { parseEther, formatEther } from "viem";
 import { useV2Transfer } from "@/hooks/dustpool/v2";
@@ -11,6 +11,7 @@ import {
   SendIcon,
 } from "@/components/stealth/icons";
 import type { V2Keys } from "@/lib/dustpool/v2/types";
+import { errorToUserMessage } from "@/lib/dustpool/v2/errors";
 
 interface V2TransferModalProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ export function V2TransferModal({
   chainId,
   shieldedBalance,
 }: V2TransferModalProps) {
-  const { transfer, isPending, status, error } = useV2Transfer(keysRef, chainId);
+  const { transfer, isPending, status, txHash, error, clearError } = useV2Transfer(keysRef, chainId);
 
   const [amount, setAmount] = useState("");
   const [recipientPubKey, setRecipientPubKey] = useState("");
@@ -71,12 +72,27 @@ export function V2TransferModal({
     await transfer(parsedAmount, parsedPubKey);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (!isPending) onClose();
-  };
+  }, [isPending, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, isPending, handleClose]);
 
   const formattedMax = parseFloat(formatEther(shieldedBalance)).toFixed(4);
-  const isSuccess = hasAttempted && !isPending && !error;
+  const isSuccess = txHash !== null && !isPending && !error;
+
+  const truncatedPubKey = recipientPubKey
+    ? recipientPubKey.length > 16
+      ? `${recipientPubKey.slice(0, 10)}...${recipientPubKey.slice(-6)}`
+      : recipientPubKey
+    : "";
 
   return (
     <AnimatePresence>
@@ -186,8 +202,14 @@ export function V2TransferModal({
               {isPending && (
                 <div className="flex flex-col items-center gap-4 py-6">
                   <div className="w-8 h-8 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm font-semibold text-white font-mono">{status || 'Generating ZK proof...'}</p>
-                  <p className="text-xs text-[rgba(255,255,255,0.4)] text-center font-mono">This may take a moment</p>
+                  <p className="text-sm font-semibold text-white font-mono">{status || "Generating ZK proof..."}</p>
+                  <div className="flex items-center gap-2 text-[10px] text-[rgba(255,255,255,0.3)] font-mono">
+                    <span className="text-[#00FF41]">proof</span>
+                    <span>&rarr;</span>
+                    <span className={status?.includes("Submitting") || status?.includes("Confirming") ? "text-[#00FF41]" : ""}>submit</span>
+                    <span>&rarr;</span>
+                    <span className={status?.includes("Confirming") ? "text-[#00FF41]" : ""}>confirm</span>
+                  </div>
                 </div>
               )}
 
@@ -201,6 +223,20 @@ export function V2TransferModal({
                     <p className="text-base font-bold text-white mb-1 font-mono">Transfer Successful</p>
                     <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{amount} ETH transferred privately</p>
                   </div>
+
+                  {txHash && (
+                    <div className="p-3 rounded-sm bg-[rgba(0,255,65,0.04)] border border-[rgba(0,255,65,0.15)]">
+                      <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1 font-mono">Transaction</p>
+                      <p className="text-xs font-mono text-[#00FF41] break-all">{txHash}</p>
+                    </div>
+                  )}
+
+                  {truncatedPubKey && (
+                    <div className="p-3 rounded-sm bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
+                      <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1 font-mono">Recipient</p>
+                      <p className="text-xs font-mono text-white">{truncatedPubKey}</p>
+                    </div>
+                  )}
 
                   <button
                     onClick={handleClose}
@@ -219,7 +255,7 @@ export function V2TransferModal({
                       <AlertCircleIcon size={40} color="#ef4444" />
                     </div>
                     <p className="text-base font-bold text-white mb-1 font-mono">Transfer Failed</p>
-                    <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{error}</p>
+                    <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{errorToUserMessage(error)}</p>
                   </div>
 
                   <div className="flex gap-3">
@@ -230,7 +266,7 @@ export function V2TransferModal({
                       Cancel
                     </button>
                     <button
-                      onClick={() => { setAmount(""); setRecipientPubKey(""); }}
+                      onClick={() => { clearError(); setAmount(""); setRecipientPubKey(""); setHasAttempted(false); }}
                       className="flex-1 py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] text-sm font-bold text-[#00FF41] font-mono tracking-wider transition-all"
                     >
                       Try Again

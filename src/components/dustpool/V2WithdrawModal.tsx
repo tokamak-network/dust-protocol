@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type RefObject } from "react";
+import { useState, useEffect, useCallback, type RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { parseEther, formatEther, isAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
@@ -11,6 +11,7 @@ import {
   XIcon,
 } from "@/components/stealth/icons";
 import type { V2Keys } from "@/lib/dustpool/v2/types";
+import { errorToUserMessage } from "@/lib/dustpool/v2/errors";
 
 interface V2WithdrawModalProps {
   isOpen: boolean;
@@ -28,7 +29,7 @@ export function V2WithdrawModal({
   shieldedBalance,
 }: V2WithdrawModalProps) {
   const { address } = useAccount();
-  const { withdraw, isPending, txHash, error } = useV2Withdraw(keysRef, chainId);
+  const { withdraw, isPending, status, txHash, error, clearError } = useV2Withdraw(keysRef, chainId);
   const { unspentNotes } = useV2Notes(keysRef, chainId);
 
   const [amount, setAmount] = useState("");
@@ -78,9 +79,18 @@ export function V2WithdrawModal({
     await withdraw(parsedAmount, recipient as Address);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (!isPending) onClose();
-  };
+  }, [isPending, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, isPending, handleClose]);
 
   const handleMaxClick = () => {
     if (shieldedBalance > 0n) {
@@ -237,8 +247,14 @@ export function V2WithdrawModal({
               {isPending && (
                 <div className="flex flex-col items-center gap-4 py-6">
                   <div className="w-8 h-8 border-2 border-[#00FF41] border-t-transparent rounded-full animate-spin" />
-                  <p className="text-sm font-semibold text-white font-mono">Generating ZK proof...</p>
-                  <p className="text-xs text-[rgba(255,255,255,0.4)] text-center font-mono">This may take a moment while the proof is generated and submitted to the relayer</p>
+                  <p className="text-sm font-semibold text-white font-mono">{status || "Generating ZK proof..."}</p>
+                  <div className="flex items-center gap-2 text-[10px] text-[rgba(255,255,255,0.3)] font-mono">
+                    <span className="text-[#00FF41]">proof</span>
+                    <span>&rarr;</span>
+                    <span className={status?.includes("Submitting") || status?.includes("Confirming") ? "text-[#00FF41]" : ""}>submit</span>
+                    <span>&rarr;</span>
+                    <span className={status?.includes("Confirming") ? "text-[#00FF41]" : ""}>confirm</span>
+                  </div>
                 </div>
               )}
 
@@ -260,6 +276,20 @@ export function V2WithdrawModal({
                     </div>
                   )}
 
+                  <div className="p-3 rounded-sm bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
+                    <p className="text-[11px] text-[rgba(255,255,255,0.4)] mb-1 font-mono">Recipient</p>
+                    <p className="text-xs font-mono text-white break-all">{recipient}</p>
+                  </div>
+
+                  {changeAmount !== null && changeAmount > 0n && (
+                    <div className="p-3 rounded-sm bg-[rgba(245,158,11,0.06)] border border-[rgba(245,158,11,0.15)]">
+                      <p className="text-xs text-amber-400 font-semibold mb-1 font-mono">Change Note Saved</p>
+                      <p className="text-[11px] text-[rgba(255,255,255,0.4)] leading-relaxed font-mono">
+                        {parseFloat(formatEther(changeAmount)).toFixed(6)} ETH returned as a new shielded note.
+                      </p>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleClose}
                     className="w-full py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] transition-all text-sm font-bold text-[#00FF41] font-mono tracking-wider"
@@ -277,7 +307,7 @@ export function V2WithdrawModal({
                       <AlertCircleIcon size={40} color="#ef4444" />
                     </div>
                     <p className="text-base font-bold text-white mb-1 font-mono">Withdrawal Failed</p>
-                    <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{error}</p>
+                    <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{errorToUserMessage(error)}</p>
                   </div>
 
                   <div className="flex gap-3">
@@ -288,7 +318,7 @@ export function V2WithdrawModal({
                       Cancel
                     </button>
                     <button
-                      onClick={() => setAmount("")}
+                      onClick={() => { clearError(); setAmount(""); }}
                       className="flex-1 py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] text-sm font-bold text-[#00FF41] font-mono tracking-wider transition-all"
                     >
                       Try Again

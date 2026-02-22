@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, type RefObject } from 'react'
+import { useState, useCallback, useRef, useMemo, type RefObject } from 'react'
 import { useAccount, useChainId, useWalletClient } from 'wagmi'
 import { publicActions, zeroAddress, type Address } from 'viem'
 import { computeOwnerPubKey, computeAssetId, computeNoteCommitment } from '@/lib/dustpool/v2/commitment'
@@ -132,5 +132,10 @@ export function useV2Deposit(keysRef: RefObject<V2Keys | null>, chainIdOverride?
     }
   }, [isConnected, address, walletClient, chainId])
 
-  return { deposit, isPending, txHash, error }
+  const clearError = useCallback(() => {
+    setError(null)
+    setTxHash(null)
+  }, [])
+
+  return useMemo(() => ({ deposit, isPending, txHash, error, clearError }), [deposit, isPending, txHash, error, clearError])
 }

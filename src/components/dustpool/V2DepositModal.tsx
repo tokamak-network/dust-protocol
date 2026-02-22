@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type RefObject } from "react";
+import { useState, useEffect, useCallback, type RefObject } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { parseEther, formatEther } from "viem";
 import { useAccount, useBalance } from "wagmi";
@@ -12,6 +12,7 @@ import {
   XIcon,
 } from "@/components/stealth/icons";
 import type { V2Keys } from "@/lib/dustpool/v2/types";
+import { errorToUserMessage } from "@/lib/dustpool/v2/errors";
 
 interface V2DepositModalProps {
   isOpen: boolean;
@@ -23,13 +24,15 @@ interface V2DepositModalProps {
 export function V2DepositModal({ isOpen, onClose, keysRef, chainId }: V2DepositModalProps) {
   const { address } = useAccount();
   const { data: walletBalance } = useBalance({ address });
-  const { deposit, isPending, txHash, error } = useV2Deposit(keysRef, chainId);
+  const { deposit, isPending, txHash, error, clearError } = useV2Deposit(keysRef, chainId);
 
   const [amount, setAmount] = useState("");
+  const [maxWarning, setMaxWarning] = useState("");
 
   useEffect(() => {
     if (isOpen) {
       setAmount("");
+      setMaxWarning("");
     }
   }, [isOpen]);
 
@@ -58,17 +61,29 @@ export function V2DepositModal({ isOpen, onClose, keysRef, chainId }: V2DepositM
     await deposit(parsedAmount);
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (!isPending) onClose();
-  };
+  }, [isPending, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isPending) handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, isPending, handleClose]);
 
   const handleMaxClick = () => {
     if (!walletBalance) return;
-    // Reserve ~0.005 ETH for gas
     const reserved = parseEther("0.005");
     const max = walletBalance.value > reserved ? walletBalance.value - reserved : 0n;
     if (max > 0n) {
       setAmount(formatEther(max));
+      setMaxWarning("");
+    } else {
+      setAmount("0");
+      setMaxWarning("Wallet balance too low (gas reserve: 0.005 ETH)");
     }
   };
 
@@ -149,6 +164,9 @@ export function V2DepositModal({ isOpen, onClose, keysRef, chainId }: V2DepositM
                     {exceedsBalance && (
                       <p className="text-[11px] text-red-400 font-mono">Insufficient wallet balance</p>
                     )}
+                    {maxWarning && (
+                      <p className="text-[11px] text-amber-400 font-mono">{maxWarning}</p>
+                    )}
                   </div>
 
                   {/* Deposit button */}
@@ -214,7 +232,7 @@ export function V2DepositModal({ isOpen, onClose, keysRef, chainId }: V2DepositM
                       <AlertCircleIcon size={40} color="#ef4444" />
                     </div>
                     <p className="text-base font-bold text-white mb-1 font-mono">Deposit Failed</p>
-                    <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{error}</p>
+                    <p className="text-[13px] text-[rgba(255,255,255,0.5)] font-mono">{errorToUserMessage(error)}</p>
                   </div>
 
                   <div className="flex gap-3">
@@ -225,7 +243,7 @@ export function V2DepositModal({ isOpen, onClose, keysRef, chainId }: V2DepositM
                       Cancel
                     </button>
                     <button
-                      onClick={() => setAmount("")}
+                      onClick={() => { clearError(); setAmount(""); }}
                       className="flex-1 py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] text-sm font-bold text-[#00FF41] font-mono tracking-wider transition-all"
                     >
                       Try Again

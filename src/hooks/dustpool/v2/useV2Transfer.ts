@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, type RefObject } from 'react'
+import { useState, useCallback, useRef, useMemo, type RefObject } from 'react'
 import { useAccount, useChainId, usePublicClient } from 'wagmi'
 import { zeroAddress, type Address } from 'viem'
 import { computeAssetId } from '@/lib/dustpool/v2/commitment'
@@ -171,5 +171,11 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
     }
   }, [isConnected, address, chainId, publicClient])
 
-  return { transfer, isPending, status, txHash, error }
+  const clearError = useCallback(() => {
+    setError(null)
+    setTxHash(null)
+    setStatus(null)
+  }, [])
+
+  return useMemo(() => ({ transfer, isPending, status, txHash, error, clearError }), [transfer, isPending, status, txHash, error, clearError])
 }
