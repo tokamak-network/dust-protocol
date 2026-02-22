@@ -11,22 +11,10 @@ import type { StoredNoteV2 } from '@/lib/dustpool/v2/storage'
 import { createRelayerClient } from '@/lib/dustpool/v2/relayer-client'
 import { generateV2Proof, verifyV2ProofLocally } from '@/lib/dustpool/v2/proof'
 import { deriveStorageKey } from '@/lib/dustpool/v2/storage-crypto'
+import { extractRelayerError } from '@/lib/dustpool/v2/errors'
 import type { V2Keys } from '@/lib/dustpool/v2/types'
 
 const RECEIPT_TIMEOUT_MS = 30_000
-
-// Relayer API returns JSON body with `error` field on failure.
-function extractRelayerError(e: unknown, fallback: string): string {
-  if (!(e instanceof Error)) return fallback
-  const body = (e as { body?: string }).body
-  if (body) {
-    try {
-      const parsed = JSON.parse(body) as { error?: string }
-      if (parsed.error) return parsed.error
-    } catch {}
-  }
-  return e.message || fallback
-}
 
 export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride?: number) {
   const { address, isConnected } = useAccount()
@@ -88,7 +76,7 @@ export function useV2Transfer(keysRef: RefObject<V2Keys | null>, chainIdOverride
           setStatus('Tree updated during proof generation. Retrying with fresh state...')
         }
 
-        const merkleProof = await relayer.getMerkleProof(inputNote.leafIndex)
+        const merkleProof = await relayer.getMerkleProof(inputNote.leafIndex, chainId)
         const proofInputs = await buildTransferInputs(
           inputNote, recipientPubKey, amount, keys, merkleProof, chainId
         )

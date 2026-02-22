@@ -127,8 +127,12 @@ export async function POST(req: Request) {
 
       console.log(`[V2/transfer] Success: nullifier=${nullifier0.slice(0, 18)}... tx=${receipt.transactionHash}`)
 
-      // Resync tree to capture output commitments
-      await syncAndPostRoot(chainId)
+      // Best-effort resync — don't lose the txHash if tree sync fails
+      try {
+        await syncAndPostRoot(chainId)
+      } catch (syncErr) {
+        console.error('[V2/transfer] Post-TX tree sync failed (non-fatal):', syncErr)
+      }
 
       return NextResponse.json(
         { success: true, txHash: receipt.transactionHash },

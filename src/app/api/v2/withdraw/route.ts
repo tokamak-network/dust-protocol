@@ -136,8 +136,12 @@ export async function POST(req: Request) {
         `[V2/withdraw] Success: nullifier=${nullifier0.slice(0, 18)}... recipient=${recipient} tx=${receipt.transactionHash}`,
       )
 
-      // Resync tree to capture output commitments queued by the withdrawal
-      await syncAndPostRoot(chainId)
+      // Best-effort resync — don't lose the txHash if tree sync fails
+      try {
+        await syncAndPostRoot(chainId)
+      } catch (syncErr) {
+        console.error('[V2/withdraw] Post-TX tree sync failed (non-fatal):', syncErr)
+      }
 
       return NextResponse.json(
         {

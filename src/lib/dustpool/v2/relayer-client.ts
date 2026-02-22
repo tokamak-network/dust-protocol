@@ -140,18 +140,20 @@ export function createRelayerClient(config?: Partial<RelayerConfig>) {
     /**
      * Fetch the current Merkle tree root from the relayer.
      */
-    async getTreeRoot(): Promise<bigint> {
-      const data = await relayerFetch<TreeRootResponse>(resolvedConfig, '/api/v2/tree/root')
+    async getTreeRoot(chainId?: number): Promise<bigint> {
+      const params = chainId != null ? `?chainId=${chainId}` : ''
+      const data = await relayerFetch<TreeRootResponse>(resolvedConfig, `/api/v2/tree/root${params}`)
       return BigInt(data.root)
     },
 
     /**
      * Get a Merkle proof for a leaf at the given index.
      */
-    async getMerkleProof(leafIndex: number): Promise<MerkleProof> {
+    async getMerkleProof(leafIndex: number, chainId?: number): Promise<MerkleProof> {
+      const params = chainId != null ? `?chainId=${chainId}` : ''
       const data = await relayerFetch<MerkleProofResponse>(
         resolvedConfig,
-        `/api/v2/tree/proof/${leafIndex}`
+        `/api/v2/tree/proof/${leafIndex}${params}`
       )
       return {
         pathElements: data.pathElements.map((hex) => BigInt(hex)),
@@ -201,10 +203,11 @@ export function createRelayerClient(config?: Partial<RelayerConfig>) {
     /**
      * Check whether a deposit commitment has been confirmed and its leaf index.
      */
-    async getDepositStatus(commitment: string): Promise<DepositStatus> {
+    async getDepositStatus(commitment: string, chainId?: number): Promise<DepositStatus> {
+      const params = chainId != null ? `?chainId=${chainId}` : ''
       const data = await relayerFetch<DepositStatusResponse>(
         resolvedConfig,
-        `/api/v2/deposit/status/${commitment}`
+        `/api/v2/deposit/status/${commitment}${params}`
       )
       return {
         confirmed: data.confirmed,

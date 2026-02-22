@@ -57,10 +57,11 @@ export function V2WithdrawModal({
   const canWithdraw = parsedAmount !== null && !exceedsBalance && isValidRecipient && !isPending;
 
   // Find notes that will be consumed (simplified: show largest note >= amount)
+  // Filter leafIndex >= 0 to match the hook's actual note selection (pending notes excluded)
   const consumedNote = (() => {
     if (!parsedAmount) return null;
     const eligible = unspentNotes
-      .filter(n => n.note.amount >= parsedAmount)
+      .filter(n => n.leafIndex >= 0 && n.note.amount >= parsedAmount)
       .sort((a, b) => {
         const diff = a.note.amount - b.note.amount;
         if (diff < 0n) return -1;

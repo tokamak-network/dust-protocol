@@ -60,6 +60,7 @@ export function V2SwapCard({ chainId }: V2SwapCardProps) {
     if (ok) {
       setPinInput("");
       setShowPinInput(false);
+      refreshBalances();
     }
   };
 

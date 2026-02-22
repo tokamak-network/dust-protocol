@@ -1,3 +1,22 @@
+/**
+ * Extract a human-readable error from a RelayerError response.
+ * RelayerError carries a `body` string with JSON `{ error: "..." }` from the server.
+ */
+export function extractRelayerError(e: unknown, fallback: string): string {
+  if (!(e instanceof Error)) return fallback
+  const body = (e as { body?: string }).body
+  if (body) {
+    try {
+      const parsed = JSON.parse(body) as { error?: string }
+      if (parsed.error) return parsed.error
+    } catch (parseErr: unknown) {
+      const detail = parseErr instanceof Error ? parseErr.message : 'unknown parse error'
+      console.warn(`[extractRelayerError] Failed to parse relayer body: ${detail}`)
+    }
+  }
+  return e.message || fallback
+}
+
 const ERROR_MAP: [pattern: RegExp, message: string][] = [
   [/no note with sufficient balance/i, 'Not enough shielded balance for this amount'],
   [/proof failed local verification/i, 'Proof generation failed. Please try again.'],

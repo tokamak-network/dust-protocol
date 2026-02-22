@@ -83,7 +83,7 @@ export function useV2Deposit(keysRef: RefObject<V2Keys | null>, chainIdOverride?
 
       for (let attempt = 0; attempt < DEPOSIT_POLL_MAX_ATTEMPTS; attempt++) {
         try {
-          const status = await relayer.getDepositStatus(commitmentHex)
+          const status = await relayer.getDepositStatus(commitmentHex, chainId)
           if (status.confirmed) {
             leafIndex = status.leafIndex
             break

@@ -32,13 +32,11 @@ export function V2TransferModal({
 
   const [amount, setAmount] = useState("");
   const [recipientPubKey, setRecipientPubKey] = useState("");
-  const [hasAttempted, setHasAttempted] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setAmount("");
       setRecipientPubKey("");
-      setHasAttempted(false);
     }
   }, [isOpen]);
 
@@ -68,7 +66,6 @@ export function V2TransferModal({
 
   const handleTransfer = async () => {
     if (!parsedAmount || !parsedPubKey) return;
-    setHasAttempted(true);
     await transfer(parsedAmount, parsedPubKey);
   };
 
@@ -266,7 +263,7 @@ export function V2TransferModal({
                       Cancel
                     </button>
                     <button
-                      onClick={() => { clearError(); setAmount(""); setRecipientPubKey(""); setHasAttempted(false); }}
+                      onClick={() => { clearError(); setAmount(""); setRecipientPubKey(""); }}
                       className="flex-1 py-3 rounded-sm bg-[rgba(0,255,65,0.1)] border border-[rgba(0,255,65,0.2)] hover:bg-[rgba(0,255,65,0.15)] hover:border-[#00FF41] text-sm font-bold text-[#00FF41] font-mono tracking-wider transition-all"
                     >
                       Try Again
