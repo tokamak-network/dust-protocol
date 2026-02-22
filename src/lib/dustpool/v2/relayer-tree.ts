@@ -5,6 +5,7 @@
 // Next.js API requests within the same serverless function instance.
 
 import { ethers } from 'ethers'
+import { readFile, writeFile } from 'fs/promises'
 import { getServerProvider, getServerSponsor } from '@/lib/server-provider'
 import { getDustPoolV2Address, DUST_POOL_V2_ABI } from './contracts'
 import { MerkleTree } from '../merkle'
@@ -14,8 +15,8 @@ import { toBytes32Hex } from '../poseidon'
 
 // Block to start scanning from per chain (safe lower bound — V2 deployed after V1)
 const V2_START_BLOCKS: Record<number, number> = {
-  11155111: 10302141,
-  111551119090: 6463446,
+  11155111: 10311323,
+  111551119090: 6482414,
 }
 
 // drpc.org enforces 10K block limit on eth_getLogs
@@ -34,6 +35,62 @@ interface TreeState {
 
 const trees = new Map<number, TreeState>()
 const syncPromises = new Map<number, Promise<TreeState>>()
+
+// ─── Checkpoint Persistence ─────────────────────────────────────────────────────
+
+interface TreeCheckpoint {
+  version: 1
+  chainId: number
+  lastSyncedBlock: number
+  leafCount: number
+  commitments: string[]
+  savedAt: number
+}
+
+function checkpointPath(chainId: number): string {
+  return `/tmp/dust-v2-tree-${chainId}.json`
+}
+
+async function loadCheckpoint(chainId: number): Promise<TreeCheckpoint | null> {
+  try {
+    const data = await readFile(checkpointPath(chainId), 'utf-8')
+    const cp: TreeCheckpoint = JSON.parse(data)
+    if (
+      cp.version !== 1 ||
+      cp.chainId !== chainId ||
+      !Array.isArray(cp.commitments) ||
+      cp.commitments.length !== cp.leafCount
+    ) {
+      return null
+    }
+    return cp
+  } catch {
+    return null
+  }
+}
+
+function saveCheckpointAsync(chainId: number, state: TreeState): void {
+  const commitments: string[] = []
+  for (let i = 0; i < state.tree.leafCount; i++) {
+    const leaf = state.tree.getLeaf(i)
+    if (leaf !== undefined) {
+      commitments.push('0x' + leaf.toString(16).padStart(64, '0'))
+    }
+  }
+
+  const checkpoint: TreeCheckpoint = {
+    version: 1,
+    chainId,
+    lastSyncedBlock: state.lastSyncedBlock,
+    leafCount: state.tree.leafCount,
+    commitments,
+    savedAt: Date.now(),
+  }
+
+  writeFile(checkpointPath(chainId), JSON.stringify(checkpoint))
+    .then(() => console.log(`[V2Relayer] Checkpoint saved: chain=${chainId} leaves=${checkpoint.leafCount} block=${checkpoint.lastSyncedBlock}`))
+    .catch(() => {})
+}
 
 // ─── Core Sync ──────────────────────────────────────────────────────────────────
 
@@ -61,12 +118,30 @@ async function syncInternal(chainId: number): Promise<TreeState> {
 
   let state = trees.get(chainId)
   if (!state) {
-    const tree = await MerkleTree.create(20)
-    state = {
-      tree,
-      lastSyncedBlock: (V2_START_BLOCKS[chainId] ?? 0) - 1,
-      commitmentToLeafIndex: new Map(),
-      lastPostedRoot: 0n,
+    // Cold start — try to restore from checkpoint before full rescan
+    const checkpoint = await loadCheckpoint(chainId)
+    if (checkpoint && checkpoint.commitments.length > 0) {
+      console.log(`[V2Relayer] Restoring from checkpoint: chain=${chainId} leaves=${checkpoint.leafCount} block=${checkpoint.lastSyncedBlock}`)
+      const tree = await MerkleTree.create(20)
+      const commitmentMap = new Map<string, number>()
+      for (const hex of checkpoint.commitments) {
+        const leafIndex = await tree.insert(BigInt(hex))
+        commitmentMap.set(hex.toLowerCase(), leafIndex)
+      }
+      state = {
+        tree,
+        lastSyncedBlock: checkpoint.lastSyncedBlock,
+        commitmentToLeafIndex: commitmentMap,
+        lastPostedRoot: 0n,
+      }
+    } else {
+      const tree = await MerkleTree.create(20)
+      state = {
+        tree,
+        lastSyncedBlock: (V2_START_BLOCKS[chainId] ?? 0) - 1,
+        commitmentToLeafIndex: new Map(),
+        lastPostedRoot: 0n,
+      }
     }
     trees.set(chainId, state)
   }
@@ -100,6 +175,7 @@ async function syncInternal(chainId: number): Promise<TreeState> {
   }
 
   state.lastSyncedBlock = currentBlock
+  saveCheckpointAsync(chainId, state)
   return state
 }
 
@@ -195,4 +271,21 @@ export async function getDepositLeafIndex(
 export async function getTreeLeafCount(chainId: number): Promise<number> {
   const state = await ensureSynced(chainId)
   return state.tree.leafCount
+}
+
+/**
+ * Get the current tree state snapshot for diagnostics (health endpoint).
+ * Syncs the tree but does NOT post root — avoids spending gas on health checks.
+ */
+export async function getTreeSnapshot(chainId: number): Promise<{
+  leafCount: number
+  root: bigint
+  lastSyncedBlock: number
+}> {
+  const state = await ensureSynced(chainId)
+  return {
+    leafCount: state.tree.leafCount,
+    root: state.tree.root,
+    lastSyncedBlock: state.lastSyncedBlock,
+  }
 }
