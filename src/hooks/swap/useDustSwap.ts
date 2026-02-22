@@ -78,7 +78,7 @@ function formatProofForContract(proof: any, publicSignals: string[]) {
       [BigInt(proof.pi_b[1][1]), BigInt(proof.pi_b[1][0])],
     ] as [[bigint, bigint], [bigint, bigint]],
     pC: [BigInt(proof.pi_c[0]), BigInt(proof.pi_c[1])] as [bigint, bigint],
-    // Circuit has 8 public signals: [root, nullifierHash, recipient, relayer, fee, swapAmountOut, reserved1, reserved2]
+    // Circuit has 8 public signals: [root, nullifierHash, recipient, relayer, fee, swapAmountOut, chainId, reserved2]
     pubSignals: publicSignals.map((s) => BigInt(s)) as [
       bigint, bigint, bigint, bigint,
       bigint, bigint, bigint, bigint,
@@ -117,6 +117,7 @@ const HOOK_ERROR_MESSAGES: Record<string, string> = {
   UnauthorizedRelayer: 'Relayer is not authorized.',
   SwapAmountTooLow: 'Output amount too low (excessive slippage).',
   InvalidMinimumOutput: 'Minimum output amount is zero.',
+  InvalidChainId: 'Proof was generated for a different chain. Please refresh and try again.',
   SwapNotInitialized: 'Swap pool not initialized.',
   NotPoolManager: 'Hook called by wrong address (deployment misconfiguration).',
   Unauthorized: 'Caller not authorized for this operation.',
@@ -305,12 +306,16 @@ export function useDustSwap(options?: UseDustSwapOptions) {
         const relayerInfo = await getRelayerInfo()
         const relayerAddress = relayerInfo?.address ?? '0x0000000000000000000000000000000000000000'
 
+        if (!chainId) {
+          throw new Error('Cannot generate proof: wallet is not connected to a supported network')
+        }
+
         const zkSwapParams: ZKSwapParams = {
           recipient: params.recipient,
           relayer: relayerAddress as Address,  // Relayer address (NOT user's wallet)
           relayerFee: relayerInfo?.feeBps ?? 0,
           swapAmountOut: params.minAmountOut,
-          chainId: chainId!,
+          chainId,
         }
 
         const proofResult = await generateProof(depositNote, merkleProof, zkSwapParams)
