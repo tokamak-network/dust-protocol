@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.20;
 
 import {IFFLONKVerifier} from "./IFFLONKVerifier.sol";
 
@@ -10,12 +10,14 @@ interface IERC20 {
 
 /// @dev SafeERC20-style transfer using low-level call (handles non-standard tokens like USDT)
 library SafeTransfer {
+    error ERC20TransferFailed();
+
     function safeTransfer(address token, address to, uint256 amount) internal {
         (bool success, bytes memory data) = token.call(
             abi.encodeWithSelector(IERC20.transfer.selector, to, amount)
         );
         if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
-            revert("ERC20 transfer failed");
+            revert ERC20TransferFailed();
         }
     }
 
@@ -24,7 +26,7 @@ library SafeTransfer {
             abi.encodeWithSelector(IERC20.transferFrom.selector, from, to, amount)
         );
         if (!success || (data.length > 0 && !abi.decode(data, (bool)))) {
-            revert("ERC20 transferFrom failed");
+            revert ERC20TransferFailed();
         }
     }
 }
@@ -87,6 +89,7 @@ contract DustPoolV2 {
     event RootUpdated(bytes32 newRoot, uint256 index, address relayer);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event OwnershipTransferStarted(address indexed previousOwner, address indexed newOwner);
+    event RelayerUpdated(address indexed relayer, bool allowed);
     event Paused(address account);
     event Unpaused(address account);
 
@@ -98,7 +101,6 @@ contract DustPoolV2 {
     error InvalidProofLength();
     error InvalidFieldElement();
     error TransferFailed();
-    error ERC20TransferFailed();
     error ZeroRecipient();
     error DuplicateCommitment();
     error DepositTooLarge();
@@ -164,15 +166,16 @@ contract DustPoolV2 {
         if (amount > MAX_DEPOSIT_AMOUNT) revert DepositTooLarge();
         if (commitmentUsed[commitment]) revert DuplicateCommitment();
 
+        // Effects before interactions (CEI pattern)
         commitmentUsed[commitment] = true;
-
-        token.safeTransferFrom(msg.sender, address(this), amount);
-
         totalDeposited[token] += amount;
 
         uint256 index = depositQueueTail;
         depositQueue[index] = commitment;
         depositQueueTail = index + 1;
+
+        // Interaction — external call last
+        token.safeTransferFrom(msg.sender, address(this), amount);
 
         emit DepositQueued(commitment, index, amount, token, block.timestamp);
     }
@@ -185,9 +188,8 @@ contract DustPoolV2 {
     /// @param outCommitment0 First output UTXO commitment
     /// @param outCommitment1 Second output UTXO commitment
     /// @param publicAmount Net public amount (field element; > FIELD_SIZE/2 encodes withdrawal)
-    /// @param publicAsset Asset address (address(0) for native ETH)
-    /// @param recipient Address to receive withdrawn funds
     /// @param publicAsset Poseidon(chainId, tokenAddress) — must match circuit public signal
+    /// @param recipient Address to receive withdrawn funds
     /// @param tokenAddress Actual token address for transfer (address(0) = native ETH)
     function withdraw(
         bytes calldata proof,
@@ -212,6 +214,7 @@ contract DustPoolV2 {
         if (uint256(outCommitment0) >= FIELD_SIZE) revert InvalidFieldElement();
         if (uint256(outCommitment1) >= FIELD_SIZE) revert InvalidFieldElement();
         if (publicAmount >= FIELD_SIZE) revert InvalidFieldElement();
+        if (publicAsset >= FIELD_SIZE) revert InvalidFieldElement();
 
         if (nullifiers[nullifier0]) revert NullifierAlreadySpent();
         if (nullifier1 != bytes32(0) && nullifiers[nullifier1]) {
@@ -310,6 +313,7 @@ contract DustPoolV2 {
     /// @param allowed Whether to allow or disallow
     function setRelayer(address relayer, bool allowed) external onlyOwner {
         relayers[relayer] = allowed;
+        emit RelayerUpdated(relayer, allowed);
     }
 
     /// @notice Start ownership transfer (2-step)

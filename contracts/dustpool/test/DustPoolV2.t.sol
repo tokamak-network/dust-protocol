@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.20;
 
 import "forge-std/Test.sol";
 import {DustPoolV2} from "../src/DustPoolV2.sol";
@@ -905,5 +905,90 @@ contract DustPoolV2Test is Test {
         pool.acceptOwnership();
 
         assertEq(pool.pendingOwner(), address(0));
+    }
+
+    // ========== M2: setRelayer emits event ==========
+
+    event RelayerUpdated(address indexed relayer, bool allowed);
+
+    function testSetRelayerEmitsEvent() public {
+        address newRelayer = makeAddr("eventRelayer");
+
+        vm.prank(deployer);
+        vm.expectEmit(true, false, false, true);
+        emit RelayerUpdated(newRelayer, true);
+        pool.setRelayer(newRelayer, true);
+
+        vm.prank(deployer);
+        vm.expectEmit(true, false, false, true);
+        emit RelayerUpdated(newRelayer, false);
+        pool.setRelayer(newRelayer, false);
+    }
+
+    // ========== M4: publicAsset field validation ==========
+
+    function testWithdrawFieldOverflowPublicAsset() public {
+        bytes32 root = bytes32(uint256(0xab3));
+        vm.prank(relayer);
+        pool.updateRoot(root);
+
+        uint256 overflowAsset = FIELD_SIZE;
+
+        vm.prank(relayer);
+        vm.expectRevert(DustPoolV2.InvalidFieldElement.selector);
+        pool.withdraw(
+            _dummyProof(),
+            root,
+            bytes32(uint256(1)),
+            bytes32(0),
+            bytes32(0),
+            bytes32(0),
+            0,
+            overflowAsset,
+            bob,
+            address(0)
+        );
+    }
+
+    // ========== L3: ERC20 withdrawal path ==========
+
+    function testWithdrawERC20() public {
+        bytes32 c1 = bytes32(uint256(0xeee));
+        uint256 depositAmount = 5e18;
+
+        mockToken.mint(alice, depositAmount);
+        vm.prank(alice);
+        mockToken.approve(address(pool), depositAmount);
+
+        vm.prank(alice);
+        pool.depositERC20(c1, address(mockToken), depositAmount);
+
+        bytes32 root = bytes32(uint256(0xef1));
+        vm.prank(relayer);
+        pool.updateRoot(root);
+
+        uint256 withdrawAmount = 2e18;
+        uint256 publicAmount = _encodeWithdrawal(withdrawAmount);
+
+        uint256 bobBefore = mockToken.balanceOf(bob);
+
+        vm.prank(relayer);
+        vm.expectEmit(true, true, false, true);
+        emit Withdrawal(bytes32(uint256(0xef2)), bob, withdrawAmount, address(mockToken));
+        pool.withdraw(
+            _dummyProof(),
+            root,
+            bytes32(uint256(0xef2)),
+            bytes32(0),
+            bytes32(0),
+            bytes32(0),
+            publicAmount,
+            0,
+            bob,
+            address(mockToken)
+        );
+
+        assertEq(mockToken.balanceOf(bob), bobBefore + withdrawAmount);
+        assertEq(pool.totalDeposited(address(mockToken)), depositAmount - withdrawAmount);
     }
 }
