@@ -1,7 +1,7 @@
 {
   "transactions": [
     {
-      "rpc": "https://sepolia.drpc.org"
+      "rpc": "https://ethereum-sepolia-rpc.publicnode.com"
     }
   ]
 }
