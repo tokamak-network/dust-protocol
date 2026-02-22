@@ -27,6 +27,7 @@ export interface PublicSignals {
   relayer: Address
   relayerFee: bigint
   swapAmountOut: bigint
+  chainId: number
 }
 
 export interface SwapParams {
@@ -34,6 +35,7 @@ export interface SwapParams {
   relayer: Address
   relayerFee: number
   swapAmountOut: bigint
+  chainId: number
 }
 
 // Singleton worker
@@ -186,10 +188,7 @@ export async function generateProof(
     relayer: BigInt(swapParams.relayer).toString(),
     relayerFee: swapParams.relayerFee.toString(),
     swapAmountOut: swapParams.swapAmountOut.toString(),
-    // Reserved fields — the compiled WASM still includes these unconstrained
-    // public inputs (planned for removal in gas optimization Phase 1).
-    // Must be provided until the circuit is recompiled.
-    reserved1: '0',
+    chainId: swapParams.chainId.toString(),
     reserved2: '0',
   }
 

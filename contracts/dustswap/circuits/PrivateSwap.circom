@@ -7,19 +7,19 @@ include "../../dustpool/node_modules/circomlib/circuits/comparators.circom";
 
 // DustSwap Private Swap Circuit
 // Proves knowledge of (nullifier, secret, depositAmount) for a commitment in the Merkle tree
-// Public: merkleRoot, nullifierHash, recipient, relayer, relayerFee, swapAmountOut
+// Public: merkleRoot, nullifierHash, recipient, relayer, relayerFee, swapAmountOut, chainId
 // Private: nullifier, secret, depositAmount, pathElements[20], pathIndices[20]
 
 template PrivateSwap(levels) {
-    // Public inputs (8 total — includes 2 reserved for future use)
+    // Public inputs (8 total)
     signal input merkleRoot;
     signal input nullifierHash;
     signal input recipient;
     signal input relayer;
     signal input relayerFee;       // Max 500 bps = 5%
     signal input swapAmountOut;    // Minimum expected output
-    signal input reserved1;        // Reserved for future gas optimizations
-    signal input reserved2;        // Reserved for future gas optimizations
+    signal input chainId;          // Prevents cross-chain proof replay
+    signal input reserved2;        // Reserved for future use
 
     // Private inputs
     signal input nullifier;
@@ -47,7 +47,12 @@ template PrivateSwap(levels) {
     component amountBits = Num2Bits(248);
     amountBits.in <== depositAmount;
 
-    // 4. Verify relayerFee <= 500 (5%)
+    // 4. Range-check relayerFee to 16 bits before comparison.
+    // Without this, a field element near p could wrap LessEqThan's
+    // internal arithmetic and bypass the 500 bps cap.
+    component feeBits = Num2Bits(16);
+    feeBits.in <== relayerFee;
+
     component feeCheck = LessEqThan(16);
     feeCheck.in[0] <== relayerFee;
     feeCheck.in[1] <== 500;
@@ -81,15 +86,16 @@ template PrivateSwap(levels) {
     // 6. Verify computed root matches public merkleRoot
     merkleRoot === computedPath[levels];
 
-    // 7. Bind recipient, relayer, and swapAmountOut into the proof via Poseidon hash.
+    // 7. Bind recipient, relayer, swapAmountOut, and chainId into the proof via Poseidon hash.
     // Prevents relay-time substitution of these public signals — a compromised relayer
-    // cannot swap the recipient address without invalidating the proof.
-    component publicBinding = Poseidon(3);
+    // cannot swap the recipient address or replay on another chain without invalidating the proof.
+    component publicBinding = Poseidon(4);
     publicBinding.inputs[0] <== recipient;
     publicBinding.inputs[1] <== relayer;
     publicBinding.inputs[2] <== swapAmountOut;
+    publicBinding.inputs[3] <== chainId;
     signal publicBindingHash;
     publicBindingHash <== publicBinding.out;
 }
 
-component main {public [merkleRoot, nullifierHash, recipient, relayer, relayerFee, swapAmountOut, reserved1, reserved2]} = PrivateSwap(20);
+component main {public [merkleRoot, nullifierHash, recipient, relayer, relayerFee, swapAmountOut, chainId, reserved2]} = PrivateSwap(20);

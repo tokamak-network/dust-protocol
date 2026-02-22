@@ -310,6 +310,7 @@ export function useDustSwap(options?: UseDustSwapOptions) {
           relayer: relayerAddress as Address,  // Relayer address (NOT user's wallet)
           relayerFee: relayerInfo?.feeBps ?? 0,
           swapAmountOut: params.minAmountOut,
+          chainId: chainId!,
         }
 
         const proofResult = await generateProof(depositNote, merkleProof, zkSwapParams)

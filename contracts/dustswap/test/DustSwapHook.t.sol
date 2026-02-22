@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import {DustSwapHook, PoolKey, SwapParams, IHooks} from "../src/DustSwapHook.sol";
+import {DustSwapHook, PoolKey, SwapParams, IHooks, IPoolManager} from "../src/DustSwapHook.sol";
 import {IDustSwapVerifier} from "../src/DustSwapVerifier.sol";
 import {IDustSwapPool} from "../src/IDustSwapPool.sol";
 
@@ -69,7 +69,7 @@ contract DustSwapHookForkTest is Test {
         address _relayer,
         uint256 relayerFee,
         uint256 swapAmountOut
-    ) internal pure returns (uint256[8] memory) {
+    ) internal view returns (uint256[8] memory) {
         return [
             uint256(root),                      // [0] merkleRoot
             uint256(nullifierHash),             // [1] nullifierHash
@@ -77,7 +77,7 @@ contract DustSwapHookForkTest is Test {
             uint256(uint160(_relayer)),         // [3] relayer
             relayerFee,                          // [4] relayerFee (BPS)
             swapAmountOut,                       // [5] swapAmountOut
-            0,                                   // [6] reserved1
+            block.chainid,                       // [6] chainId
             0                                    // [7] reserved2
         ];
     }
@@ -268,6 +268,45 @@ contract DustSwapHookForkTest is Test {
         // Will revert with InvalidMerkleRoot or InvalidRelayerFee depending on pool state
         vm.expectRevert();
         hook.beforeSwap(user, poolKey, params, hookData);
+    }
+
+    /// @notice InvalidChainId when proof was generated for a different chain.
+    /// Uses a locally deployed hook since chainId check fires before any external calls.
+    function testRevertInvalidChainId() public {
+        address dummyPM = address(0xAA01);
+
+        DustSwapHook localHook = new DustSwapHook(
+            IPoolManager(dummyPM),
+            IDustSwapVerifier(address(0xAA02)),
+            IDustSwapPool(address(0xAA03)),
+            IDustSwapPool(address(0xAA04)),
+            address(this)
+        );
+
+        SwapParams memory params = SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1 ether,
+            sqrtPriceLimitX96: 0
+        });
+
+        uint256[8] memory pubSignals = [
+            uint256(0x123),
+            uint256(0x456),
+            uint256(uint160(recipient)),
+            uint256(uint160(relayer)),
+            uint256(100),
+            uint256(1 ether),
+            uint256(999),    // Wrong chainId — will revert before any pool/verifier calls
+            uint256(0)
+        ];
+        uint256[2] memory pA = [uint256(1), uint256(2)];
+        uint256[2][2] memory pB = [[uint256(3), uint256(4)], [uint256(5), uint256(6)]];
+        uint256[2] memory pC = [uint256(7), uint256(8)];
+        bytes memory hookData = createHookData(pA, pB, pC, pubSignals);
+
+        vm.prank(dummyPM);
+        vm.expectRevert(DustSwapHook.InvalidChainId.selector);
+        localHook.beforeSwap(user, poolKey, params, hookData);
     }
 
     // ─── ETH Pool Deposit & Root Verification ──────────────────────────────────

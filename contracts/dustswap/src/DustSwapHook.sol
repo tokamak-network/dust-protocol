@@ -116,6 +116,7 @@ contract DustSwapHook {
     error SwapAmountTooLow();
     error TransferFailed();
     error DepositTooRecent();
+    error InvalidChainId();
 
     modifier onlyPoolManager() {
         if (msg.sender != address(poolManager)) revert NotPoolManager();
@@ -177,7 +178,7 @@ contract DustSwapHook {
         }
 
         // Decode the proof from hookData
-        // Circuit has 8 public signals: [root, nullifierHash, recipient, relayer, fee, swapAmountOut, reserved1, reserved2]
+        // Circuit has 8 public signals: [root, nullifierHash, recipient, relayer, fee, swapAmountOut, chainId, reserved2]
         (
             uint256[2] memory pA,
             uint256[2][2] memory pB,
@@ -195,7 +196,11 @@ contract DustSwapHook {
         address relayer = address(uint160(pubSignals[3]));
         uint256 relayerFee = pubSignals[4];
         uint256 swapAmountOut = pubSignals[5];
-        // pubSignals[6] = reserved1, pubSignals[7] = reserved2 (unused)
+        uint256 proofChainId = pubSignals[6];
+        // pubSignals[7] = reserved2 (unused)
+
+        // Validate chainId — prevents cross-chain proof replay
+        if (proofChainId != block.chainid) revert InvalidChainId();
 
         // Validate minimum output (slippage protection)
         if (swapAmountOut == 0) revert InvalidMinimumOutput();
